@@ -78,7 +78,7 @@ test('fails when an article content container is missing', (t) => {
   assert.match(result.stderr, /missing \.article-content/i);
 });
 
-test('generated-site verifier rejects a route whose recovered body text is missing', (t) => {
+test('generated-site verifier rejects missing body text even when title and TOC retain it', (t) => {
   const root = mkdtempSync(join(tmpdir(), 'verify-site-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const verifier = join(root, 'test/verify_generated_site.rb');
@@ -91,10 +91,10 @@ test('generated-site verifier rejects a route whose recovered body text is missi
     'categories/blog/index.html': '',
     'tags/漫谈/index.html': '',
     'tags/课内/index.html': '',
-    [routes[0]]: 'First post body is missing',
-    [routes[1]]: '关于当下和未来',
-    [routes[2]]: '单链表',
-    [routes[3]]: '计算机网络和因特网',
+    [routes[0]]: '<h1>Welcome to Hexo</h1><nav class="toc">Welcome to Hexo</nav><div class="article-content"><div class="nested">Body missing</div></div>',
+    [routes[1]]: '<h1>关于当下和未来</h1><nav class="toc">题记:秋季已完,我仍未得救</nav><div class="article-content">Body missing</div>',
+    [routes[2]]: '<h1>数据结构复习</h1><nav class="toc">单链表</nav><div class="article-content">Body missing</div>',
+    [routes[3]]: '<h1>EBU5213 Internet protocols and networks</h1><nav class="toc">计算机网络和因特网</nav><div class="article-content">Body missing</div>',
   };
   for (const [route, contents] of Object.entries(pages)) {
     const page = join(root, 'public', route);
@@ -103,5 +103,7 @@ test('generated-site verifier rejects a route whose recovered body text is missi
   }
   const result = spawnSync('ruby', [verifier], { encoding: 'utf8' });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /missing recovered text in 2023\/10\/10\/hello-world\/index\.html: Welcome to Hexo/);
+  for (const route of routes) {
+    assert.ok(result.stderr.includes(`missing recovered text in ${route}:`), result.stderr);
+  }
 });
