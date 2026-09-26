@@ -8,7 +8,10 @@ ROOT = Pathname.new(__dir__).parent
 PUBLIC = ROOT.join("public")
 EXPECTED_ROUTES = [
   "index.html", "404.html", "archives/index.html",
-  "categories/blog/index.html", "tags/漫谈/index.html", "tags/课内/index.html",
+  "categories/index.html", "tags/index.html", "about/index.html",
+  "categories/课内/index.html", "categories/漫谈/index.html",
+  "tags/数据结构/index.html", "tags/计算机网络/index.html", "tags/随笔/index.html",
+  "search.xml",
   "2023/11/15/2023秋-关于当下和未来/index.html",
   "2023/11/15/数据结构复习/index.html",
   "2024/03/16/大二下EBU5213 Internet protocols and networks/index.html"
@@ -51,6 +54,7 @@ Dir.glob(PUBLIC.join("**", "*.{css,html}")).sort.each do |source|
   contents = File.binread(source).force_encoding(Encoding::UTF_8)
   relative = Pathname.new(source).relative_path_from(PUBLIC).to_s.force_encoding(Encoding::UTF_8)
   errors << "unrendered Obsidian embed: #{relative}" if contents.include?("![[")
+  errors << "theme default branding in #{relative}" if contents.include?("Theme Redefine") || contents.include?("Redefine Your Hexo Journey")
   errors << "visitor counter script in #{relative}" if contents.match?(/<script\b[^>]*\bsrc=["']https:\/\/(?:cn\.)?vercount\.one\/js["']/i)
   errors << "visitor counter markup in #{relative}" if contents.include?("busuanzi_container_") || contents.include?("busuanzi_value_")
   errors << "visitor counter endpoint in #{relative}" if contents.include?("vercount.one")
