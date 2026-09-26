@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/09/27/2609.29421v1_rufus-air_an_open_llm_post-training_recipe/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Rufus-Air: An Open LLM Post-Training Recipe">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/09/27/2609.29421v1_Rufus-Air_An_Open_LLM_Post-Training_Recipe/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-09-27T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-26T16:06:12.258Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            Rufus-Air: An Open LLM Post-Training Recipe | GIn&#39;s notebook
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">3</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">3</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">13</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Rufus-Air: An Open LLM Post-Training Recipe</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv2</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-09-27 12:00</span>
+        <span class="mobile">2026-09-27 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-09-27 00:06:12</span>
+            <span class="mobile">2026-09-27 00:06:12</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Chia-Yuan Chang、Renyuan Cheng、Rui Feng、Xiaotian Han、Yuan He、Hongye Jin、Linwei Li、Shiyang Li、Fenglin Liu、Xin Liu、Priyanka Nigam、Haoyang Wen、Zhenghao Xu、Zhuocheng Xu、Bing Yin、Qingyu Yin、Chao Zhang、Rongzhi Zhang、Zhihan Zhang、Zixuan Zhang（a）、Zixuan Zhang（b）、Tuo Zhao（Amazon；作者按姓氏字母序，后两位同名作者原文以上标 a&#x2F;b 区分，全部工作在 Amazon 期间完成）。</p>
+<p>论文：2609.29421v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。</p>
+<p><a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2609.29421" >Hugging Face<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> · <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2609.29421v1" >arXiv 原文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> · <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2609.29421v1" >官方全文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>分析范围：官方 arXiv v1 HTML 全文，含正文 §1–7 与附录 A（贡献分工）、B（训练配置）、C（SFT 数据来源）、D（公开基线数字来源）、E（检索 Agent 评测与轨迹分析）、F（不同用户模拟器下的 Tau2-Bench）；正文表格、训练超参与报告引用图片均已核对。</p>
+<h2 id="1-作者发现了什么问题？"><a href="#1-作者发现了什么问题？" class="headerlink" title="1. 作者发现了什么问题？"></a>1. 作者发现了什么问题？</h2><p>开放权重基座模型让更多团队可以做后训练，但<strong>后训练配方本身被公开得太少</strong>：论文里这一节常常写得像系统卡（system card），真正能复现的细节——数据构成、奖励怎么算、阶段怎么排、基础设施怎么调——恰恰披露最少（§1）。作者把 Tülu 3 列为少数把配方写清楚的例外，并以此说明”把配方完整写下来”本身值得作为贡献。</p>
+<p>这篇报告的任务是：在公开基座 <strong>GLM-4.5-Air-Base（106B 总参 &#x2F; 12B 激活的 MoE）</strong> 上，完整记录一份可复现的后训练流水线 <strong>Rufus-Air</strong>，涵盖数据、奖励设计、基础设施、阶段顺序与逐阶段结果，且<strong>不新增人工标注、不自建蒸馏 teacher</strong>，数据尽量使用公开数据集原样发行版（§1、§2）。作者自述这份报告介于研究论文与工程经验报告之间：<strong>部分结论来自训练经验而非完整消融，正文明确标记</strong>（§1、§6）。</p>
+<p>作者从训练中总结了四条贯穿全文的判断（§1、§6）：</p>
+<ol>
+<li><strong>SFT 是能力建设阶段，不是热身</strong>：一个强 SFT checkpoint 已经建立起大部分能力，后续 RL 是精修而不是从零教起；</li>
+<li>**难度过滤（difficulty filtering）让 prompt 保持在”可学习区间”**：训练前丢掉策略已经全会的、以及（多数阶段）从来不会的 prompt，过滤本身构成自动课程表；</li>
+<li><strong>奖励可靠性决定阶段顺序</strong>：奖励越难被 hack 的阶段越靠前，软性 judge&#x2F;模型奖励靠后，从而缩短”可被博弈的奖励暴露在优化压力下”的时间。注意顺序跟踪的不是奖励形式而是 hack 暴露度——IF RL 用的是 rubric judge 却排在前面，因为指令跟随接近模型已有行为，judge 没什么可被利用的空间；</li>
+<li><strong>基础设施是配方的一部分</strong>，不是实现细节：on-policy 多轮 RL 的 token-in&#x2F;token-out rollout、从 SFT 到 Agent 阶段一致的 chat template 处理、可支撑长轨迹的沙箱服务、以及大 batch + Rollout Routing Replay 的稳定性。</li>
+</ol>
+<h2 id="2-作者如何解决？"><a href="#2-作者如何解决？" class="headerlink" title="2. 作者如何解决？"></a>2. 作者如何解决？</h2><p>核心思路：把后训练组织成<strong>一条串行流水线</strong>——<code>SFT → Reasoning RL → Coding RL → Instruction-Following RL → General Agent → Coding Agent → Search Agent → RLHF</code>，<strong>每个阶段在上一阶段产出的 checkpoint 上训练</strong>；能力上从基础到进阶，奖励上从”硬、可验证”过渡到”软、judge 或环境判定”，图 1 给出总览。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-27/2609.29421_fig1.png"
+                      alt="Rufus-Air 流水线总览"
+                ></p>
+<p><em>原文图 1（§2.1）。八个阶段与其目标能力、奖励类型（图例：token supervision &#x2F; rule-based verifier &#x2F; hybrid verifier &#x2F; reward model）。前半段建通用能力，中间三段接入工具环境，最后用 RLHF 塑形开放域质量；终点是 Rufus-Air 最终模型。</em></p>
+<p><strong>① SFT（§3.1）。</strong> 混合集共 <strong>9.01M 样本 &#x2F; 44.5B 原始 token</strong>，经掩码后 <strong>27.0B token（60.8%）</strong>参与损失，来自 <strong>17 个公开数据集</strong>（附录 C 列出许可与上游生成依赖），Rufus-Air <strong>不重生成任何回复</strong>（”regenerated by Rufus-Air is zero”）。六个能力类别的样本占比与 token 占比差别很大：Math 与 Coding Agent 合计 18.8% 样本但贡献 49.1% 训练 token（表 3、图 2）。训练 3 个 epoch，64 台 8×H200（512 GPU），batch 4096，AdamW，学习率 100 步线性 warmup 到 $5\times10^{-5}$ 后余弦退火到 $5\times10^{-6}$；按 chat template 计算序列长度上限 120K（打包后 128K）。训练损失从 0.84 降到 0.42（第 1 epoch 末）再到 0.34（图 3a），但<strong>留出集分数在第一个 epoch 内就进入平台</strong>（图 3b），所以最终采用平台内的 <strong>checkpoint 3799</strong> 而不是最后一步。去污染方面：用 8-gram 重叠测试串行筛除 3,529 条，又对最易泄漏的数学&#x2F;知识基准（AIME 24&#x2F;25&#x2F;26 等）追加穷举 8-gram 与稠密检索两道检测，确认 68 对污染（58 条唯一样本），连同边界案例共<strong>剔除 4,187 条</strong>。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-27/2609.29421_fig3.png"
+                      alt="SFT 训练动态"
+                ></p>
+<p><em>原文图 3（§3.1）。左：训练损失及 50 步滑动平均，每个 epoch 边界出现台阶式下降（重复数据效应）；右：AIME 25&#x2F;26、GPQA、IFEval、IFBench 的留出评测，第一个 epoch 后基本走平，虚线为被选中的 checkpoint 3799。</em></p>
+<p><strong>② Reasoning RL（§3.2）。</strong> 12.1 万条可验证单轮 prompt（Math 47.7% &#x2F; Science 35.7% &#x2F; Puzzles 16.7%，表 5），奖励全部为<strong>程序可判定的二元信号</strong>（Math-Verify 规范化比对、生成式 Python checker、模糊字符串匹配）。两道过滤最重要：<strong>correctness filter</strong>（强 teacher GPT-OSS-120B 至少拿到一次正奖励，保证题目有解）与 <strong>learnability filter</strong>（通过率 &gt;0.8 的丢弃、零成功丢弃）；训练中用 DAPO 式动态采样在线维持组均奖励 $\bar r\in(0,0.8]$。优化用 GSPO（序列级重要性比与裁剪，长 MoE rollout 更稳），并加了一条”相对组内最短正确 rollout 的长度惩罚”以压住冗长。结果：GPQA 从 68.18 升到 73.50（+5.32），AIME 两届分别回落 2.81&#x2F;2.60——作者当时把 AIME 当护栏（SFT 已在 90+，30 题下 3 点以内不到一题的量级），主目标看 GPQA（表 6）。</p>
+<p><strong>③ Coding RL（§3.3）。</strong> 4 个来源共 <strong>29,405 题</strong>（EvolveCoder 14,743 &#x2F; Nemotron 9,393 &#x2F; Dolci 3,109 &#x2F; ADR 2,160，表 7），代码块提取后在沙箱执行测试，奖励二元（每题确定性抽 ≤50 个测试）。训练前做 LCB v6 泄漏检查（1,055 题无前缀哈希命中、无 ≥5 个 60-gram 重叠）与”热启动四采样全过则丢弃”的难度过滤。训练中 64K 响应预算下 11–28% 的样本被截断并掩码，于是<strong>在第 23 步把响应预算扩到 128K 并从该 checkpoint 继续</strong>，截断率降到 &lt;0.1%，奖励从 0.26 继续爬到 0.42（图 4）。LiveCodeBench v6 pass@1 从 68.6 升到 <strong>75.9</strong>（+7.3，单阶段评测口径；训练曲线在 step 33 达到同值峰值），pass@8 仅 +2.3——作者总结的实践教训是”扩响应预算、去截断掩码”直接带来了后续上涨（表 8、图 4）。</p>
+<p><strong>④ Instruction-Following RL（§3.4）。</strong> 两个数据轴：<strong>多约束单轮</strong>（14K 条，每条 2–6 个原子约束，教师 Qwen3-235B-A22B 生成约束及对应 Python 校验函数）与<strong>多轮对话式</strong>（13K 段对话，平均 6.1 轮、2.7 条 rubric；用户侧由教师模型扮演并主动”下套”：叠加指令、中途改需求、插入干扰项，助手侧轮换多个开源模型避免风格偏置）。奖励是<strong>rubric 二元奖励</strong>：所有 rubric 全过才给正奖励；rubric 只描述”必须满足”的条件，作者特意<strong>排除”可选&#x2F;加分项”rubric</strong>——他们观察到把可选 rubric 也挂上去后（每例十条量级），策略出现明显长度偏置，输出又长又冗余。三道过滤：去超长对话并对”应拒绝”样本降采样防过度拒答、教师在 4 次内至少过一次、策略通过率 &gt;80% 的丢弃。用 GRPO 训练 90 步。结果：IFEval 90.5→94.5（+4.0）、IFBench 63.8→77.8（+14.0）、Multi-challenge 31.1→55.8（+24.7）、AdvancedIF 45.5→62.9（+17.4），GPQA 还 +3.2、AIME 25 仅 −1.2（表 9）。最终响应长度从约 5.4K 降到 3.6K token（图 5）。作者还报告一个课程现象：同样的 IF RL 跑在 Reasoning RL checkpoint 上比直接跑在 SFT 上收益更大——复杂指令需要先”想清楚”再答。</p>
+<p><strong>⑤ General Agent（§3.5）。</strong> 数据为 AgentWorldModel（AWM）的 10K 条单服务器 MCP 任务（1K 个人造环境，每环境约 35 个工具），经 correctness 与 difficulty 过滤留下约 <strong>2K 条</strong>。环境是”任务绑定一个合成数据库 + MCP server”的设定，工具读写数据库，奖励在 episode 结束时由<strong>规则校验数据库状态</strong>给出二元值（去掉了 AWM 原带的 LLM judge 奖励与格式奖励，后者被”把全部工具 schema 直接写进 system prompt”取代）。用 GRPO + DAPO 式动态采样 + R3 训练。结果：MCP-Atlas 34.95→42.75（+7.80）、Tau2-Retail 74.00→83.80（+9.80），轨迹长度从约 14K 涨到 16.5K token（表 10、图 6）——作者把增益解读为”合成 MCP 环境提供的通用工具编排先验”。</p>
+<p><strong>⑥ Coding Agent（§3.6）。</strong> 数据来自 Endless-Terminal、SETA-Env（4,500+ Harbor 格式环境）、Scale-SWE，过滤后约 <strong>4K 条</strong>。统一成 Harbor 任务格式（<code>instruction.md</code> + <code>environment</code> Dockerfile + <code>tests/test.sh</code>），工具面只有<strong>一个 <code>execute_command</code><strong>（返回 stdout&#x2F;stderr&#x2F;exit code），文件读写、构建、跑测试都是 shell 命令；奖励是任务自带 verifier 的二元结果。工程上把每个容器镜像预烘成沙箱模板快照，rollout 时直接恢复。训练时把沙箱启动失败、verifier 超时、连接断开等</strong>基础设施噪声标为 <code>aborted</code> 并从组内优势计算中剔除</strong>，避免污染基线。结果：Terminal-Bench 2.1 38.76→40.17（+1.41）、SWE-bench Verified 65.60→67.80（+2.20）；作者明确标注**该阶段是”按可用算力训练、未训到收敛”**（表 11）。</p>
+<p><strong>⑦ Search Agent（§3.7）。</strong> 从 MiroVerse 抽出 36,614 条可验证问答（另留 4,069 条验证）。因为 rollout 贵，做了两遍强筛选：先删掉”关掉工具也能答对”的题（约占四分之一，防止奖励工具无关的捷径），再按初始策略 8 次 rollout 的正确数 $c$ 只保留 $0&lt;c&lt;4$ 的题目（其余极端值 15.5% 从未解出、31.4% 全对，组内优势为零），最终训练集约 <strong>2.2K 题</strong>。工具是 Web Search、Web Scrape（超长页面先摘要但保留人名&#x2F;日期&#x2F;数字原文）、沙箱 Python；训练最多 100 次调用、评测 200 次。奖励是<strong>LLM judge（训练用 Qwen3-32B）在 [0,1] 上的连续分</strong>，含部分正确加分；为防止”不查资料直接背答案”，正奖励要求<strong>至少 2 次成功工具调用</strong>，畸形调用按比例打折（最低 ×0.5），预算耗尽无最终答案罚 −0.1；早期那个”提交 boxed 答案就给格式分”的项因被策略钻空子而删除。优化上有一个关键的算法改动：GRPO 只用<strong>组均值优势</strong>、去掉标准差归一化（$G&#x3D;16$）：</p>
+<p>$$\widehat{A}<em>i&#x3D;r_i-\mathrm{mean}({r_j}</em>{j&#x3D;1}^{G})$$</p>
+<p>理由是 judge 奖励噪声大：若按组标准差归一化，”8 次里只对 1 次、但奖励差距 1.0”与”差距 0.1 的部分分”会得到同样的 +3.75 优势，是平衡组里成功样本的约 3.9 倍，等于把评分噪声放大成”真解出”量级的信号。同配置配对消融中，mean-only 在各次评测都领先（留出集 55.8–64.8 vs 49.7–58.7）。结果：BrowseComp 34.2→37.2（+3.0）、Seal-0 48.6→54.0（+5.4）、HLE-Verified 47.7→51.1（+3.4）（表 12）。轨迹分析（图 7、附录 E）显示工具调用数先降后升，且”变长”发生赢家一侧（赢家中位仍约 25 次调用，90 分位从 40 升到 54.5；&gt;45 次调用的轨迹从 49 条增到 133 条、其中赢家占比从 24% 升到 43%）；附录 E 的评测轨迹进一步显示，BrowseComp 上错误答案的轨迹深度约为正确的两倍（92 vs 43 次迭代），超过约 50 次迭代后准确率降到 30% 以下，”更长”本身不是好事。</p>
+<p><strong>⑧ RLHF（§3.8）。</strong> 用<strong>公开奖励模型 Skywork-Reward-V2-Qwen3-8B</strong>（不新训 RM、不新标数据），在 HH-RLHF 的 <strong>75,815 条</strong> prompt 上做 on-policy GRPO（”RLHF”在这里指对学习到的奖励模型做 RL，而非直接用人类标注）。选 prompt 之前先做了数据对比（表 13）：Arena Human Preference 两侧分数都高、回复最长；HelpSteer3 分数区分度最大但 RM 打分不稳、训练时科学推理与指令跟随回退；HH-RLHF 回复最短、两侧绝对分都为负。由此得到三条负面结论：未过滤的 HH-RLHF prompt 会明显损伤编码与指令跟随（这正是加”有效性过滤”的原因）、HelpSteer3 的 prompt 对 RM 太难打准、指令跟随与 Agentic prompt 不适合这一阶段（RM 判不准复杂约束）。最终只取有效性过滤后的 75,815 条 HH-RLHF prompt，奖励为原始 RM 分数加一条线性长度惩罚（对正奖励的超长回复打折、负奖励不动）。结果：Arena-Hard v2 Hard Prompt 83.06→89.05（+5.99）、Creative Writing 38.56→52.97（+14.41），交付 checkpoint 为第 29 次迭代（表 14、图 8）。</p>
+<p><strong>训练基础设施（§4）。</strong> 两个自研组件都建立在开源栈上：<strong>Rufus-Slime</strong>（Slime 的改造版，Megatron-LM 训练 + SGLang rollout）负责 SFT 与全部 RL；<strong>Rufus-Gym</strong> 负责多轮 Agent rollout。图 9 给出 Agent rollout 栈：Data Sampler 产出 Task → Environment（每个 rollout 一个）经 Rollout Engine 生成 → 返回 <code>RolloutResult</code>（token 轨迹、奖励、类型化终止原因）给 Training Engine，环境内部是 Agent Loop（Inference Client + Tool Execution）加 Reward Service。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-27/2609.29421_fig9.png"
+                      alt="Agent rollout 栈"
+                ></p>
+<p><em>原文图 9（§4.2）。Rufus-Gym 的 gym 式接口：同一契约兼容代码执行、网页检索、MCP 服务器等不同工具面；终止原因被类型化，训练器可区分”任务完成”与预算耗尽、上下文溢出、执行失败。</em></p>
+<p>被作者点名的几个”配方级”工程选择（§4.1、§4.2）：on-policy 多轮必须 <strong>token-in&#x2F;token-out</strong>（直接传 token id，避免重分词漂移、chat template 反复套用改历史）；<strong>Rollout Routing Replay（R3）</strong> 缓存 rollout 时的 MoE 路由并在训练前向重放，消掉”同一 token 在 rollout 与训练时被路由到不同专家”造成的 log-prob 失配（与精度无关的那一部分差距）；并用<strong>混合精度 rollout</strong>（前三个 transformer 层 BF16、其余 FP8）配 BF16 参数更新，同时全程监控截断率（截断样本被掩码，比例升高等于每批可用梯度变少，Coding RL 正因此中途扩了响应预算）；沙箱不是容器而是 <strong>Firecracker microVM</strong>（自托管的 E2B runtime），可快照恢复、硬件级隔离；工具结果截断到固定 token 预算再入上下文；重试只对”确定未曾开始执行”的失败生效（agent 命令非幂等）；用 Ray 把环境 actor 分散到各节点，避免 CPU 密集的工具执行与奖励计算互相争抢。</p>
+<h2 id="3-解决得怎么样？"><a href="#3-解决得怎么样？" class="headerlink" title="3. 解决得怎么样？"></a>3. 解决得怎么样？</h2><p><strong>与同类开源模型对比（§5.1–5.2、表 1）。</strong> 最左侧四列（Rufus-Air、GLM-4.5-Air、INTELLECT-3、Nemotron-3-Super）由作者在<strong>同一套 harness</strong> 下实测，其余六列是各自开发者报告值（来源逐格列在附录 D，仅作参考、不可当同条件比较）。Rufus-Air（106B-A12B）对同基座的 GLM-4.5-Air（106B-A12B）：除 Arena-Hard v2 Creative Writing 外<strong>全项领先</strong>；对更强的 Nemotron-3-Super（120B-A12B）在指令跟随与 Agent 类多数领先、数学&#x2F;科学基本持平、Creative Writing 与 Tau2-Airline 落后。代表性数字（pass@1）：</p>
+<table>
+<thead>
+<tr>
+<th>基准</th>
+<th align="right">Rufus-Air</th>
+<th align="right">GLM-4.5-Air</th>
+<th align="right">INTELLECT-3</th>
+<th align="right">Nemotron-3-Super</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IFBench</td>
+<td align="right">76.9</td>
+<td align="right">33.6</td>
+<td align="right">29.3</td>
+<td align="right">68.6</td>
+</tr>
+<tr>
+<td>IFEval</td>
+<td align="right">95.4</td>
+<td align="right">83.0</td>
+<td align="right">79.5</td>
+<td align="right">91.3</td>
+</tr>
+<tr>
+<td>Multi-challenge</td>
+<td align="right">65.8</td>
+<td align="right">36.0</td>
+<td align="right">36.5</td>
+<td align="right">50.7</td>
+</tr>
+<tr>
+<td>Arena-Hard v2 (HP)</td>
+<td align="right">89.1</td>
+<td align="right">55.0</td>
+<td align="right">54.6</td>
+<td align="right">74.5</td>
+</tr>
+<tr>
+<td>Arena-Hard v2 (CW)</td>
+<td align="right">53.0</td>
+<td align="right"><strong>60.3</strong></td>
+<td align="right">45.4</td>
+<td align="right">61.5</td>
+</tr>
+<tr>
+<td>AIME 25 &#x2F; 26</td>
+<td align="right">88.3 &#x2F; 86.7</td>
+<td align="right">84.2 &#x2F; 86.5</td>
+<td align="right">83.8 &#x2F; 82.6</td>
+<td align="right">89.1 &#x2F; 86.0</td>
+</tr>
+<tr>
+<td>GPQA</td>
+<td align="right">75.6</td>
+<td align="right">73.9</td>
+<td align="right">72.4</td>
+<td align="right">75.9</td>
+</tr>
+<tr>
+<td>LiveCodeBench v6</td>
+<td align="right">76.4</td>
+<td align="right">59.6</td>
+<td align="right">70.1</td>
+<td align="right">71.6</td>
+</tr>
+<tr>
+<td>MCP-Atlas</td>
+<td align="right">45.3</td>
+<td align="right">35.9</td>
+<td align="right">26.0</td>
+<td align="right">40.4</td>
+</tr>
+<tr>
+<td>Tau2-Telecom</td>
+<td align="right">93.0</td>
+<td align="right">32.7</td>
+<td align="right">40.8</td>
+<td align="right">72.4</td>
+</tr>
+<tr>
+<td>BrowseComp</td>
+<td align="right">37.1</td>
+<td align="right">22.7</td>
+<td align="right">12.3</td>
+<td align="right">35.2</td>
+</tr>
+<tr>
+<td>Seal-0</td>
+<td align="right">51.4</td>
+<td align="right">33.3</td>
+<td align="right">43.2</td>
+<td align="right">44.1</td>
+</tr>
+<tr>
+<td>HLE-Verified (Gold)</td>
+<td align="right">51.1</td>
+<td align="right">20.2</td>
+<td align="right">27.2</td>
+<td align="right">46.9</td>
+</tr>
+<tr>
+<td>Terminal-Bench 2.1</td>
+<td align="right">42.7</td>
+<td align="right">24.7</td>
+<td align="right">25.8</td>
+<td align="right">42.7</td>
+</tr>
+<tr>
+<td>SWE-bench Verified</td>
+<td align="right">65.6</td>
+<td align="right">50.6</td>
+<td align="right">46.0</td>
+<td align="right">59.2</td>
+</tr>
+</tbody></table>
+<p><strong>逐阶段进展（§5.2、表 2）。</strong> 每个阶段都提升自己瞄准的指标，读法是”与上一行比”：SFT（对 GLM-4.5-Air 公开版）IFEval 88.33、IFBench 57.75、AIME 25&#x2F;26 双升、GPQA 反而低 5.72；Reasoning RL 补上 GPQA（68.18→73.50）；Coding RL 把 LCB v6 推到 75.9；IF RL 是最大单阶段跃迁之一（Multi-challenge +24.7）；General Agent 抬 MCP-Atlas（+7.8）与 Tau2-Retail（+9.8）；Coding Agent 只加 +1.4&#x2F;+2.2；Search Agent 三项检索 benchmark 各 +3.0&#x2F;+5.4&#x2F;+3.4；RLHF 把两个 Arena-Hard v2 分轨抬 +6.0&#x2F;+14.4。<strong>SFT-only checkpoint 在已测的 5 项上除 GPQA 外全部超过带 RL 的公开 GLM-4.5-Air</strong>（IFEval +5.33、IFBench +24.15、AIME 25 +6.63、AIME 26 +3.50、GPQA −5.72；表 4），这是”SFT 是能力建设阶段”主张的直接证据；但该 checkpoint 未测多轮指令跟随，作者另据 IF RL 起点在 Multi-challenge 上仅 31.1 判断这一短板真实存在。</p>
+<p><strong>代价与边界。</strong> 成本是分层的：SFT 是作者能核算的各阶段中最大的单项（约 105 小时&#x2F;epoch、3 epoch 共约 <strong>13 天 &#x2F; 832 node-days</strong>，64 节点）；各 RL 阶段 8–32 节点；Agent 阶段的额外开销更贵——Coding Agent 的沙箱服务按<strong>约一万个并发沙箱</strong>规模运行、维护费约 <strong>每月 1 万美元</strong>量级，Search Agent 每次评测遍历 BrowseComp 1,266 题约产生 $10^{5}$ 次检索&#x2F;抽取调用、按列表价几百美元，训练里每次 rollout 还要过一遍 LLM judge（§6）。作者主动列出的”配方未证明的东西”也很清楚：<strong>阶段顺序是”能work的一种”而非最优</strong>，没做顺序消融，也没试”分域专家 + 多教师 on-policy 蒸馏再合并”的替代路线；Coding Agent 按算力截断、未训到收敛，其 SWE-bench 增益（67.8）<strong>没有保持到最终 checkpoint</strong>（65.6），而 Terminal-Bench 2.1 最终是 42.7，但这两项在 Search Agent 后没再测，<strong>无法归因到具体阶段</strong>；没有任何一个 benchmark 全阶段贯通；LCB v6 与 Tau2-Retail 的阶段行与表 1 口径不同、不能直接比；Search Agent 的奖励门只检查”工具调用执行过”而不检查”答案依赖调用结果”，背答案顺带调工具的残余路径仍需靠轨迹审计（§3.7）。评测口径本身也要小心：Tau2-Bench 分数<strong>随用户模拟器最多变动 23.7 点</strong>（附录 F：GLM-4.5-Air 零售域在 Sonnet 4 下 57.0、Sonnet 5 下 80.7），作者因此强调跨论文比较必须对齐模拟器设置。</p>
+<p>作者发现后训练配方普遍披露不足，因此在公开基座 GLM-4.5-Air-Base 上完整记录了八阶段流水线 Rufus-Air（数据、奖励、基础设施与逐阶段结果，全部基于公开组件与数据、无新增人工标注），并给出四条可迁移经验——SFT 是能力下限、难度过滤是自动课程表、奖励可靠性决定阶段顺序、基础设施属于配方本身；实验表明最终模型在除 Creative Writing 外的全部报告基准上超过官方 GLM-4.5-Air 后训练版、与同级开源模型各有胜负，但阶段顺序未经消融、Agent 阶段未训到收敛、跨阶段归因与评测口径（用户模拟器、harness）都留有明确的不确定性。</p>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Rufus-Air: An Open LLM Post-Training Recipe</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-09-27 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-09-27 00:06:12
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/09/27/2609.29421v1_Rufus-Air_An_Open_LLM_Post-Training_Recipe/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/09/27/2609.28416v1_Agent-Editing_World_Model_Rethinking_World_Modeling_for_LLM_Agents/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Agent-Editing World Model: Rethinking World Modeling for LLM Agents</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/09/27/2609.28654v1_Training_Object_Permanence_in_World_Models/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Training Object Permanence in World Models</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Rufus-Air: An Open LLM Post-Training Recipe</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BD%9C%E8%80%85%E5%8F%91%E7%8E%B0%E4%BA%86%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 作者发现了什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">2. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">3. 解决得怎么样？</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 13 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

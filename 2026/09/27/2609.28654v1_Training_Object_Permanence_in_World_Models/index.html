@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/09/27/2609.28654v1_training_object_permanence_in_world_models/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Training Object Permanence in World Models">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/09/27/2609.28654v1_Training_Object_Permanence_in_World_Models/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-09-27T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-26T16:06:12.257Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/redefine-favicon.svg" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/redefine-favicon.svg">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/redefine-favicon.svg">
+    <!--- Page Info-->
+    
+    <title>
+        
+            Training Object Permanence in World Models | GIn&#39;s notebook
+        
+    </title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">3</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">3</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">13</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Training Object Permanence in World Models</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv2</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-09-27 12:00</span>
+        <span class="mobile">2026-09-27 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-09-27 00:06:12</span>
+            <span class="mobile">2026-09-27 00:06:12</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Haotian Zhang、Fengyuan Yu、Dezhi Luo、Haoran Sun、Zehong Zhao、Qingying Gao、Yihan Li、Siyuan An、Huayi Qin、Yilan Zhang、Zhengze Jiang、Pinyuan Feng、Renrui Zhang、Ziyu Guo、Letian Wang、Mengyue Yang、Kangfu Mei、Maijunxian Wang、Ran Ji、Vikash Kumar、Freda Shi、Chandra Sripada、Vincent C. Müller、Philip Torr、Alan Yuille、Nikolaus Kriegeskorte、Felix Juefei-Xu、Lvmin Zhang、Jieneng Chen、Yilun Du、Hokin Deng（共 31 人）。</p>
+<p>论文：2609.28654v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。</p>
+<p><a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2609.28654" >Hugging Face<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> · <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2609.28654v1" >arXiv 原文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> · <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2609.28654v1" >官方全文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>分析范围：官方 arXiv v1 HTML 全文，含正文第 1–6 节、附录 A（150 个任务的清单）、附录 B（Trainium2 训练栈）、附录 C（分任务族数据）；已核对表 1–6 与图 1–9 的编号与数值。arXiv 上本文只有 v1（2026-09-23 提交）。附录 B 中有一处作者自陈的”未完成项”，下文单独说明。</p>
+<h2 id="1-作者发现了什么问题？"><a href="#1-作者发现了什么问题？" class="headerlink" title="1. 作者发现了什么问题？"></a>1. 作者发现了什么问题？</h2><p>本文研究的不是”再训一个更强的视频生成模型”，而是<strong>视频模型到底有没有掌握”物体在看不见时依然存在”（object permanence, OP）与”固体不可穿透”（object solidity, OS），以及这两件事能不能被训练出来</strong>。</p>
+<p>背景是：近年的视频生成模型画质和时序连贯性都很好，被越来越多地当作 world model（Sora、Veo 3.1、Kling 2.6、Wan2.2 等，§2）。但作者指出一类反复出现的失败：物体被遮挡后没有从另一侧出来、在不该出现的位置凭空出现、直接穿过实心障碍物（§1）。作者引用的发展心理学证据表明，婴儿在 3.5 个月左右就通过 violation-of-expectation 范式表现出对隐藏物体持续存在的预期，半年内就能察觉”实心物体互相穿透”的违规（§1、§2）。也就是说，OP 与 OS 属于所谓 core knowledge，是最底层的一层物理先验。</p>
+<p>作者的核心判断有两层。第一层是<strong>结构性的</strong>：如果模型允许物体互相穿透，那么它就不可能生成物理上正确的碰撞、支撑移除等事件，任何更高层的场景构造和因果推理都会继承这个错误——所以 OP&#x2F;OS 不是”细节问题”，而是上游问题（§1，作者的论证）。第二层是关于评测方法的：<strong>用 VLM 当裁判来评 OP&#x2F;OS 是不可靠的</strong>，因为多模态语言模型本身在直觉物理和 core knowledge 上就有系统性缺陷（§2 引 Li et al. 2025、Luo et al. 2026 等）。这直接决定了本文把人工盲评作为主指标。</p>
+<p>作者同时列出了已有 benchmark 的三个空白（§2）：(1) 覆盖范围大多限于二维环境；(2) 评测集中在 image-to-video，没有覆盖 video-to-video（V2V）这个更接近真实用法的设定；(3) 没有针对”物体同一性、物理约束、因果后果”这类结构化物理推理的专门评测。此外还有结构性问题：每个任务的样本量小、缺少或基本没有训练集切分、过度依赖 VLM 打分。</p>
+<p>需要区分的是：**”视频模型会犯 OP&#x2F;OS 错误”本身是已有工作就报告过的现象**，本文的新贡献在于把它变成一套可复现的任务定义、可训练的语料，并用 14 个模型的盲评把这件事量化清楚。论文没有声称自己先发现了这些失败模式。</p>
+<h2 id="2-作者如何解决？"><a href="#2-作者如何解决？" class="headerlink" title="2. 作者如何解决？"></a>2. 作者如何解决？</h2><p>核心思路一句话：<strong>把发展心理学里已经严格操作化的实验范式，翻译成 150 个手工编写的 Blender 生成器，用它们批量生成”事件前一半 + 事件后一半”的视频对，从而同时得到评测集和训练集；再用最朴素的 video-to-video 目标微调一个 16B 模型，看这两项能力是否可训练</strong>。这里的关键设计是：任务不是”随便拍点物理视频”，而是每个生成器都对应一个明确的认知科学范式，且关键物理事件一定落在模型需要生成的那一半里。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-27/2609.28654_fig1.png"
+                      alt="WROP 六类任务的认知分类法"
+                ></p>
+<p><em>论文原图 2（Taxonomy of the six WROP task families）；论文的图 1 是封面式示意图，这里选的是信息量更大的图 2。上排三族测 object permanence，下排三族测 object solidity。每组展示同一生成器的一个输入起始帧、切分边界帧和目标帧。原图 3 给出生成器构成：OP 90 个 + OS 60 个，合计 150。</em></p>
+<p><strong>输入与输出。</strong> 每个样本是一个 120 帧、1280×720、24 fps 的手工编排动画（Blender keyframe，不是物理引擎），在第 60 帧——也就是关键事件发生处——切成 60 帧输入视频和 60 帧目标视频，再配一段自然语言 prompt、逐帧物体位姿轨迹和场景状态元数据，打包成五元组（§3.2、§3.3）。评测时模型只拿到输入视频和 prompt，目标视频全程不暴露（§4.3）。</p>
+<p><strong>六个任务族。</strong> OP-1 Baillargeonian_Occlusion（26 个生成器）：物体沿轨迹运动后从遮挡物后方消失，必须从远端以相同的身份、尺寸、运动方向重新出现，测的是”物体在完全不可见期间是否保持表示”。OP-2 Object_Static_Occlusion（29 个）：移动遮挡物盖住一组静止物体，移开后数量、身份、空间排布必须不变，测的是多个隐藏物体同时被表示、且遮挡本身不改变隐藏场景。OP-3 Container_Permanence（35 个）：物体被藏在容器里，容器可能平移、旋转或在多个相似容器间互换，物体必须跟着容器走而不是留在世界坐标原点，测的是移动参照系下的位置重算。OS-1 Baillargeonian_Obstruction（20 个）：运动物体撞向一个开口小于自身（挡住）或大于自身（可穿过）的屏障，必须生成对应的物理结果，测的是尺寸-开口的几何关系推理。OS-2 Object_Drop（21 个）：支撑面被抽走，物体必须立刻下落，并由下方的尺寸过滤器决定是穿过还是停住，测的是”下落由支撑移除触发”而非持续下坠。OS-3 Object_Collision（19 个）：运动物体撞上静止物体组，所有物体都要保持数量与身份、动量传递后轨迹分开（§3.1、附录 A 表 4）。</p>
+<p><strong>数据生成流水线分三步（§3.3）。</strong> 第一步，每个任务写成一个自包含、参数化的 Blender 生成器，明确规定物体语义角色、场景几何、初始条件、关键帧运动与接触事件、相机配置、prompt 和目标物理结果；不用任何刚体求解器，所有轨迹解析地手工编排，遮挡、接触、重现都发生在受控帧上。第二步，共享 driver 通过统一的 Blender 4.4.3 &#x2F; EEVEE Next 后端渲染，记录随机种子控制表面变化，输出 120 帧动画并切成两半。第三步，并行 worker 各自产出 10,000 个样本，失败的渲染自动重试并记录，自动审计检查五元组完整性、帧率一致、恰好 60 帧且在帧 60 处无缝隙无重叠、元数据字段齐全，不合格样本丢弃重生成；发布前还对每个生成器的代表样本做人工检查。</p>
+<p><strong>两个关键设计值得单独说清楚。</strong> 一是<strong>参数分层</strong>：结构参数（物体数量、几何形状、轨迹、遮挡配置、开口尺寸、接触时刻等）在同一生成器内系统性地变化，用于控制任务难度、防止模型靠记忆某个固定物理结果过关；表面参数（颜色、材质、光照、相机视角）在同一结构配置下独立随机化，用于避免模型利用感知线索代替物理推理。二是<strong>多解设计</strong>：在任务允许时，一个生成器内部允许多种物理上都正确的结局。例如 Marked_Boxes_Swap（图 4）里两个带标记的盒子各装入不同物体、交换屏幕位置后重新打开，物体必须仍与各自原来的标记盒绑定——这样就堵住了”只看最终屏幕位置”的捷径，迫使模型真正跟踪盒子的身份和被遮挡的内容物。</p>
+<p><strong>评测协议。</strong> 14 个模型走同一套 harness，prompt 原样传递、不做任何 prompt engineering，并关闭服务端的 prompt 扩写（§4.3）。模型被分成三类接口（表 1）：true continuation（把输入视频当 prefix 续写，含本文的 PWM-WROP）、reference-to-video（把输入当视觉参考、按自己的时间轴重新生成整段事件）、edit&#x2F;transfer（逐帧重绘，输出占据与输入相同的时间区间，原理上无法描绘输入结束后才发生的事件）。这个分类在后续分析中被当成显式因子，因为三类模型”面对基准的假设根本不同”。主指标是 20 名众包评测者的盲评两两比较，用 Bradley–Terry 拟合到 Elo 尺度（均值 1500），置信区间用 1,000 次按评测者聚类的 bootstrap（§4.4）：120 个模型对 × 4 个基准条目排期，480 次中完成 476 次，其中 361 次发生在不同模型之间（每模型 50–52 次）；平局计 0.5 胜。质量控制：资格筛选题阈值 8&#x2F;10（中位数 9&#x2F;10），注意力检查答对率 90.0%，重复条目自一致率 93.5%（Cohen’s κ&#x3D;0.891），未检测到位置偏置（左侧被偏好 51.4%，p&#x3D;0.615）。另有全套全参考指标（LPIPS、MS-SSIM、PSNR、FID、CLIP 等）作为次要指标，统一在 320×192 上比较（§4.5）。</p>
+<p><strong>训练在哪里发生。</strong> 出题与渲染全部是离线的、非学习的流程；学习部分只有一步：把 NVIDIA Cosmos3-Nano（16B 开源世界模型）在 WROP 语料上微调一个 epoch，得到 PWM-WROP。架构与 tokenizer 与基座完全一致，<strong>只改训练信号</strong>，也不用任何任务标签或族名，唯一条件是片段和它自带的自然语言 prompt；训练几何是 117 帧打包片段、320×192（57 帧条件 + 60 帧预测），与评测几何相同（§4.1）。所以作者明确说 PWM-WROP 的角色是”给这套语料当 baseline，而不是一个新的模型设计”。推理用固定种子、UniPC 35 步、guidance 6.0、shift 10.0（§4.3）。附带发布的 PWM 是一套原生 PyTorch 的训练栈，把 36 层模型按 tensor-parallel × FSDP2 切到 64 个 NeuronCore 上，在 288×512 几何、batch 16 下从最初的 15.1 s&#x2F;step 优化到 5.7 s&#x2F;step（4,705 → 12,454 tokens&#x2F;s，附录 B 表 5）。附录 B 交代了移植后的正确性门槛（前向与上游参考按位对齐、64 rank 按位一致恢复、6 个上游样例与 64 个自产片段的过拟合测试等），也诚实记录了一个<strong>未完成项</strong>：被 tensor-parallel 复制的词表 embedding 会在 root unit 的 2.49 GB fp32 reduce buffer 上失败，”在写作时仍未解决”（附录 B）。值得一提，正文说附录 B 会给出”端到端微调的状态”，但附录 B 只交代了栈的移植、吞吐与校验，<strong>没有明确说明发布的这 1.5M 全量 checkpoint 是否在同一 Trainium2 集群上完成</strong>——这一点材料不完整，不补猜。</p>
+<h2 id="3-解决得怎么样？"><a href="#3-解决得怎么样？" class="headerlink" title="3. 解决得怎么样？"></a>3. 解决得怎么样？</h2><p>先看主结果。表 2 &#x2F; 图 5 的盲评 Elo 上，PWM-WROP 得 <strong>1679.5（95% CI [1603.5, 1781.5]），原始胜率 73.1%，52 局，总排名第 3，是所有 true-continuation 模型中的第 1</strong>；比同类的第二名 Grok Imagine（video extend，1457）高出 <strong>224 Elo</strong>（论文 §5.1.1 的表述），另外两个 true-continuation 模型 LTX-2.3 Extend（1453）与 MAGI-1 24B（1248）更低。榜首是 Wan 3.0 Prime 与 MiniMax H3 并列 1723.6（两者战绩完全相同），第三名 Seedance 2.5 为 1649.6。bootstrap 的 top-1 概率（即该模型排第一的概率）能更清楚地看出断层：Wan 46.8%、MiniMax 36.4%、PWM-WROP 12.3%、Seedance 4.5%，其余 10 个模型均为 0。</p>
+<p>作者由此给出几个解读（§5.1.1）：<strong>接口类型比模型规模更能解释榜单</strong>——reference-to-video 模型不需要老老实实从输入末帧往后接，可以按自己的时间轴重新生成整个场景，所以自由度更大、更容易做出物理上连贯的画面；代价是它可能”按自己的理解”重新生成而丢掉输入里的物体身份与空间排布（§5.2 中 Seedance 2.5 在 G19、G27 上的失败正是这种情况）。edit&#x2F;transfer 模型几乎全部聚在榜单中段、彼此只差 109 Elo、区间重叠，作者的解释是逐帧重绘让它们难以生成输入结束后才发生的事件；有趣的是闭源模型（Gemini Omni Flash 1.1、Kling O3 Pro）与开源模型混在中段，参数规模较小的 Wan-VACE 14B 表现也接近中段其它模型。作者同时明确承认一个归因限制：<strong>这些模型在架构上并不相同，所以 224 Elo 的差距不能单独归因于训练</strong>。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-27/2609.28654_fig2.png"
+                      alt="WROP 六族的族内人类偏好名次"
+                ></p>
+<p><em>论文原图 6（Within-family human-preference ranks），它把图 5 的总榜拆到六个任务族。格子里是族内布莱德利-特里名次（1 最好、14 最差），右侧整列是总榜 Elo；深蓝描边的行是 PWM-WROP。注意左半（OP）与右半（OS）的对比：它在前三族都在前 3，而在 OS-3 掉到第 8——这就是下文”遮挡跟踪训练得比接触动力学好”这一判断的直接依据。</em></p>
+<p>分任务族看（图 6、表 6），PWM-WROP 的画像很不均匀：OP-2 第 1、OP-1 与 OP-3 第 3、OS-2 第 2，但 OS-1 只有第 5、OS-3 第 8。作者据此判断<strong>OP 与 OS 可能需要不同的内部表示，且当前的微调配方对”遮挡跟踪”比对”接触动力学”更有效</strong>（§5.1.2）。对面则是：MiniMax H3 在 object drop 与 collision 两族都是第 1，且在这两族的对局中胜率 100%；Wan 3.0 Prime 在 container permanence 第 1。作者的解读是 reference-to-video 的自由度对 solidity 任务帮助更大、对需要严格保持已建立场景的遮挡任务帮助更小。注意每族只有 36–96 局、bootstrap 区间很宽，作者自己也说这些名次”指示倾向而非显著差异”（附录 C）。</p>
+<p>次要指标（表 3）在统一缩放到 320×192 后支持同一个方向：PWM-WROP 的 LPIPS 0.081 最好（次优 0.105），MS-SSIM 0.921（次优 0.877），MSE 2.97×10⁻³ 最低（这三项在表 3 中加粗为列内最佳），CLIP 0.956 为列内第 2；但 PSNR（26.45）与 SSIM（0.917）这两列它掉到约第 4，在分辨率敏感的 720p 指标上更差（末帧 LPIPS 0.166、FID 20.4），因为它的原生输出只有 320×192，比较前要被放大四倍。作者反复强调<strong>这些指标衡量的是”像参考视频”，不是物理推理正确性</strong>：一个只把静态事件前场景重绘得很像的 edit 模型，可以在 SSIM&#x2F;LPIPS 上得高分却根本没画出物体重新出现。这个提醒是必要的，不能用表 3 反过来推翻人类盲评的排序。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-27/2609.28654_fig3.png"
+                      alt="OP 任务族上的定性对比"
+                ></p>
+<p><em>论文原图 7（只画了 OP 三族，论文另有图 8 画 OS 三族）。每一行是同一道题、同一个样本：蓝色是共享的真值输入帧，绿色是 PWM-WROP 的输出，红色是某个基线模型（G43 对 Gemini Omni Flash 1.1、G19 与 G66 对 Seedance 2.5）的完整输出，✓&#x2F;× 标出物理上是否成立。建议从左往右读：先看输入建立了什么物体与排布，再看模型在遮挡解除后是否把它还原回去。</em></p>
+<p>定性分析（§5.2、图 7–8）把失败归成两类，我认为这是全文最有信息量的部分。<strong>第一类是 representation dropout</strong>：画面看起来合理，但模型没有持续跟踪此前存在的物体——三球过隧道后车道上多出第四颗球（Gemini Omni Flash 在 G43）、遮挡板移开后三个物体从空区域凭空出现（Seedance 2.5 在 G19）、转盘转 180° 后打开了错误的杯子（Seedance 2.5 在 G66）、球直接穿过孔径只有自身一半的屏障（G10，作者称这是所有被测模型最常见的失败，MiniMax H3 与 Wan 3.0 Prime 也同样犯）。<strong>第二类是 causal decoupling</strong>：单个事件看起来合理，但事件之间的物理关联断掉了——支撑板被抽走、整块支撑结构消失后球仍悬在空中几帧才开始慢慢下落（Seedance 2.5 在 G27，且它移除了整个支撑结构而非只移除滑动板），以及碰撞前后球的总数发生变化（Gemini Omni Flash 在 G137，碰撞前多出球、碰撞后紫球消失）。PWM-WROP 在这些样例上分别做到了车道与身份保持、遮挡解除后场景还原、正确抬起原杯、在阻挡屏障处减速停住、支撑移除后立即下落、七球全部保持并合理散开。</p>
+<p><strong>代价与边界。</strong> 造价主要在前端：150 个手工生成器、150 万次渲染、人工检查、20 人盲评 361 次判断，这些都是不可省略的人力。训练侧，正文只给了”1 epoch &#x2F; 1.5M 样本 &#x2F; 117 帧 @ 320×192”，附录 B 报的是 <strong>288×512 几何、batch 16 下的 step time</strong>，两者几何不同，论文只报了单步耗时、<strong>没有直接给出这次微调实际消耗的总 NPU&#x2F;GPU 小时或成本</strong>（如果按 1.5M 样本 &#x2F; batch 16 &#x3D; 93,750 步 × 5.7 s 粗估，量级在 10⁵ 秒级单节点时间，但这需要假定训练几何与附录 B 的基准几何一致，论文并未说明，所以这只是估算，不是论文数据）。评测侧的混淆也需要记住：三类接口的假设不同、各模型原生分辨率从 320×192 到 1920×1080 不等、中段模型 Elo 区间大幅重叠、每族对局数只有 36–96 局。</p>
+<p><strong>哪些问题被解决了、哪些没有。</strong> 被推进一步的是：OP&#x2F;OS 有了一套可复现、有认知科学依据的评测与训练资源，”用认知驱动的合成数据微调可以改善 V2V 模型的物理推理”得到了初步证据（作者原话是 preliminary evidence）。<strong>没有解决的是</strong>：碰撞这类接触动力学仍是弱项（OS-3 第 8）；只微调了 Cosmos3-Nano 这一个基座、只用了一套数据配方，<strong>论文没有做消融来分离”认知结构化的数据”与”任何同域微调”各自的贡献</strong>——例如缺少一个在同等算力下用非 WROP 视频数据微调的对照，所以”认知原理化数据是关键”这一点目前是作者的解释而非实验结论（这一点是我的分析，不是论文的自述）；也没有跨随机种子的稳定性实验，没有测量筛选后仍残留的错误率，评测者的主观性虽然做了质量控制但样本只有 20 人。此外，正文一处把本文在相关工作里称为 “VR-OP&amp;S”，与全文使用的 WROP 名称不一致（§2 末），属于笔误层面的问题，不影响结论。</p>
+<p>作者发现视频模型在被遮挡后会丢失物体表示、并让实心物体互相穿透，而这类错误位于物理智能的上游、且已有 benchmark 既不覆盖 V2V 也不适合用 VLM 打分，因此提出 WROP：用 150 个认知科学范式化的 Blender 生成器造出 1.5M 训练片段与 300 题固定考卷，以人工盲评 Elo 为主指标评测 14 个模型；实验表明在 WROP 上微调 16B 的 Cosmos3-Nano 得到的 PWM-WROP 在 true-continuation 类中排第一、总榜第三（Elo 1679.5，仅次于两个并列 1723.6 的 reference-to-video 系统），且用低于基线的 320×192 原生分辨率拿到最好的 LPIPS 与 MS-SSIM，但仍存在接触动力学（OS-3 第 8）、无法分离数据贡献与架构贡献、缺少训练算力账目等未解决的问题。</p>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Training Object Permanence in World Models</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-09-27 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-09-27 00:06:12
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/09/27/2609.28654v1_Training_Object_Permanence_in_World_Models/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/09/27/2609.29421v1_Rufus-Air_An_Open_LLM_Post-Training_Recipe/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Rufus-Air: An Open LLM Post-Training Recipe</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/09/27/2609.23407v2_OmniEcho_Audio-Visual_Spatial_Understanding_for_Omni-Modal_Embodied_Agents/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">OmniEcho: Audio-Visual Spatial Understanding for Omni-Modal Embodied Agents</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Training Object Permanence in World Models</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BD%9C%E8%80%85%E5%8F%91%E7%8E%B0%E4%BA%86%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 作者发现了什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">2. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">3. 解决得怎么样？</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 13 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
