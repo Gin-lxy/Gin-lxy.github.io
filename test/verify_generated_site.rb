@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require "cgi"
 require "pathname"
 require "uri"
 
@@ -27,7 +28,8 @@ EXPECTED_ROUTES.each { |route| errors << "missing route: #{route}" unless PUBLIC
 EXPECTED_TEXT.each do |route, text|
   page = PUBLIC.join(route)
   contents = File.binread(page).force_encoding(Encoding::UTF_8) if page.file?
-  errors << "missing recovered text in #{route}: #{text}" if contents && !contents.include?(text)
+  visible_text = CGI.unescapeHTML(contents.gsub(/<[^>]*>/u, " ").gsub(/\s+/u, " ")) if contents
+  errors << "missing recovered text in #{route}: #{text}" if visible_text && !visible_text.include?(text)
 end
 Dir.glob(PUBLIC.join("**", "*.{css,html}")).sort.each do |source|
   contents = File.binread(source).force_encoding(Encoding::UTF_8)
@@ -46,6 +48,13 @@ Dir.glob(PUBLIC.join("**", "*.{css,html}")).sort.each do |source|
     target = path.start_with?("/") ? PUBLIC.join(path.delete_prefix("/")) : Pathname.new(source).dirname.join(path)
     errors << "missing image from #{relative}: #{url}" unless target.file?
   end
+end
+
+if PUBLIC.join("index.html").file?
+  index = PUBLIC.join("index.html").read
+  errors << "expected Hexo 8.0.0 metadata" unless index.include?('content="Hexo 8.0.0"')
+  errors << "expected Redefine 2.9.0 metadata" unless index.include?('"version":"2.9.0"')
+  errors << "expected site Open Graph description" unless index.include?('property="og:description" content="GIn&#39;s notebook"')
 end
 
 abort errors.uniq.join("\n") unless errors.empty?
