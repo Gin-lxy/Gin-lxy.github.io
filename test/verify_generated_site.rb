@@ -9,7 +9,7 @@ PUBLIC = ROOT.join("public")
 EXPECTED_ROUTES = [
   "index.html", "404.html", "archives/index.html",
   "categories/index.html", "tags/index.html", "about/index.html",
-  "categories/课内/index.html", "categories/漫谈/index.html",
+  "categories/课内/index.html", "categories/漫谈/index.html", "categories/daily-paper/index.html",
   "tags/数据结构/index.html", "tags/计算机网络/index.html", "tags/随笔/index.html",
   "search.xml",
   "2023/11/15/2023秋-关于当下和未来/index.html",
@@ -20,6 +20,10 @@ EXPECTED_TEXT = {
   "2023/11/15/2023秋-关于当下和未来/index.html" => "题记:秋季已完,我仍未得救",
   "2023/11/15/数据结构复习/index.html" => "单链表",
   "2024/03/16/大二下EBU5213 Internet protocols and networks/index.html" => "计算机网络和因特网"
+}.freeze
+EXPECTED_TITLES = {
+  "index.html" => "GIn",
+  "2023/11/15/数据结构复习/index.html" => "数据结构复习 | GIn"
 }.freeze
 IMAGE_EXTENSION = /\.(?:avif|gif|jpe?g|png|svg|webp)\z/i
 ATTRIBUTE_URL = /(?:content|data-src|href|src)=["']([^"']+)["']/
@@ -50,11 +54,18 @@ EXPECTED_TEXT.each do |route, text|
   visible_text = CGI.unescapeHTML(body.gsub(/<[^>]*>/u, " ").gsub(/\s+/u, " ")) if body
   errors << "missing recovered text in #{route}: #{text}" if visible_text && !visible_text.include?(text)
 end
+EXPECTED_TITLES.each do |route, title|
+  page = PUBLIC.join(route)
+  contents = File.binread(page).force_encoding(Encoding::UTF_8) if page.file?
+  found = contents[/<title>\s*(.*?)\s*<\/title>/m, 1] if contents
+  errors << "expected tab title #{title.inspect} in #{route}, got #{found.inspect}" unless found == title
+end
 Dir.glob(PUBLIC.join("**", "*.{css,html}")).sort.each do |source|
   contents = File.binread(source).force_encoding(Encoding::UTF_8)
   relative = Pathname.new(source).relative_path_from(PUBLIC).to_s.force_encoding(Encoding::UTF_8)
   errors << "unrendered Obsidian embed: #{relative}" if contents.include?("![[")
   errors << "theme default branding in #{relative}" if contents.include?("Theme Redefine") || contents.include?("Redefine Your Hexo Journey")
+  errors << "site brand leaked into tab title in #{relative}" if contents.match?(/<title>[^<]*GIn(?:&#39;|')s notebook/m)
   errors << "visitor counter script in #{relative}" if contents.match?(/<script\b[^>]*\bsrc=["']https:\/\/(?:cn\.)?vercount\.one\/js["']/i)
   errors << "visitor counter markup in #{relative}" if contents.include?("busuanzi_container_") || contents.include?("busuanzi_value_")
   errors << "visitor counter endpoint in #{relative}" if contents.include?("vercount.one")
@@ -78,6 +89,7 @@ if PUBLIC.join("index.html").file?
   errors << "expected Hexo 8.0.0 metadata" unless index.include?('content="Hexo 8.0.0"')
   errors << "expected Redefine 2.9.0 metadata" unless index.include?('"version":"2.9.0"')
   errors << "expected site Open Graph description" unless index.include?('property="og:description" content="GIn&#39;s notebook"')
+  errors << "expected avatar favicon link" unless index.include?('href="/images/favicon.png"')
   theme_json = index[/window\.theme\s*=\s*(\{[^\n]*\});/, 1]
   if theme_json
     theme = JSON.parse(theme_json)
