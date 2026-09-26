@@ -8,12 +8,15 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 
 const script = fileURLToPath(new URL('../scripts/recover_posts.mjs', import.meta.url));
+const helloWorldRoute = '2023/10/10/hello-world/index.html';
 const routes = [
-  '2023/10/10/hello-world/index.html',
+  helloWorldRoute,
   '2023/11/15/2023秋-关于当下和未来/index.html',
   '2023/11/15/数据结构复习/index.html',
   '2024/03/16/大二下EBU5213 Internet protocols and networks/index.html',
 ];
+// The Hello World post was deleted from the site, so the verifier no longer expects its route.
+const verifierRoutes = routes.filter((route) => route !== helloWorldRoute);
 
 test('stays inert when Hexo loads scripts as CommonJS plugins', () => {
   // This is the wrapper used by Hexo 6, with no recovery inputs available.
@@ -91,10 +94,9 @@ test('generated-site verifier rejects missing body text even when title and TOC 
     'categories/blog/index.html': '',
     'tags/漫谈/index.html': '',
     'tags/课内/index.html': '',
-    [routes[0]]: '<h1>Welcome to Hexo</h1><nav class="toc">Welcome to Hexo</nav><div class="article-content"><div class="nested">Body missing</div></div>',
-    [routes[1]]: '<h1>关于当下和未来</h1><nav class="toc">题记:秋季已完,我仍未得救</nav><div class="article-content">Body missing</div>',
-    [routes[2]]: '<h1>数据结构复习</h1><nav class="toc">单链表</nav><div class="article-content">Body missing</div>',
-    [routes[3]]: '<h1>EBU5213 Internet protocols and networks</h1><nav class="toc">计算机网络和因特网</nav><div class="article-content">Body missing</div>',
+    [verifierRoutes[0]]: '<h1>关于当下和未来</h1><nav class="toc">题记:秋季已完,我仍未得救</nav><div class="article-content">Body missing</div>',
+    [verifierRoutes[1]]: '<h1>数据结构复习</h1><nav class="toc">单链表</nav><div class="article-content">Body missing</div>',
+    [verifierRoutes[2]]: '<h1>EBU5213 Internet protocols and networks</h1><nav class="toc">计算机网络和因特网</nav><div class="article-content">Body missing</div>',
   };
   for (const [route, contents] of Object.entries(pages)) {
     const page = join(root, 'public', route);
@@ -103,7 +105,7 @@ test('generated-site verifier rejects missing body text even when title and TOC 
   }
   const result = spawnSync('ruby', [verifier], { encoding: 'utf8' });
   assert.notEqual(result.status, 0);
-  for (const route of routes) {
+  for (const route of verifierRoutes) {
     assert.ok(result.stderr.includes(`missing recovered text in ${route}:`), result.stderr);
   }
 });

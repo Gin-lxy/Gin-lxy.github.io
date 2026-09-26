@@ -9,13 +9,11 @@ PUBLIC = ROOT.join("public")
 EXPECTED_ROUTES = [
   "index.html", "404.html", "archives/index.html",
   "categories/blog/index.html", "tags/漫谈/index.html", "tags/课内/index.html",
-  "2023/10/10/hello-world/index.html",
   "2023/11/15/2023秋-关于当下和未来/index.html",
   "2023/11/15/数据结构复习/index.html",
   "2024/03/16/大二下EBU5213 Internet protocols and networks/index.html"
 ].freeze
 EXPECTED_TEXT = {
-  "2023/10/10/hello-world/index.html" => "Welcome to Hexo",
   "2023/11/15/2023秋-关于当下和未来/index.html" => "题记:秋季已完,我仍未得救",
   "2023/11/15/数据结构复习/index.html" => "单链表",
   "2024/03/16/大二下EBU5213 Internet protocols and networks/index.html" => "计算机网络和因特网"
