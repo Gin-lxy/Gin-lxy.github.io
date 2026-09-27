@@ -43,198 +43,25 @@ Spatial audio understanding 一侧（binaural 相位&#x2F;强度线索、GCC-PHA
 
 原文图 2（官方 HTML 版 benchmark-QA.png）。2,972 对 QA、197 个真实场景、8 个子任务、600 张鸟瞰图图像；右侧给出方向、3D 定位、相机旋转、运动与认知地图的示例问题形式。
 基准二：OmniEchoBench-Nav（§3.2，图 3）。 30 个真实扫描的室内场景（10 个单间、20 个多房间，跨 2–4 个房间），每场景 30 个样本共 900 个导航任务；每个样本把一个单声道声源放在已知 3D 位置，在 12–17 个接收点（约 1 m 网格、约 1 m 高）录制 4 通道 FOA，共 12,900 条录音，构成空间稠密的声场。声源分非语音环境事件 505（机械、警报、门铃、动物、脚步）与语音命令 395（呼救、呼叫）。测试时 agent 取离当前位置最近的接收点录音，并按当前朝向把水平方向重映射到自身坐标系，须推断声源位置并导航过去；闭环在 Habitat 中执行、agent 自行决定停止（附录 A.4.2）。
-数据合成管线（§3.3，公式 1）。 所有合成数据共用一个 FOA 渲染公式：把每个单声道音源 $s_i(t)$ 用时变 3D 轨迹表示，听者与相机共位（右手系，相机朝 $+y$，方位角 $\theta$ 以正前方为 0°、$+90°$ 在左），按实球谐编码为 4 通道 FOA：
-$$\mathbf{a}(t)&#x3D;\sum_{i}\frac{g_{i}}{r_{i}(t)},\mathbf{Y}!\big(\theta_{i}(t),\phi_{i}(t)\big),s_{i}(t)\qquad(1)$$
-其中 $r_i(t)$ 是声源-听者距离、$g_i$ 是增益，可选距离衰减与房间效应——所以合成音频的方向、距离与画面和轨迹始终几何一致。
+数据合成管线（§3.3，公式 1）。 所有合成数据共用一个 FOA 渲染公式：把每个单声道音源 si(t)s_i(t)si​(t) 用时变 3D 轨迹表示，听者与相机共位（右手系，相机朝 +y+y+y，方位角 θ\thetaθ 以正前方为 0°、+90°+90°+90° 在左），按实球谐编码为 4 通道 FOA：
+a(t)=∑igiri(t) Y ⁣(θi(t),ϕi(t)) si(t)(1)\mathbf{a}(t)=\sum_{i}\frac{g_{i}}{r_{i}(t)}\,\mathbf{Y}\!\big(\theta_{i}(t),\phi_{i}(t)\big)\,s_{i}(t)\qquad(1)a(t)=i∑​ri​(t)gi​​Y(θi​(t),ϕi​(t))si​(t)(1)
+其中 ri(t)r_i(t)ri​(t) 是声源-听者距离、gig_igi​ 是增益，可选距离衰减与房间效应——所以合成音频的方向、距离与画面和轨迹始终几何一致。
 
 原文图 5（官方 HTML 版 model_architecture_2.png）。左上：视觉经冻结视觉塔变成视觉 token；音频走两路——单通道降混进原生 audio tower 得语义 audio token，4 通道 FOA 进 FOA encoder 得空间 token，经时间重采样与可训练 projector 投影后写入  预留位（&#x2F; 括起），按时间序插在对应 audio token 之后。只训练 projector 与 LLM。右上：FOA encoder 细节（卷积前端 + 5 层 Transformer）。
 模型 OmniEcho（§4），三阶段训练：
 
-Stage 1，FOA encoder 语义对齐（§4.2）。轻量 FOA encoder（约 11.9M 参数：卷积前端 + 5 层 Transformer，$d&#x3D;384$）把 FOA 片段映射为一串 token。输入是 5 通道特征图 $\mathbf{X}\in\mathbb{R}^{5\times128\times T}$：W（全向）通道的 log-mel 谱，加三个有源强度分量 $(i_x,i_y,i_z)$ 与 diffuseness $\delta$（16 kHz 前端，128 mel 频带，附录表 9）。用 balanced sigmoid（SigLIP 式）目标把 clip embedding（512 维）对齐冻结 CLIP 文本空间（644 个声音标签；正样本对仅约 0.3%，所以要按类平衡，公式 4–8）。训练语料是 10 万条合成静态 FOA 场景（1–4 个声源）。结果：语义损失降到约 0.23，开放词表检索 Top-1 约 37%（附录 A.3、图 10）。
-Stage 2，query-conditioned 定位（§4.2）。给一个描述目标声源的文本 query，cross-attention 定位头回归方位、仰角与距离；角度用 $(\sin,\cos)$ 编码并做 $\ell_2$ 归一化后再算损失，避免 ±180° 回绕不连续，距离在 log 域用 $\ell_1$ 监督；总损失 $\mathcal{L}{\mathrm{stage2}}&#x3D;\mathcal{L}{\mathrm{ang}}+0.5\mathcal{L}{\mathrm{dist}}+0.5\mathcal{L}{\mathrm{sem}}$（公式 9–12），保留语义项防止语义漂移。训练后平均方位误差约 16°、仰角约 7°、距离约 1.1 m（附录 A.3）。
+Stage 1，FOA encoder 语义对齐（§4.2）。轻量 FOA encoder（约 11.9M 参数：卷积前端 + 5 层 Transformer，d=384d=384d=384）把 FOA 片段映射为一串 token。输入是 5 通道特征图 X∈R5×128×T\mathbf{X}\in\mathbb{R}^{5\times128\times T}X∈R5×128×T：W（全向）通道的 log-mel 谱，加三个有源强度分量 (ix,iy,iz)(i_x,i_y,i_z)(ix​,iy​,iz​) 与 diffuseness δ\deltaδ（16 kHz 前端，128 mel 频带，附录表 9）。用 balanced sigmoid（SigLIP 式）目标把 clip embedding（512 维）对齐冻结 CLIP 文本空间（644 个声音标签；正样本对仅约 0.3%，所以要按类平衡，公式 4–8）。训练语料是 10 万条合成静态 FOA 场景（1–4 个声源）。结果：语义损失降到约 0.23，开放词表检索 Top-1 约 37%（附录 A.3、图 10）。
+Stage 2，query-conditioned 定位（§4.2）。给一个描述目标声源的文本 query，cross-attention 定位头回归方位、仰角与距离；角度用 (sin⁡,cos⁡)(\sin,\cos)(sin,cos) 编码并做 ℓ2\ell_2ℓ2​ 归一化后再算损失，避免 ±180° 回绕不连续，距离在 log 域用 ℓ1\ell_1ℓ1​ 监督；总损失 Lstage2=Lang+0.5Ldist+0.5Lsem\mathcal{L}_{\mathrm{stage2}}=\mathcal{L}_{\mathrm{ang}}+0.5\mathcal{L}_{\mathrm{dist}}+0.5\mathcal{L}_{\mathrm{sem}}Lstage2​=Lang​+0.5Ldist​+0.5Lsem​（公式 9–12），保留语义项防止语义漂移。训练后平均方位误差约 16°、仰角约 7°、距离约 1.1 m（附录 A.3）。
 Stage 3，接入 Omni backbone（§4.2，图 5）。把冻结的 FOA encoder 移植进 Qwen3-Omni-30B-A3B（MoE，约 3B 激活参数）。每个 FOA 片段走双路：(i) 把 W 通道降混为单声道喂给原有冻结 audio tower，保留模型原生的语义音频 token；(ii) 4 通道片段过 FOA encoder 得空间 token，时间重采样到 7 Hz 音频 token 网格，由可训练 projector（LayerNorm + 384→2048→2048 GELU）映射到语言嵌入空间，写入预留的 &lt;foa_pad&gt; 占位行、按时间顺序插在对应音频 token 之后。只更新 LLM 与 projector，FOA encoder、audio tower、视觉塔全部冻结——双路设计的目的就是”语义不丢、空间另加”，冻结则避免多模态指令微调把前两阶段学到的空间表示练坏（这正是消融表 4 要验证的问题）。
 训练数据与规模（§5.1、表 12）：共 363,193 条训练样本——空间视听 QA 26,585、纯音频空间 QA 18,518、四个 VLN 语料（ScaleVLN 139,142、RxR 92,418、R2R 31,577、VLN-PE 28,969，均按动作再平衡后采样）、原地转向数据 25,984。Stage 3 在 32 张 A100 上约 4 天，2 epochs，最长 32,768 token（表 11）。
 
-合成数据细节（附录 A.1，值得单看，因为论文的”可扩展监督”全靠它）：视听 QA 用 LLM 当”导演”生成结构化 JSON 场景（N 个前景源+1 个环境源，每源带语义标签、LUFS 响度、起止时间与轨迹 ${(t_k,\theta_k,\phi_k,r_k)}$），同一调用还产出全场景视频 prompt 与每个源的孤立近景 prompt；校验与修正循环最多三轮；Seedance 渲染全场景视频与每源近景片段（后者提取为单声道 stem）。由于导演给的轨迹与生成像素只是近似一致，作者从渲染视频反推几何：稠密光流验证静态相机假设后，用开放词表文本提示分割并跟踪，按标签匹配声源，再用针孔相机模型反投影方位&#x2F;仰角（公式 2–3），单目深度锚定场景尺度得到度量距离；然后补 2–4 个保证在视野外的声源、加相机 yaw 轨迹，最后用公式 1 渲染 FOA，并直接从轨迹生成 QA（1484 个合成视频产出 26,585 个训练问题）。导航侧（附录 A.1.2）把 R2R&#x2F;RxR&#x2F;VLN-PE&#x2F;ScaleVLN 转成声音导航监督：VLM（Qwen3.7-flash）看 episode 终点最后 5 帧提出合理声事件（硬约束：不得泄露目的地房间名或家具），语音用 Qwen3-TTS 合成（7 个说话人）、非语音用 Seedance 生成；声源置于 episode 终点，按 $1&#x2F;r$ 衰减且不做峰值归一化（保留距离线索），叠加房间反射与可选方向性噪声（SNR∈{20,15,10,5,0} dB，表 6）；监督目标为 $K&#x3D;8$ 个相对当前位姿的 waypoint，并用 VLM 以真实方位&#x2F;距离为条件写第一人称 CoT（推理链不得与几何真值矛盾）。
+合成数据细节（附录 A.1，值得单看，因为论文的”可扩展监督”全靠它）：视听 QA 用 LLM 当”导演”生成结构化 JSON 场景（N 个前景源+1 个环境源，每源带语义标签、LUFS 响度、起止时间与轨迹 {(tk,θk,ϕk,rk)}\{(t_k,\theta_k,\phi_k,r_k)\}{(tk​,θk​,ϕk​,rk​)}），同一调用还产出全场景视频 prompt 与每个源的孤立近景 prompt；校验与修正循环最多三轮；Seedance 渲染全场景视频与每源近景片段（后者提取为单声道 stem）。由于导演给的轨迹与生成像素只是近似一致，作者从渲染视频反推几何：稠密光流验证静态相机假设后，用开放词表文本提示分割并跟踪，按标签匹配声源，再用针孔相机模型反投影方位&#x2F;仰角（公式 2–3），单目深度锚定场景尺度得到度量距离；然后补 2–4 个保证在视野外的声源、加相机 yaw 轨迹，最后用公式 1 渲染 FOA，并直接从轨迹生成 QA（1484 个合成视频产出 26,585 个训练问题）。导航侧（附录 A.1.2）把 R2R&#x2F;RxR&#x2F;VLN-PE&#x2F;ScaleVLN 转成声音导航监督：VLM（Qwen3.7-flash）看 episode 终点最后 5 帧提出合理声事件（硬约束：不得泄露目的地房间名或家具），语音用 Qwen3-TTS 合成（7 个说话人）、非语音用 Seedance 生成；声源置于 episode 终点，按 1/r1/r1/r 衰减且不做峰值归一化（保留距离线索），叠加房间反射与可选方向性噪声（SNR∈{20,15,10,5,0} dB，表 6）；监督目标为 K=8K=8K=8 个相对当前位姿的 waypoint，并用 VLM 以真实方位&#x2F;距离为条件写第一人称 CoT（推理链不得与几何真值矛盾）。
 3. 解决得怎么样？空间视听 QA（表 1）。 OmniEcho（FOA+视频）总体 28.5 分，优于 Qwen3-Omni-30B-A3B 同设定 18.5、Qwen2.5-Omni-7B 12.6、SO-7B 11.4；纯音频设定下 OmniEcho 21.8 也高于骨干 17.5，说明 FOA encoder 带来了单通道音频塔没有的空间线索。分项：相机旋转 41.7、认知地图 47.5（随机 25.0）、源方向 22.6（随机 12.5）、运动 24.7、3D 定位 14.2。作者报告两个有解释力的现象：去掉视觉后源方向、3D 定位、运动几乎不变（说明这些主要靠 FOA 声学几何），而相机旋转从 41.7 掉到 29.1（说明相机中心推理依赖视觉证据）。
 声音引导导航（表 2，真实场景）。 OmniEcho 与文本指令基线在同一 episode 集上闭环评测：SR 16.2%、SPL 11.5%、NE 4.09 m、OS 52.89%；传统文本指令 VLN 里 InternVLA-N1 为 SR 17.8%&#x2F;SPL 16.7%，Seq2Seq 11.3%、CMA 9.8%；把 FOA 转成双耳音频的 SoundSpaces 模型只有 SR 5.4%。作者表述：不提供路线级文本、也不给目标图像时，单靠声音引导能达到接近部分传统文本引导基线的水平（比 InternVLA-N1 低 1.6 点 SR、5.2 点 SPL）。模拟设定（表 3，VLN-CE R2R val-unseen）：SR 22.2%、SPL 16.3%，略超 Seq2Seq&#x2F;CMA 的成功率（SPL 低于 CMA 的 20.0），但落后 VLN-R1（30.2）、NAViLA-SAGE（38.0）、InternVLA-N1（50.6）——声音引导与强文本系统仍有明显差距，尤其在路径效率上。
 消融（表 4、图 6） 基本支撑设计选择：完整配置 28.5 最高；Stage 3 解冻并继续训练 FOA encoder 会降到 26.2 且每个子任务都退（验证”冻结”的必要性）；去掉原生 audio 塔降到 26.2（说明语义音频 token 与空间表示互补）；只保留原生音频（+视频）时 19.8，但相机旋转反而最高 43.7，作者解释为”额外的视觉观测降低了对空间音频线索的依赖”。FOA encoder 自身的消融（图 6）：5 通道声学特征输入 + Stage 1 预训练最优（方位 17.9°&#x2F;仰角 7.70°&#x2F;距离 1.13 m），直接喂原始 FOA 波形是 30.5°&#x2F;13.8°&#x2F;1.65；去掉 Stage 1 或完全跳过 Stage 1&#x2F;2 预训练都会退化——专用预训练不能省。
 真实数据的作用与失败分析。 用 1000 条真实样本微调（附录 A.5.1，表 15）：总体 28.5 → 34.9，方向 +8.4、3D 定位 +7.5、运动 +10.9——说明合成数据训出来的能力可以被少量真实数据有效校正，也侧面印证存在 sim-to-real 差距。失败侧（附录 A.5.2，表 16–17）：52.89% 的 episode 曾进入目标 1 m 区域，但只有 16.22% 成功停止——36.67% 是”进了区域没停下来”，47.11% 从未接近；距离估计 MAE 2.20 m、与真值相关性只有 0.27。给 GT 方向后（表 18）SR 升到 23.7%、SPL 22.1%，进入区域后的成功率从约 30.7% 提到 69.0%，说明瓶颈主要在”接近后的判断与停止”，而不是全程方向感。
 代价与边界。 真实采集需要 197 个剧本的演员表演、四通道录音与 2Hz 人工标注，导航侧 30 个扫描场景、12,900 条录音；合成数据依赖多个生成模型（Seedance 视频、Qwen3-TTS 语音、Qwen3.7-flash 提议，论文 AI use statement 已声明）；Stage 3 训练 32×A100 约 4 天。评测上还要注意：SoundSpaces 基线不支持 FOA，是转双耳后参评的，且部分任务语义本身就藏在音频里，作者自己承认任务形式无法完全对齐；”音频指令”与”文本指令”两类任务的难度也不可直接互换。论文把细粒度空间定位与距离估计列为仍未解决的开放问题（摘要、§6）。
 综上，作者发现具身 agent 缺少”空间听觉”这一信息通道、且缺少真实数据上的统一评测，因此提出 OmniEchoBench（真实采集的感知+导航基准）、几何一致的空间音频渲染管线（规模化合成监督）与双路语义&#x2F;空间建模的 OmniEcho 模型，实验表明它在真实空间视听 QA 上取得当前最好结果、纯声音引导导航接近部分文本引导 VLN 基线，并指出 FOA 主要承担声源几何、相机旋转等任务仍依赖视觉，但仍存在明显的仿真-真实差距、细粒度定位与距离估计不可靠、以及”到达目标却不会停下来”的导航瓶颈，与强文本引导 VLN 系统相比还有明确差距。
-]]></content>
-      <categories>
-        <category>daily paper</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Agent-Editing World Model: Rethinking World Modeling for LLM Agents</title>
-    <url>/2026/09/27/2609.28416v1_Agent-Editing_World_Model_Rethinking_World_Modeling_for_LLM_Agents/</url>
-    <content><![CDATA[作者：Shuang Sun、Guoxin Chen、Fanzhe Meng、Jia Deng、Huatong Song、Jinhao Jiang、Wayne Xin Zhao、Hongteng Xu、Ji-Rong Wen（中国人民大学高瓴人工智能学院；Sun 与 Chen 为共同一作）。
-论文：2609.28416v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
-Hugging Face · arXiv 原文 · 官方全文
-分析范围：官方 arXiv v1 HTML 全文，含正文 §1–7 与附录 A（数据与训练）、B（Action Judge 基准）、C（评测协议）、D（案例）、E（提示词模板）；正文方法、表格、公式与报告引用图片均已核对。
-1. 作者发现了什么问题？近两年”语言世界模型”（language world model）的主流做法，是让模型预测动作之后的环境观测：给定任务和历史，模拟工具会返回什么搜索结果、终端输出或测试结果（§1、§6）。作者认为这条路线对任务型 LLM Agent 是错位的。理由有两点（§1、§2.1）：
-
-这些观测本身就是高熵、依赖真实执行的：搜索结果取决于不断变化的网页内容与不透明的排序；终端输出和测试结果取决于文件系统和运行时状态。真实工具已经能提供 grounded feedback，模型再去重构它们既困难，价值也有限；更糟的是模拟可能凭空造出证据（fabricated evidence），误导后续决策。
-真正出问题的地方不在环境，而在 agent 自身的状态。作者通过轨迹分析（§1、§5.1）发现一种反复出现的失败机制——task-state contamination（任务状态污染）：agent 在部分观测下探索未知环境时，会把没有依据的假设当成事实、在出现矛盾反馈后继续沿用过时的计划、或把局部进展误判为任务完成。这些错误一旦写进历史，就会被后续”局部看起来合理”的动作不断放大，即使环境反馈本身是真实、正确的。
-
-论文给出的证据是逐动作的统计与案例：把三个域的 agent 轨迹按决策类型标注后（图 4、§5.1），Search 域有 60.0% 的决策属于 Noisy（无进展、重复、违背约束或方向错误）；Terminal 域的 Exploratory 占比最高（**43.2%**），Noisy 占 25.1%；SWE 域 Critical 占 42.1%、Noisy 占 28.0%。附录 D 的 9 个案例进一步展示了具体形态，例如 Search 里 agent 把”偏好的来源”直接当作出生姓氏的定论、Terminal 里把中间步骤的成功当成已验证的完成（§5.2、附录 D）。
-因此，作者的核心判断是：语言世界模型该预测的不是环境观测，而是”当前推理与动作会如何影响后续任务进展”，并且应当直接干预 agent 的状态，而不是仅提供”批评意见”。
-2. 作者如何解决？核心思路：把 agent 在执行前的状态 $s_t$（历史 + 当前提议的推理–动作对）作为世界模型的输入端，训练一个模型做两件事——判断这个提议属于 Critical &#x2F; Exploratory &#x2F; Noisy 三类中的哪一类（Action Judge），并为 Noisy 提议从同一历史出发重新生成推理与动作（State Revision）；两者组合成 EditAct：保留有价值的决策、改写有污染的决策、把最终选定的动作放进真实环境执行。图 2 给出整体框架。
-
-原文图 2（正文 §2 前，官方 HTML 图）。左：合成 Action Judge 与 State Revision 数据，经 mid-training 与 SFT 训练 AEWM；右：推理时 EditAct 选择保留或改写提议的推理–动作状态，产出轨迹再用于 AEWM-RFT 拒绝采样微调。
-形式化与关键公式。 记历史 $h_t&#x3D;(x,(r_i,a_i,o_i)_{i&#x3D;0}^{t-1})$，agent 依策略提议 $(\hat r_t,\hat a_t)\sim\pi_\theta(\cdot\mid h_t)$，执行前状态为
-$$s_t&#x3D;h_t\oplus(\hat r_t,\hat a_t).$$
-传统观测预测型世界模型学的是 $\mathcal{M}_{\mathrm{obs}}(o_t\mid s_t)$；AEWM 改为在 $s_t$ 上做编辑（式 1）：
-$$s_t\xrightarrow{\mathcal{M}{\mathrm{obs}}}\hat o_t\quad\text{（观测预测）}\qquad\text{vs.}\qquad s_t\xrightarrow{\mathcal{M}{\mathrm{SR}}}\tilde s_t&#x3D;h_t\oplus(\tilde r_t,\tilde a_t)\quad\text{（状态编辑，本文）}$$
-即在保留历史 $h_t$ 不变的前提下，替换当前的推理–动作续写；此后一切都由真实环境执行来获得观测。推理时的选择规则是（式 2）：
-$$(r_t,a_t)&#x3D;\begin{cases}(\hat r_t,\hat a_t), &amp; \hat y_t\in{\mathtt{critical},\mathtt{exploratory}},\[2pt](\tilde r_t,\tilde a_t), &amp; \hat y_t&#x3D;\mathtt{noisy},\end{cases}\qquado_t\sim\mathcal{E}(\cdot\mid h_t,a_t),\quad h_{t+1}&#x3D;h_t\oplus(r_t,a_t,o_t)$$
-State Revision 只在被判为 Noisy 时触发。三类标签的语义（§2.2）：Critical 是”补齐关键证据或必要状态改变、走紧凑解题路径”的决策；Exploratory 是”显著降低不确定性或验证一个合理分支”的决策——显式保留这一类比只留”最优路径”更重要；Noisy 是预期进展很小、或造成重复、切题、违反约束、方向错误的决策。
-训练数据怎么来（§3.1，附录 A）。 全部监督都从已验证成功的真实 agent 轨迹回标得到：
-
-Action Judge 数据：把成功轨迹拆成单个 turn，由强标注模型（DeepSeek-V4-Pro，高推理强度，每个决策独立标注 3 次）回看完整轨迹后，为每个 turn 生成一段只允许使用当前可见信息的前瞻推理 $r_t^{\mathrm{AJ}}$ 与动作类型 $y_t$；标注一致（三次全同）的进”高置信储备”，多数一致的进 mid-training 池。这里有个有意思的训练哲学：用”事后回看”的标签去监督”事前预测”——训练目标与推理目标相同（预测动作的下游贡献类型），区别只在于标注时证据已经出现。过滤上，先做结构检查（参数格式、工具是否存在、原生工具调用是否残留文本壳），再用语义评分卡（表 4：每维 0–4 分，全维 ≥3 才收，如”前缀可依据性、推理质量、动作具体性、标签–理由一致性”等），最后做多样性配额抽样。
-State Revision 数据：由 Qwen3.5-35B-A3B 当 proposal agent 正常解题；一旦 Action Judge 检查点判某步为 Noisy，就由 revision agent（DeepSeek-V4-Pro）从同一段历史生成新的推理–动作对，并在真实环境中执行；只有当后续轨迹显示这次改写确实带来实质进展时才保留样本（Search 要求最终答案正确，Terminal 要求任务验证通过，DeNovoSWE 要求最终分数 &gt;0.8）。
-两阶段训练（§3.2，表 5–7）：backbone 为 Qwen3.5-35B-A3B，用 verl + Megatron 后端。Mid-training 语料约 52.16B tokens（其中 Action Judge 监督 20.56B、State Revision 监督 25.01B、原始交互轨迹 6.59B），学”交互知识 + 判断&#x2F;改写”的粗能力；SFT 用 120K 条严格筛选样本（60K Action Judge + 60K State Revision，每个域各 40K；Search 的 AJ 标签刻意按 1:1:3 配比）激活并校准两种能力。两阶段学习率均为 $1\times10^{-5}$，batch 分别 512&#x2F;256，序列上限 262,144&#x2F;131,072（表 7）。
-AEWM-RFT（§3.3）：把 EditAct 干预下产生的经真实反馈验证的轨迹（含 AEWM 的改写）拿来对 agent 做拒绝采样微调，让 agent 把”纠错模式”内化，从而在推理时不需要 AEWM。数据规模为 Search 4,000 条、Terminal 7,095 条、SWE 1,456 条（表 8），训练超参与 Self-RFT 完全一致（表 9），两者唯一差别是 rollout 来源。
-
-关键设计为什么可能有效。 一是同时改写推理和动作：被改写的 reasoning 会随历史进入后续决策，只改动作或只改推理都不足以切断污染（§2.2、§4.5 消融）。二是直接替换续写，而不是给提示让 agent 重新生成：消融显示 EditAct 优于”给 hint 让 agent 自己重写”和”让 agent 重采样”，说明把修正后的状态直接落到历史里比”批评式反馈”更有效（表 3、§4.5）。
-3. 解决得怎么样？Action Judge 能力（§4.2、表 11、附录 B）。 作者自建了 3,000 条决策的跨域基准（Search&#x2F;Terminal&#x2F;SWE 各 1,000；标签构成为 900 Critical、735 Exploratory、1,365 Noisy，表 10），每条只给任务、工具说明、执行前历史和当前提议，隐藏观测、金标与理由。与 5 个前沿模型对比（温度为 1.0，单次判定，不许投票）结果如下：
-
-
-
-模型
-Search macro-F1
-Terminal macro-F1
-SWE macro-F1
-Overall macro-F1
-
-
-
-Gemini-3-Pro
-39.2
-52.0
-42.8
-45.1
-
-
-GLM-5.2
-49.5
-54.0
-54.5
-53.2
-
-
-Qwen3.7-Max
-50.5
-56.1
-57.4
-54.9
-
-
-GPT-5.5
-46.6
-61.3
-54.4
-55.3
-
-
-DeepSeek-V4-Pro（最强基线）
-50.6
-61.6
-64.4
-59.9
-
-
-AEWM
-60.9
-72.1
-77.8
-70.5
-
-
-
-原文图 3（官方 HTML 图，条形图按域分组）。Search、Terminal、SWE 三域的 macro-F1：AEWM（斜纹柱）在每一域都最高；数值与表 11 一致，可见 Search 域整体最难，SWE 域基线间差距最大。
-AEWM 总体 macro-F1 **70.5%**，比最强基线 DeepSeek-V4-Pro 高 10.6 个点；三个域分别高出 10.3&#x2F;10.5&#x2F;13.4 个点。类级表现上 Noisy 最好（F1 81.1），Critical 68.1、Exploratory 62.3（表 12）——即”该拦住的决定拦得住”，而”有价值探索”和”关键步骤”的区分仍更难。
-评测设置（§4.1、附录 C）。 三个域各有一个真实工具环境的 ReAct 脚手架，EditAct 就直接嵌在其中（基于 AweAgent 实现）：Search 用 search_api（You.com 检索）、link_summary_tool（按查询抽取网页证据）与 finish，BrowseComp&#x2F;DeepSearchQA 均限 600 步、256K 上下文；Terminal 用 CalibForge-Eval 的 execute_bash、str_replace_editor、finish（每容器 32 核 &#x2F; 48GiB，单任务限时 10,800 秒）；SWE 用 SearchSWE 的 execute_bash、str_replace_editor、finish（SWE-Bench Pro ≤500 步、Doc2Repo ≤400 步、NL2Repo ≤500 步，表 13）。基线为 ReAct 与两种 Best@3——逐步 Best@3（每步采样 3 个候选、由 verifier 选一个执行）与轨迹级 Best@3（同题跑 3 条轨迹、由 verifier 选最终提交），verifier 均为 DeepSeek-V4-Pro（附录 C.2）。AEWM 推理时温度 1.0，Action Judge 单次最多 8K token、State Revision 最多 32K。
-EditAct 对 agent 的提升（§4.3、表 1）。 六个基准覆盖搜索（BrowseComp 用 accuracy、DeepSearchQA 用 F1）、终端（Terminal-Bench 2.0 任务准确率）与 SWE（SWE-Bench Pro resolved rate、Doc2Repo&#x2F;NL2Repo 测试通过率）；每项跑 3 次取均值。三个 backbone 上 EditAct 均全面领先 ReAct 与两种 Best@3 选择基线：
-
-
-
-Backbone
-ReAct 均值
-Step-level Best@3
-Trajectory-level Best@3
-EditAct
-比最强基线
-
-
-
-Qwen3.5-4B
-28.5
-35.1
-33.7
-41.8
-+6.7 点
-
-
-Qwen3.5-9B
-34.5
-38.9
-38.9
-44.1
-+5.2 点
-
-
-Qwen3.5-35B-A3B
-42.2
-45.4
-45.6
-48.8
-+3.2 点
-
-
-（表 1 六基准平均值；单基准如 35B-A3B 上 Terminal-Bench 2.0 为 48.3 vs 最强基线 44.9，SWE-Bench Pro 43.8 vs 43.5 等）。值得注意的是 9B + EditAct（44.1）超过了 35B-A3B + ReAct（42.2），说明外接一个更会”审题”的世界模型可以部分抵掉 agent 本身的规模差。作者还试了更强的 Qwen3.5-Plus：BrowseComp 从 44.1 提升到 52.7，但 Terminal&#x2F;SWE 提升有限，作者归因于 AEWM 与更强 agent 之间的容量差（§4.3）。
-AEWM-RFT：把纠错能力内化（§4.4、表 2）。 在 Qwen3.5-35B-A3B 上，两种 RFT 用同数据量、同过滤、同超参，只差 rollout 来源；评测时都用纯 ReAct，不带 AEWM：
-
-
-
-方法
-BrowseComp
-Terminal-Bench 2.0
-Doc2Repo
-平均轮数（BC&#x2F;TB2）
-
-
-
-Base agent
-40.9
-37.1
-42.8
-56.2 &#x2F; 83.1
-
-
-Self-RFT
-43.2
-40.8
-46.1
-44.0 &#x2F; 73.6
-
-
-AEWM-RFT
-45.4
-43.4
-48.6
-39.3 &#x2F; 69.2
-
-
-即相对 Self-RFT 再涨 2.2&#x2F;2.6&#x2F;2.5 个点；前两个 benchmark 上平均轮数还下降约 30% 和 16.7%，Doc2Repo 则以更多轮数（78.1→89.8）换来 +2.5。这说明被 AEWM 纠正过的轨迹本身就是可迁移的监督信号。
-消融是否支持作者的解释（§4.5、表 3）。 在固定 35B-A3B 上：随机门控（Random Gate，按 AEWM 在线的 Noisy 率随机触发改写）在三个基准上都不如学习到的 Action Judge（如 BrowseComp 44.1 vs 48.1）；”让 agent 自己重采样”、”把 AEWM 的推理当 hint 交给 agent 重新生成” 也都不如直接替换状态；只改动作（Action-only）或只改推理（Reasoning-only）都不如联合改写；用 agent 自己当世界模型（Self-WM）在 BrowseComp&#x2F;Terminal 上退化（39.3&#x2F;30.7），换成 DeepSeek-V4-Pro 当世界模型仍全线低于 AEWM（47.4&#x2F;45.7&#x2F;46.3 vs 48.1&#x2F;48.3&#x2F;48.9）。训练消融中，mid-training + SFT 的完整配方优于只用 SFT（+0.8&#x2F;+6.4&#x2F;+4.3）和只用 mid-training（+0.3&#x2F;+4.1&#x2F;+1.9）。这些结果支持”要让 learned judge、联合编辑和专门训练的世界模型三者都在”的说法，但消融是按整体替换做的，无法分离各设计元素之间可能的交互。
-
-原文图 4（§5.1，官方 HTML 图）。三个域在离线标注（Annotated）与在线 AEWM 指导（Online）下的 Critical &#x2F; Exploratory &#x2F; Noisy 占比：Search 以 Noisy 为主（在线 64.8%），Terminal 以 Exploratory 为主，SWE 三类较均衡；在线分布与标注分布同构，说明 AEWM 在推理时复用了训练中学到的域间决策差异。
-行为层面的变化（§5.2、图 5、图 4）。 搜索域中，最长”纯搜索”连续段从 16.9 降到 13.2，访问到的不同网页数从 7.7 升到 10.1——与”打开更多来源验证假设”的解释一致；在线 Action Judge 的动作分布与离线标注分布基本一致（图 4），作者据此说明 AEWM 学到的域间差异在在线指导时被复用。
-代价与边界。 论文没有报告整条流水线的美元成本或 GPU 小时；但代价结构是清楚的：造数据要调用多个前沿模型（标注、提议、改写、复核），mid-training 要 52B tokens，推理时每步多一次 Action Judge 调用（≤8K tokens）、触发改写时再生成一次（≤32K tokens），且 RFT 需要大量 EditAct rollout（附录 A.4）。此外：Action Judge 基准由作者自建、标注来自模型（DeepSeek-V4-Pro 三取一致 + GPT-5.6-Sol 复核，附录 B），70.5% 是”自家基准上的自家定制模型”成绩；评测虽跑 3 次但只报均值、未给方差；in-distribution 基准（BrowseComp、Terminal-Bench、Doc2Repo、NL2Repo）与训练分布重叠，只有 DeepSearchQA 与 SWE-Bench Pro 是 OOD；论文也未测量失败模式中”被误判为 Noisy 而被改坏”的比例。
-作者发现观测预测型世界模型对任务型 Agent 价值有限、且 agent 自身会被 task-state contamination 污染，因此提出 AEWM：用 Action Judge 判断决策效应、用 State Revision 从同一历史改写被污染的推理–动作续写，并以 EditAct 在真实环境中执行；实验表明其动作判断 macro-F1（70.5%）超最强前沿基线 10.6 点，三个 backbone、六个基准上平均提升 3.2–6.7 点，AEWM-RFT 还能把纠错能力内化进 agent（比 Self-RFT 高 2.2–2.6 点）；但仍存在标注与训练成本未量化、基准自建且部分与训练同分布、误改率未评估等边界。
 ]]></content>
       <categories>
         <category>daily paper</category>
@@ -279,6 +106,107 @@ Hugging Face · arXiv 原文 · 官方全文
       </categories>
   </entry>
   <entry>
+    <title>Parts-of-Speech as Emergent Categories in SAE Latent Space</title>
+    <url>/2026/09/27/2609.29362v1_Parts-of-Speech_as_Emergent_Categories_in_SAE_Latent_Space/</url>
+    <content><![CDATA[作者：Alessandro Bondielli*、Lucia Passaro*、Serena Auriemma、Alessandro Lenci（*共同第一作者；CoLingLab 与比萨大学计算机科学系；EMNLP 2026 预印本）。
+论文：2609.29362v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
+Hugging Face · arXiv 原文 · 官方全文
+分析范围：官方 arXiv v1 HTML 全文，含正文 §1–6、附录 A.1–A.3 与 B.1–B.3.1、表 1–8 及本报告引用的图 1–4、6–7、13、18–19。未发现缺失章节；实现细节（如 SAE 的稀疏化方式与系数、探针除 CCC 外的超参）论文未给出。
+1. 作者发现了什么问题？背景与探究对象。 大语言模型内部表示中同时含有词汇、句法、语义信息，但”这些信息如何组织”仍不清楚：语法类别究竟对应少量局部可解释的方向，还是分散在大量维度上（§1）。稀疏自编码器（SAE）被当作回答该问题的工具——它把稠密激活分解成高维稀疏向量，期望每个 latent 更接近单义（monosemantic）特征。作者要检验的正是这个期望在语法层面是否成立。
+已有方法具体哪里不够。 一是探针（probing）类研究的天花板：探针准确率高只能说明信息”存在”，无法说明它”如何组织”，甚至探针可以拟合任意映射（Hewitt and Liang, 2019；Pimentel et al., 2020），因此”可恢复”不等于”被模型使用”。二是已有 SAE 的语言学分析多聚焦孤立现象（如 Marks et al. 2025 的主谓一致回路）或宽泛属性（语言身份），缺少对理论定义的语法类别的系统考察（§2）。三是近期工作本身就在质疑 SAE latent 的单义性：Kantamneni et al. (2025) 发现基于 SAE latent 的探针并不稳定优于简单基线，SAEBench 也显示代理指标的提升未必迁移到下游。
+为什么选词性（PoS）当测试台。 PoS 标签离散、独立标注、语言学上可解释，而且在频率、词汇开放性、句法功能上差异极大——开放类（名词、动词）词汇能产、变化大，封闭类（限定词、连词、代词）形式受限、常绑定特定句法角色（§1）。这使它成为检验”类别 ↔ latent 是否为一一映射”的合适受控场景。作者据此提出三个问题：RQ1 词性能否从 SAE 激活中恢复；RQ2 这些编码在 latent 空间中如何组织；RQ3 这种表征在跨数据与评估设置时是否稳定系统（§1）。
+需要区分已存在的问题与本文的新观察：**”PoS 可从 SAE 激活中恢复、但不与单个 latent 一一对应、而是由紧凑的 latent 组支撑”是本文的实验结论，不是前置假设**。论文并未先验断言语法类别必然分布式编码。
+2. 作者如何解决？
+原文图 1，工作流总览。左侧三步依次为可恢复性测试（one-vs-rest 探针）、定位（系数显著性找 latent 组）、紧凑性（95% 覆盖与多分类探针）；右上给出一个真实 token 序列的 latent 激活示例，右下用留出树库与受控数据做验证。
+核心思路。 把”SAE 是否编码词性”拆成三层可测量的实验：先证明信息可线性恢复，再把”支撑某个类别判别”的 latent 找出来并量化需要多少个 latent 才能覆盖该类别 95% 的实例，最后检验这些 latent 组在未见数据上是否仍然激活、是否能独立支撑多分类。关键设计是**不追求”每个词性一个 latent”**，而是允许每个类别有自己大小的 latent 组，用覆盖率而非系数阈值来定义这个组（§4.2）。
+输入与表示（§3.2）。 模型是 LLaMA-3-8B，SAE 用 EleutherAI&#x2F;sae-llama-3-8b-32x（32 倍扩展，即 4096×32=131,0724096\times32=131{,}0724096×32=131,072 个 latent），经 Sparsify 库调用，实现遵循 Gao et al. (2025) 描述的 SAE 设计（论文未进一步说明该 checkpoint 的稀疏化方式）。激活取自第 30 层（输出前最后一层）残差流在 MLP 之后的位置，只对单个子词编码。子词与 UD token 用字符跨度重叠对齐，并取最左子词作为锚点——作者给出的理由是 UD token 的身份在第一个子词处才对模型可见，跨子词平均会把类别信息与续写片段激活混在一起。最后只保留在树库中至少出现过一次的 latent，得到 D=130,246D=130{,}246D=130,246 维的稀疏特征矩阵 X∈RN×DX\in\mathbb{R}^{N\times D}X∈RN×D。
+数据。 自然语料用 UD English GUM treebank（14,353 句、252,284 token，完整覆盖 17 个 UPOS 标签），训练集用于”发现” latent 组，测试集全程留出（§3.1）。另构造一个 180 项的受控数据集：160 个名词（跨多个语义类别，生命&#x2F;无生命各半，以单复数嵌入 There is a dog、I see the dog、I have a dog 等中性模板）与 20 个高频动词（10 规则 + 10 不规则过去式，模板 I [VERB]），每个基句再附加”插入相邻形容词&#x2F;副词”和”再加标点”两个变体，并区分现在时与过去时。
+RQ1：可恢复性（§4.1）。 对每个 PoS 训练 one-vs-rest 的二分类逻辑回归，L1 正则（C=0.1C=0.1C=0.1，liblinear，balanced 类权重），5 折交叉验证。L1 的作用不只是正则，更是特征选择——把系数压到零，从而为 RQ2 提供”哪些 latent 支持该类别”的排序依据。
+RQ2：定位与紧凑性（§4.2）。 分三步。第一步取显著度：只保留 β&gt;0\beta&gt;0β&gt;0 的系数（激活提升该类概率），得到每个 PoS 的显著度排序。第二步定义覆盖率：
+Covc(k)=1∣Tc∣∑t∈Tc1[∃ ℓ∈Lc(k):aℓ(t)&gt;0],kc⋆=min⁡{k∈N:Covc(k)≥τ}\mathrm{Cov}_{c}(k)=\frac{1}{|T_{c}|}\sum_{t\in T_{c}}\mathbf{1}\left[\exists\,\ell\in L^{(k)}_{c}:a_{\ell}(t)&gt;0\right],\qquad k^{\star}_{c}=\min\{k\in\mathbb{N}:\mathrm{Cov}_{c}(k)\geq\tau\}Covc​(k)=∣Tc​∣1​t∈Tc​∑​1[∃ℓ∈Lc(k)​:aℓ​(t)&gt;0],kc⋆​=min{k∈N:Covc​(k)≥τ}
+其中 TcT_cTc​ 是金标签为 ccc 的 token 集合，aℓ(t)a_\ell(t)aℓ​(t) 是 latent ℓ\ellℓ 在 token ttt 上的激活，Lc(k)L^{(k)}_cLc(k)​ 是显著度前 kkk 的 latent 集合，阈值取 τ=0.95\tau=0.95τ=0.95。也就是问：最少要多少个高系数 latent，才能让该类别 95% 的 token 至少激活其中一个。作者特意用 per-class 阈值而非全局 top-kkk，以免被各类别之间 latent 数量与系数分布的不平衡带偏。第三步做紧凑特征分类：把所有类别的最小覆盖集合取并
+L⋆=⋃c∈CLc(kc⋆),L^{\star}=\bigcup_{c\in C}L^{(k^{\star}_{c})}_{c},L⋆=c∈C⋃​Lc(kc⋆​)​,
+只用 L⋆L^\starL⋆ 作输入再训一个 multinomial 逻辑回归做联合词性预测。这是比覆盖率更严格的检验——如果这些 latent 真的抓住了系统性的形态句法信息，多分类不该大幅掉点；掉得厉害就说明信息仍分散在别处。
+RQ3：留出验证（§4.3）。 不再训练新分类器，而是检验”发现阶段选出的 latent 组是否在未见 token 上仍然激活”。定义跨 PoS 激活矩阵
+Mc,c′=1∣Tc∣∑t∈Tc1[∃ ℓ∈Lc′(kc′⋆):aℓ(t)&gt;0],M_{c,c&#x27;}=\frac{1}{|T_{c}|}\sum_{t\in T_{c}}\mathbf{1}\left[\exists\,\ell\in L^{(k^{\star}_{c&#x27;})}_{c&#x27;}:a_{\ell}(t)&gt;0\right],Mc,c′​=∣Tc​∣1​t∈Tc​∑​1[∃ℓ∈Lc′(kc′⋆​)​:aℓ​(t)&gt;0],
+对角项 Mc,cM_{c,c}Mc,c​ 即该类召回，非对角项是”为 c′c&#x27;c′ 选出的 latent 却在 ccc 的 token 上点火”的假阳率。再用 D(c)=Mc,c/∑c′∈CMc,c′\mathrm{D}(c)=M_{c,c}\big/\sum_{c&#x27;\in C}M_{c,c&#x27;}D(c)=Mc,c​/∑c′∈C​Mc,c′​ 衡量类别专属度，1/∣C∣=0.061/|C|=0.061/∣C∣=0.06 为均匀共激活下的随机基线。
+对照与基线（§4.4）。 三项：词形记忆控制（给每个词型随机指定 UPOS 标签重跑探针）；稠密基线（改用第 0 层 embedding 与第 30 层原始激活作特征）；随机替换基线（保留 0&#x2F;25&#x2F;50&#x2F;100% 的 L⋆L^\starL⋆，其余随机抽 latent）。
+代价（附录 A.2）。 8×A100 80GB 节点，单层激活提取约占 0.16 GPU 小时；一次 5 折交叉验证在训练集上约需 4 小时（scikit-learn，纯 CPU 并行）。
+3. 解决得怎么样？RQ1：可以恢复，但不均匀（图 2）。
+
+原文图 2，5 折交叉验证下各词性的 one-vs-rest 探针 F1，右侧灰色柱为该类别在数据中的 token 支持量。红色为开放类、蓝色为封闭类、深色为其他类。
+图 2 显示大多数类别 F1 很高：PUNCT、PRON、CCONJ、DET 最高（约 0.9 及以上），其后是 NOUN、AUX、ADP、VERB；SYM 约 0.62、SCONJ 约 0.53、INTJ 约 0.43，最低的 X 只有约 0.13（图 2 为柱状图，此处为读数近似）。规律是封闭类与低变化性标签（标点）更易恢复，开放类中名词和动词最好。作者据此回答 RQ1 为”是”，同时强调高探针分数并不能说明组织方式（§5.1）。
+RQ2：latent 组存在、大小因类别而异、且整体很紧凑。 显著度分析显示二分类器并不均匀使用整个 latent 空间：每个 PoS 只有一部分 latent 得到正系数，但绝不是单个 latent。非零系数数量（表 4、图 3）差异很大：NOUN 10,043（占 latent 空间 7.66%）、ADJ 8,877、VERB 7,404、ADP 6,511，而 CCONJ 只有 645、SYM 460。按类别汇总（表 5）：开放类平均 7,926.5 ± 2,153.7，封闭类 3,281.7 ± 1,895.7，其他类 2,094.4 ± 221.9。
+覆盖分析给出更关键的答案。
+
+原文图 4，每个词性为达到 95% 覆盖所需的高系数 latent 数 kc95k^{95}_{c}kc95​（柱越低越紧凑）。红色为开放类、蓝色为封闭类、深色为其他类。
+图 4 显示达到 95% 覆盖所需的 latent 数 kc95k^{95}_{c}kc95​ 从个位数到八十余不等：X 最高（约 82），其后 ADJ 约 80、ADV 约 71、PROPN 约 59、VERB 约 52，封闭类整体更少，CCONJ 最低（约 5）；NOUN 约 33、ADP 约 16（图 4 为柱状图读数，均为近似；附录 A.1 给出的第 30 层精确值为 NOUN 34、ADP 16、SCONJ 17、PROPN 60，与读数一致）。把 17 个类别的最小覆盖集合取并后，L⋆L^{\star}L⋆ 总共只有 498 个 latent，其中 12% 被 2 个以上 PoS 共享（§5.2）。只用这 498 个（对比全空间 130,246 个）训练的多分类器达到 accuracy 0.89、macro-F1 0.81、weighted-F1 0.90（表 7，n&#x3D;177,410），逐类 F1 从 PUNCT 0.96、CCONJ 0.96、DET&#x2F;PRON 0.94 到 X 0.24、SYM 0.49、INTJ 0.52（表 7）。参数敏感度检查显示结果对 CCC 与 τ\tauτ 都不敏感（附录 B.2，图 13）。
+RQ3：稳定，但只是部分类别专属（图 6、表 8）。 在留出测试集上，对角项 Mc,cM_{c,c}Mc,c​ 大多 ≥0.95\geq 0.95≥0.95，说明为某类别选出的 latent 确实在未见同分布 token 上继续激活；但非对角项波动较大，说明存在跨类别重叠。整体专属度 D\mathrm{D}D 的均值仅 0.270.270.27（σ=0.07\sigma=0.07σ=0.07），远高于随机基线 0.06，却远不到 1——latent 组既不是随机的，也不是类别互斥的（§5.3、表 8）。表 8 还给出零激活比例：NUM 0.006、PART 0.007 最低，X 0.273、SYM 0.111 最高。
+受控数据集给出互补证据，也暴露了一个 artifact。表 1 的伪多标签结果平均 precision 仅 0.192、recall 0.937、F1 0.318：高召回、低精度，部分模板间有波动。作者追查到一组与”首 token”概念相关的 latent 在干扰结果，并做了验证——在句首加一个词性不同的前缀（如把模板改成 1. I saw the cute cat）后，原本在首 token “I”（PRON）上点火的 latent 整套转移到新的首 token（NUM）（附录 B.3.1，图 19）。这既说明混淆存在，也说明 latent 组确实随 token 属性系统性地移动。图 7 进一步显示，往句子里加入新 token（如给 There is a dog 加 loyal）时，对应类别（adj）的 latent 会被一致地点亮，激活大致可加；不过名词组在出现相邻形容词后分布有轻微漂移（附录 B.3）。
+对照与基线支持”不是词形记忆”（§5.4）。 随机标签控制探针得到 0.54 Accuracy &#x2F; 0.42 Macro-F1，而真实探针为 0.88 &#x2F; 0.97，34–37 点的差距说明可恢复性主要不是靠记住词形——不过作者也承认混淆”不可忽略”。（注：这两个数与表 2 的 SAE 行 0.88 &#x2F; 0.78 不是同一评估设置，论文未逐项说明口径，此处按原文分别引用。）表 2 显示 SAE 探针与稠密基线相当（SAE 0.88&#x2F;0.78；第 30 层原始激活 0.92&#x2F;0.84；第 0 层 embedding 0.88&#x2F;0.78），但 SAE 只用了约 1&#x2F;8 的特征。作者明确不主张 SAE 作为探针工具更优，只主张它的贡献是分解与定位。表 3 的随机替换实验则从反面确认 L⋆L^{\star}L⋆ 与词性相关：重叠 0&#x2F;25&#x2F;50&#x2F;100% 时交叉验证准确率依次为 0.24&#x2F;0.49&#x2F;0.69&#x2F;0.87。
+机制解释的边界。 §5.5 给出四条解释，其中两条值得注意作者自己就做了限定：其一，封闭类更紧凑（表 4、图 4）作者归因于”词汇变异性梯度”而非抽象程度更高——像 DET 这种自带少量不变词形的类别，用一组”词形专属 latent”就能覆盖，不需要类别级抽象；受控数据支持这一读法：DET 在限定词恒为 the 的模板里退化成单一激活值（附录图 18），只有引入 a&#x2F;an 与光杆复数的形式变化后才出现结构（图 7）。其二，开放类的跨类共激活更多来自词形、词干共享与位置：adj 主要与 noun&#x2F;propn&#x2F;adv 混淆（定语名词用法、形容词—副词重叠），adv 与 adp&#x2F;noun&#x2F;sconj&#x2F;verb 弥散共激活，verb 与 noun 在同形异义词（to drink &#x2F; the drink）上重叠；intj 的高假阳率则可能源于标注约定（like、well、God 在不同语境被标 intj）。
+仍未解决与适用范围。 论文在 Limitations 中列出四项局限。其中与本报告结论最相关的三项是：只用一个底座模型（LLaMA-3-8B）与一个公开 SAE，结论可能依赖模型、层、SAE 训练过程与稀疏度（作者用层扫描部分缓解：附录 A.1 报告 L⋆L^{\star}L⋆ 在层 2&#x2F;15&#x2F;30 为 530&#x2F;501&#x2F;498，macro-F1 为 0.77&#x2F;0.79&#x2F;0.81，专属度为 0.15&#x2F;0.32&#x2F;0.27，说明结论不限于第 30 层）；定位依据是线性探针系数，probe 系数不应被解读为直接因果证据，要确认模型是否真用这些 latent 做形态句法处理还需因果干预；受控数据集只有 180 项且以名词、动词为主，无法覆盖英语全部的句法与词汇变化。第四项是 PoS 只代表一个语言学抽象层级，形态特征、依存关系、语义角色与篇章现象需要另行研究。
+作者发现探针准确率只能证明词性信息”存在”、无法说明它”如何组织”，因此提出以 PoS 为受控测试台的”可恢复性—定位—验证”三段流程，通过 L1 探针系数、95% 覆盖率筛选出总共 498 个 latent 的类别相关组，实验表明这些组在留出数据上稳定、足以独立支撑多分类，但仍存在明显的跨类别共激活、开放类与封闭类的紧凑度差异更多反映词汇变异性而非抽象层级，且缺少因果干预证据与多模型、多 SAE 的验证。
+]]></content>
+      <categories>
+        <category>daily paper</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>Your Transformer Can Hold Two Thoughts at Once: Evidence of Linear Superposition in LLMs</title>
+    <url>/2026/09/27/2609.29845v1_Your_Transformer_Can_Hold_Two_Thoughts_at_Once_Evidence_of_Linear_Superposition_in_LLMs/</url>
+    <content><![CDATA[作者：Pavel Tikhonov、Anton Korznikov、Matvey Mikhalchuk、Nikita Dragunov、Temurbek Rahmatullaev、Polina Druzhinina、Anton Razzhigaev、Ivan Oseledets、Elena Tutubalina（共 9 人）。
+论文：2609.29845v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
+Hugging Face · arXiv 原文 · 官方全文
+分析范围：官方 arXiv v1 HTML 全文，含正文第 1–8 节与附录 A–L；已核对表 1–11、图 1–5 的编号与数值。v1 为唯一版本。报告中的三张图由官方 HTML 里的矢量图（SVG）按 3 倍分辨率渲染得到，不是 PDF 截图；图中坐标轴标签与原文一致。
+1. 作者发现了什么问题？背景是这样一组矛盾。Transformer 由强非线性部件构成——softmax 自注意力、带非线性激活的 MLP——所以主流做法默认一次前向只能处理一条语义流：要并行处理多段互不相关的文本，通常只能多跑几次前向、串行处理，或者改架构把多路输入隔开（§1）。但已有工作观察到残差流里”相邻层之间的映射常常能被仿射变换很好地近似”（Razzhigaev et al. 2024）。作者于是问了一个更进一步的、也很自然的问题：这种线性只是层与层之间的几何性质，还是能一直延伸到模型端到端的输入-输出行为？
+作者把它形式化成 Superposition Linearity Hypothesis（叠加线性假设）：如果两条 token 流的 embedding 被线性组合（本文用逐元素平均），模型会把混合输入当作两条通路的叠加来处理。他们得到的观察是：
+
+信号确实活下来了。把两段不同文档的 embedding 按位置逐元素平均后送进标准预训练 LLM，两段文本各自的 next-token 预测仍有可观的概率质量留在混合分布里：真值 token 落在 top-10 的比例约 **30–40%**，top-50 约 **50–60%**，top-100 达 **60–65%**（§2.2、图 1）。考虑到词表规模 |V| ≥ 50,000，这个比例远高于”随机噪声”该有的水平——混合状态并没有崩成胡言乱语，而是把搜索空间收窄到了同时包含两条上下文合法续写的那个小邻域。
+这不是词频假象。附录 B 做了频率基线对照：拿单流模型在不相关文本对上的 logits，去查另一条流的真值 token，top-3 只命中 1.12%、top-10 命中 2.63%、top-100 命中 10.41%，两段不相关文本同位置 token 的重合率只有 0.2%。也就是说，真正做叠加前向时的 top-10 命中率（30–40%）比”纯词频先验”高一个数量级，叠加效应不能用 Zipf 分布解释。
+它是架构的固有属性，而不是训练学出来的能力。作者沿着 Pythia 系列的预训练轨迹跟踪 hidden-state 的可加性误差，发现误差在最早的 checkpoint 上最小，并随训练进程单调上升（§2.4、图 2）——也就是说，预训练在破坏这个线性，而不是在建立它。附录 F 的分层分析给出了几何解释：线性度随深度呈 U 形，中间层掉到 0.65 左右，最后三分之一层又回升到 0.95 以上，这个”终端线性”让叠加信号在被 unembedding 之前不会塌掉。
+不止两条流。把 N&#x3D;3 条流的 embedding 等权混合（附录 I、表 10–11），近似比率虽然变差（RKL\mathcal{R}_{\mathrm{KL}}RKL​ 上升 +0.04 到 +0.09），但仍在 1 以下、没有定性变化，说明同样的干扰机制在多个流数下都成立（§2.4）。
+
+作者还发现一个方法上的陷阱，我认为这是全文最值得学的一点：用聚合指标看，模型的”自我一致度”会严重高估叠加质量。例如 donor patching（把另一段文本的注意力权重整体替换进来）在自一致指标下看着很温和（中位名次 8、RKL=0.27R_{\mathrm{KL}}=0.27RKL​=0.27），但在 LAMBADA 这种真正吃语义的任务上把准确率从 73% 打到 **0.5%**（§3）。原因是位置被分成了两类：约 65% 的”可预测位置”（虚词、标点）本来就由 LM head 的词频先验支配，任何保留注意力形状的扰动都能表现不错；真正有区分度的只有约 35% 的”内容位置”。这解释了为什么”看起来很线性”和”真的在处理两条语义”是两回事，也直接决定了作者后面要用内容位置来检验微调是否真的起作用。
+2. 作者如何解决？核心思路分三步：先用一套可量化的指标把”叠加”这件事测清楚并定位到机制，再用极轻量的自蒸馏微调把这个被预训练破坏掉的线性找回来，最后设计一个引导式解码器，把混合输出重新拆成两条独立的续写。第 1 步回答”现象是什么、为什么”，第 2 步回答”能不能恢复”，第 3 步回答”恢复了有什么用”。
+（a）怎么测量。 记 E:V→RdE:\mathcal{V}\to\mathbb{R}^dE:V→Rd 为 token embedding，第 ttt 个位置的混合 embedding 定义为两条流该位置 embedding 的逐元素平均（式 1）：
+et(z)=12(E(xt)+E(yt)).e_t(z)=\tfrac{1}{2}\bigl(E(x_t)+E(y_t)\bigr).et​(z)=21​(E(xt​)+E(yt​)).
+假设检验的目标是”混合输出 PmixP_{\text{mix}}Pmix​ 是否逼近两条独立分布的算术平均”（式 2）：
+Ptarget(x∣A,B)=12(P(x∣A)+P(x∣B)).P_{\text{target}}(x\mid A,B)=\tfrac{1}{2}\bigl(P(x\mid A)+P(x\mid B)\bigr).Ptarget​(x∣A,B)=21​(P(x∣A)+P(x∣B)).
+由于不同模型、不同上下文下散度的绝对值不可比，作者把它归一化成叠加近似比率（Superposition Approximation Ratio）（式 3）：
+RD=E(A,B)[D(Ptarget∥Pmix)]E(A,B)[D(P(⋅∣A)∥P(⋅∣B))].\mathcal{R}_{\mathcal{D}}=\frac{\mathbb{E}_{(A,B)}\bigl[\mathcal{D}(P_{\text{target}}\Vert P_{\text{mix}})\bigr]}{\mathbb{E}_{(A,B)}\bigl[\mathcal{D}(P(\cdot\mid A)\Vert P(\cdot\mid B))\bigr]}.RD​=E(A,B)​[D(P(⋅∣A)∥P(⋅∣B))]E(A,B)​[D(Ptarget​∥Pmix​)]​.
+分母是”两段不相关文本的分布之间的距离”，所以比率小于 1 就意味着混合输出比一对无关文本更接近目标混合；他们还用 KL、JS，以及在 top-256 token 上以 embedding 余弦距离为地面度量的 Wasserstein 三种距离（§2.3）。跟踪预训练轨迹时，则用归一化后的 hidden-state 可加性误差（附录 C 式 8）：分别跑 AAA、BBB、混合三次前向，逐层去均值、ℓ2\ell_2ℓ2​ 归一化后比较混合 hidden state 与两条单流之和的距离，越小说明越线性。这套指标的组合是本文的主要技术贡献之一——它把”线性”从一个模糊的说法变成了可比较的数字。
+（b）怎么定位机制。 作者设计了一组注意力打补丁实验（§3），在 Qwen2.5-3B 上、用 FineWeb-Edu 的 128 token 片段做三类前向对比：vanilla 前向 A1A_1A1​；donor patching AdA_dAd​——每一层每个 head 都把无关文本 CCC 产生的 post-softmax 注意力权重替换进来，但 AAA 自己的 Q&#x2F;K&#x2F;V、RoPE 和 value 通路保持不变；permutation patching ApA_pAp​——不用外部权重，而是把 AAA 自己的注意力矩阵每一行在因果前缀内随机重排，这样保住了因果性、行和与每行权重的多重集，但破坏了位置和内容结构。然后测量”A1A_1A1​ 的 vanilla top-1 token 在扰动后分布里的名次”。这两个扰动构成一组很干净的控制：donor 保留注意力的结构形状但切断它与内容的关联，permutation 保留了逐 token 的权重分布却破坏结构。
+结果（表 2、表 3）：在可预测位置上，混合与 donor 都还能打（中位名次 6 和 3）；在内容位置上两者分化，混合是 284，donor 是 111；而 permutation 直接把两类位置都打崩（3,079 和 19,246），说明光有词频先验不够，自然注意力的结构形状也是必需的。更关键的是在 LAMBADA 上（内容词、长叙述末尾，可预测位置的占多数救不了场）：embedding 混合拿到 2.25% 的 argmax 准确率、目标中位名次 339，而 donor patching 只有 0.5%、中位名次 2,350——4.5 倍准确率和 7 倍名次差距。作者据此认为，embedding 叠加所携带的信息多于”词频先验 + 注意力形状”这两项之和，这给”加法式 embedding 组合到底保留了什么”给出了一个非平凡的下界（§3）。
+
+论文原图 5（附录 F）。横轴是相对深度（层号 &#x2F; 总层数），纵轴是相邻层之间的线性度得分 1−err21-\mathrm{err}^21−err2（越接近 1 说明第 ℓ+1\ell+1ℓ+1 层越接近第 ℓ\ellℓ 层的仿射重参数化），实线是基座模型、虚线是微调后，三个子图分别是 Pythia-2.8B、Llama-3.2-3B、Qwen2.5-3B。要读出的形状是 U 形：中间层掉到 0.65 附近，最后三分之一层回到 0.95 以上。作者把这个”终端线性”当作叠加信号能活着抵达输出 logits 的几何解释——如果最后一跳是强非线性的，z≈x+yz\approx x+yz≈x+y 早就塌了。
+（c）怎么恢复。 自蒸馏（§4）。学生模型 MstudentM_{student}Mstudent​ 从预训练权重初始化，教师是同一个模型的冻结副本 MteacherM_{teacher}Mteacher​；对一对文本 (x(A),x(B))(x^{(A)},x^{(B)})(x(A),x(B))，目标是两条独立预测的算术平均（式 4）：
+Ptarget=12(Mteacher(x(A))+Mteacher(x(B))),P_{target}=\tfrac{1}{2}\bigl(M_{teacher}(x^{(A)})+M_{teacher}(x^{(B)})\bigr),Ptarget​=21​(Mteacher​(x(A))+Mteacher​(x(B))),
+学生的输入是两条流 embedding 的平均 z=12(E(x(A))+E(x(B)))z=\tfrac{1}{2}(E(x^{(A)})+E(x^{(B)}))z=21​(E(x(A))+E(x(B)))，优化目标就是让学生输出逼近这个混合目标（式 5）：
+L=DKL(Ptarget ∥ Mstudent(z)).\mathcal{L}=D_{KL}\bigl(P_{target}\,\Vert\,M_{student}(z)\bigr).L=DKL​(Ptarget​∥Mstudent​(z)).
+注意这里没有加任何新参数、也没有改架构（Two-Head 变体才加投影，见附录 G.2），改进完全来自权重层面的对齐；训练数据是 FineWeb 的一个子集，超参见附录 J（AdamW，heads 学习率 10−310^{-3}10−3、backbone 10−410^{-4}10−4，ReduceLROnPlateau，蒸馏温度 2.0，最大序列长度 128）。这一点很重要：它说明”线性”不是要靠专门的 mux&#x2F;demux 层去外部强加的能力。
+（d）怎么把两条流拆开。 作者先指出一个绕不开的障碍，称之为几何平均阻塞（geometric-mean obstruction）（§5）。如果混合 logits 近似等于两条流 logits 的平均，那么混合概率就正比于两者概率的几何平均：
+Ptarget′(t)  ∝  exp⁡ ⁣(12(ℓA(t)+ℓB(t)))  ∝  PA(t) PB(t).P&#x27;_{\text{target}}(t)\;\propto\;\exp\!\bigl(\tfrac{1}{2}(\ell_{A}(t)+\ell_{B}(t))\bigr)\;\propto\;\sqrt{P_{A}(t)\,P_{B}(t)}.Ptarget′​(t)∝exp(21​(ℓA​(t)+ℓB​(t)))∝PA​(t)PB​(t)​.
+后果是：在 A 里很可能、在 B 里很不像的 token 会被几何平均狠狠压低。所以即便微调后两条流的真值 token 都能稳定进 top-5，”用标准解码让两条流同时排到第 1”依然非常困难；直接采样混合分布得到的文本会在 A 和 B 两类 token 之间来回跳、语义不连贯。绕过它的办法是引入一个小的辅助模型做逐流对比引导（Joint Contrastive decoding）（式 7）：
+ℓ~(A)=ℓlarge(z)+α ℓsmall(A)−β ℓsmall(B),ℓ~(B)=ℓlarge(z)+α ℓsmall(B)−β ℓsmall(A),\tilde{\ell}^{(A)}=\ell_{\text{large}}(z)+\alpha\,\ell_{\text{small}}(A)-\beta\,\ell_{\text{small}}(B),\qquad \tilde{\ell}^{(B)}=\ell_{\text{large}}(z)+\alpha\,\ell_{\text{small}}(B)-\beta\,\ell_{\text{small}}(A),ℓ~(A)=ℓlarge​(z)+αℓsmall​(A)−βℓsmall​(B),ℓ~(B)=ℓlarge​(z)+αℓsmall​(B)−βℓsmall​(A),
+其中 z=12(E(A)+E(B))z=\tfrac{1}{2}(E(A)+E(B))z=21​(E(A)+E(B))；直觉是”给小模型的 A 流 logits 加分、给它在 B 流上的 logits 减分”，把混在一起的信号推开。α,β\alpha,\betaα,β 初始化为 1，与 backbone 一起在对称的逐流交叉熵上联合训练（超参：学习率 5×10−55\times10^{-5}5×10−5、有效 batch 16、序列长度 512、1,000 步线性 warmup、梯度裁剪 1.0；Qwen&#x2F;Llama 取第 30,000 步、Pythia 取第 700,000 步 checkpoint，附录 J）。附录 G 还给了两个替代方案并说明它们更差：推理期只优化 α,β\alpha,\betaα,β 的 logit 算术（G.1），以及用对称性破缺的 WA,WBW_A,W_BWA​,WB​ 投影 + 双头输出（G.2）。
+3. 解决得怎么样？恢复效果是显著的。 在 Pythia-2.8B 上，平均 KL 散度从 1.86 降到 0.27，叠加近似比率 RKL\mathcal{R}_{\mathrm{KL}}RKL​ 从 0.42 降到 0.06（§4）；图 1 里最直观的一处是，真值 token 进入 top-5 的概率从约 30% 升到 **&gt;60%**。
+
+论文原图 1。横轴是 top-iii，纵轴是 P(rankℓmix(t^)≤i)P(\mathrm{rank}_{\ell_{\text{mix}}}(\hat t)\le i)P(rankℓmix​​(t^)≤i)，即单流预测出的 token 还能留在混合分布前 iii 名的概率；实线是原始预训练模型，虚线是轻量微调之后。三组曲线分别是 Pythia-2.8B、Llama-3.2-3B、Qwen2.5-3B。这张图同时承载了本文两个结论：实线在 top-10 就有 30–40% 已经远高于随机，虚线整体上移说明线性可以被微调找回。
+
+论文原图 2（其内容来自 HTML 中的矢量图 linearity_training_dynamics_pythias.svg）。纵轴是逐层平均的 hidden-state 叠加误差 Eˉ\bar{\mathcal{E}}Eˉ（越低越线性），横轴是对数刻度的训练步数，六条曲线是 Pythia 的 70M 到 2.8B。误差在训练最早阶段最小、随后单调上升——这是”叠加线性是架构固有属性、被预训练削弱”这一核心判断的直接证据，也意味着模型越大误差越高。阴影是跨 hidden-state 索引的标准误。
+但”恢复”不只是喂饱词频先验。 这是我认为全文最扎实的一段证据（表 2）：微调后，聚合中位名次从 19 改善到 6，而拆开看，可预测位置几乎没有变化（中位名次 6 → 8，exact top-1 从 24.8% 略降到 21.6%），**内容位置则从 284 暴跌到 5，exact top-1 从 4.2% 跳到 22.8%**。也就是说，改善几乎全部发生在真正吃语义的那 35% 位置上，作者据此宣称微调”不是在走捷径，而是真的让模型并行处理两条流的内容”。这个”分位置看指标”的做法，正好呼应了第 1 节里”聚合指标会骗人”的发现，是方法自洽的。
+代价是真实的，而且和收益直接冲突。 同一个目标会损害单流的下一个 token 预测质量：Pythia-2.8B 的 LAMBADA 从 0.544 掉到 0.357，Qwen2.5-3B 从 0.602 掉到 0.460（§4）。附录 G.4 &#x2F; 表 8 把这件事量化到 FineWeb 的 NLL&#x2F;PPL 上：纯蒸馏（”Tuned distillation”）在 Qwen 上把 PPL 从 12.44 抬到 65.52（NLL 2.521 → 4.182），Llama 从 11.20 抬到 71.44，Pythia 从 14.09 抬到 43.95；而带引导的 Joint Contrastive 版本只退化到 19.31 &#x2F; 14.75 &#x2F; 29.72，基本贴着同规模小模型的基线。换句话说，最能恢复叠加线性的配方对单流能力的破坏最大，而单流保持得最好的配方收益最小——这个 trade-off 是论文非常诚实地摆出来的（表 8 的标题里就写了 “Tuned distillation incurs a substantially larger penalty”）。
+解码目前只是概念验证。 表 5 在混合前向下的 LAMBADA 平均准确率：Qwen2.5-3B + 0.5B 引导，从原始预训练的 0.168 提到 0.345；Llama-3.2-3B + 1B 从 0.182 提到 0.430；Pythia-1.4B + 160M 从 0.065 提到 0.110。读 Pythia 这一行时要小心：表 5 里 Pretrained 行用的是 Pythia-2.8B，而 Joint Contrastive 行用的是 Pythia-1.4B，两行不是同一个底座（Qwen 与 Llama 的两行底座一致），所以 Pythia 那一对的提升幅度受底座变化污染。两条流的分离度（FineWeb 生成文本的 Jaccard token 重叠，越低越好）也同步下降（0.126 → 0.061、0.094 → 0.067、0.109 → 0.080），说明提高的不只是”猜中 token”而是真的有两条不同的续写。但和小模型单独跑的基线比仍有明显差距（0.345 vs 0.437；0.430 vs 0.540），作者明确把它称为 proof of concept，并把剩下的差距归因于式 6 的几何平均阻塞而不是微调不充分。这里要注意：这一归因目前是对应于他们的理论分析，论文没有做实验把”阻塞”和”微调不足”单独分离出来——这是作者的解读，不是被直接验证的事实。
+效率账要看得更细一点。 结论里写的是”理论上带来 2× 推理吞吐、并把每条活跃流的 KV-cache 减半”。附录 G.5 &#x2F; 表 9 给的实际数字是（Pythia-2.8B + 160M，prompt 128、生成 128）：Separate 模式 109.6 tok&#x2F;s，”引导”模式 79.4，普通 batch&#x3D;2 的独立推理 113.1，两条流串行 56.0。也就是说 2× 是相对于”串行跑两遍”而言的，而相对”直接 batch&#x3D;2”的独立推理，Separate 只差 3% 以内（113.1 vs 109.6）——论文自己也这么描述。显存方面，Separate 相对单次 vanilla 前向只是小幅增加（Pythia-2.8B 7.15 vs 6.34 GB；Llama-3B 9.26 vs 6.72 GB），引导模式因为大小模型都要常驻而更贵（Llama-3B+1B 峰值 12.93 GB）。所以真正有说服力的收益是存储与”单次前向同时产出两条续写”这一能力本身，而不是在已有 batch 推理上再拿一份墙钟加速。
+最后是边界和我核对出的几处小出入。 论文自陈的限制是：序列长度基本限于 L≤128L\le128L≤128（只有 §2.3 扩展到 512）、以单语文本为主、完全没有验证多模态（§8）。训练规模上，引言说用不到原预训练数据量的 **0.025%**（这是作者的主张，正文没有给出推导；可核对的实参是 FineWeb 子集、128&#x2F;512 长度、每个 run 15 万–20 万步），而算力并不便宜：附录 A 说 Pythia-2.8B 单次微调 15 万步要 2×A100 80GB 跑约 114 小时，Qwen2.5-3B 约 132 小时、Llama-3.2-3B 约 128 小时，Joint Contrastive 的 Pythia-1.4B 单卡 A100 要 68 小时。另外两处内部小矛盾我核对了原文：§4 说”近似 200k steps”，而附录 A 记的 Pythia-2.8B 是 150,000 步；§4 把微调后的 KL 数值标注为”表 1 最后一行”，但表 1 实际只有 4 个基座模型 × 2 个长度的 8 行（我在 HTML 原始表格里逐行确认过），并不含微调行——这些是引用与行文层面的瑕疵，不影响结论。
+作者发现 Transformer 尽管由强非线性部件构成，却对”逐元素平均两条 embedding 流”表现出出人意料的端到端线性：真值 token 在混合分布 top-10 里的存活率有 30–40%，且这一性质在预训练最早阶段最强、随后被训练单调削弱，说明它是架构固有而非学得的；因此提出用自蒸馏把学生输出对齐到两条独立分布的算术平均来找回线性，并用小模型对比引导把混合信号拆回两条流；实验表明微调后 RKL\mathcal{R}_{\mathrm{KL}}RKL​ 从 0.42 降到 0.06、内容位置上真值 token 的中位名次从 284 回到 5，混合前向的双流 LAMBADA 平均准确率最高提升到 0.430，但仍存在单流能力明显退化、解码质量不如直接跑小模型、实际吞吐只与 batch&#x3D;2 相当，以及长上下文与多模态未验证等未解决的问题。
+]]></content>
+      <categories>
+        <category>daily paper</category>
+      </categories>
+  </entry>
+  <entry>
     <title>Rufus-Air: An Open LLM Post-Training Recipe</title>
     <url>/2026/09/27/2609.29421v1_Rufus-Air_An_Open_LLM_Post-Training_Recipe/</url>
     <content><![CDATA[作者：Chia-Yuan Chang、Renyuan Cheng、Rui Feng、Xiaotian Han、Yuan He、Hongye Jin、Linwei Li、Shiyang Li、Fenglin Liu、Xin Liu、Priyanka Nigam、Haoyang Wen、Zhenghao Xu、Zhuocheng Xu、Bing Yin、Qingyu Yin、Chao Zhang、Rongzhi Zhang、Zhihan Zhang、Zixuan Zhang（a）、Zixuan Zhang（b）、Tuo Zhao（Amazon；作者按姓氏字母序，后两位同名作者原文以上标 a&#x2F;b 区分，全部工作在 Amazon 期间完成）。
@@ -297,16 +225,16 @@ SFT 是能力建设阶段，不是热身：一个强 SFT checkpoint 已经建立
 2. 作者如何解决？核心思路：把后训练组织成一条串行流水线——SFT → Reasoning RL → Coding RL → Instruction-Following RL → General Agent → Coding Agent → Search Agent → RLHF，每个阶段在上一阶段产出的 checkpoint 上训练；能力上从基础到进阶，奖励上从”硬、可验证”过渡到”软、judge 或环境判定”，图 1 给出总览。
 
 原文图 1（§2.1）。八个阶段与其目标能力、奖励类型（图例：token supervision &#x2F; rule-based verifier &#x2F; hybrid verifier &#x2F; reward model）。前半段建通用能力，中间三段接入工具环境，最后用 RLHF 塑形开放域质量；终点是 Rufus-Air 最终模型。
-① SFT（§3.1）。 混合集共 9.01M 样本 &#x2F; 44.5B 原始 token，经掩码后 27.0B token（60.8%）参与损失，来自 17 个公开数据集（附录 C 列出许可与上游生成依赖），Rufus-Air 不重生成任何回复（”regenerated by Rufus-Air is zero”）。六个能力类别的样本占比与 token 占比差别很大：Math 与 Coding Agent 合计 18.8% 样本但贡献 49.1% 训练 token（表 3、图 2）。训练 3 个 epoch，64 台 8×H200（512 GPU），batch 4096，AdamW，学习率 100 步线性 warmup 到 $5\times10^{-5}$ 后余弦退火到 $5\times10^{-6}$；按 chat template 计算序列长度上限 120K（打包后 128K）。训练损失从 0.84 降到 0.42（第 1 epoch 末）再到 0.34（图 3a），但留出集分数在第一个 epoch 内就进入平台（图 3b），所以最终采用平台内的 checkpoint 3799 而不是最后一步。去污染方面：用 8-gram 重叠测试串行筛除 3,529 条，又对最易泄漏的数学&#x2F;知识基准（AIME 24&#x2F;25&#x2F;26 等）追加穷举 8-gram 与稠密检索两道检测，确认 68 对污染（58 条唯一样本），连同边界案例共剔除 4,187 条。
+① SFT（§3.1）。 混合集共 9.01M 样本 &#x2F; 44.5B 原始 token，经掩码后 27.0B token（60.8%）参与损失，来自 17 个公开数据集（附录 C 列出许可与上游生成依赖），Rufus-Air 不重生成任何回复（”regenerated by Rufus-Air is zero”）。六个能力类别的样本占比与 token 占比差别很大：Math 与 Coding Agent 合计 18.8% 样本但贡献 49.1% 训练 token（表 3、图 2）。训练 3 个 epoch，64 台 8×H200（512 GPU），batch 4096，AdamW，学习率 100 步线性 warmup 到 5×10−55\times10^{-5}5×10−5 后余弦退火到 5×10−65\times10^{-6}5×10−6；按 chat template 计算序列长度上限 120K（打包后 128K）。训练损失从 0.84 降到 0.42（第 1 epoch 末）再到 0.34（图 3a），但留出集分数在第一个 epoch 内就进入平台（图 3b），所以最终采用平台内的 checkpoint 3799 而不是最后一步。去污染方面：用 8-gram 重叠测试串行筛除 3,529 条，又对最易泄漏的数学&#x2F;知识基准（AIME 24&#x2F;25&#x2F;26 等）追加穷举 8-gram 与稠密检索两道检测，确认 68 对污染（58 条唯一样本），连同边界案例共剔除 4,187 条。
 
 原文图 3（§3.1）。左：训练损失及 50 步滑动平均，每个 epoch 边界出现台阶式下降（重复数据效应）；右：AIME 25&#x2F;26、GPQA、IFEval、IFBench 的留出评测，第一个 epoch 后基本走平，虚线为被选中的 checkpoint 3799。
-② Reasoning RL（§3.2）。 12.1 万条可验证单轮 prompt（Math 47.7% &#x2F; Science 35.7% &#x2F; Puzzles 16.7%，表 5），奖励全部为程序可判定的二元信号（Math-Verify 规范化比对、生成式 Python checker、模糊字符串匹配）。两道过滤最重要：correctness filter（强 teacher GPT-OSS-120B 至少拿到一次正奖励，保证题目有解）与 learnability filter（通过率 &gt;0.8 的丢弃、零成功丢弃）；训练中用 DAPO 式动态采样在线维持组均奖励 $\bar r\in(0,0.8]$。优化用 GSPO（序列级重要性比与裁剪，长 MoE rollout 更稳），并加了一条”相对组内最短正确 rollout 的长度惩罚”以压住冗长。结果：GPQA 从 68.18 升到 73.50（+5.32），AIME 两届分别回落 2.81&#x2F;2.60——作者当时把 AIME 当护栏（SFT 已在 90+，30 题下 3 点以内不到一题的量级），主目标看 GPQA（表 6）。
+② Reasoning RL（§3.2）。 12.1 万条可验证单轮 prompt（Math 47.7% &#x2F; Science 35.7% &#x2F; Puzzles 16.7%，表 5），奖励全部为程序可判定的二元信号（Math-Verify 规范化比对、生成式 Python checker、模糊字符串匹配）。两道过滤最重要：correctness filter（强 teacher GPT-OSS-120B 至少拿到一次正奖励，保证题目有解）与 learnability filter（通过率 &gt;0.8 的丢弃、零成功丢弃）；训练中用 DAPO 式动态采样在线维持组均奖励 rˉ∈(0,0.8]\bar r\in(0,0.8]rˉ∈(0,0.8]。优化用 GSPO（序列级重要性比与裁剪，长 MoE rollout 更稳），并加了一条”相对组内最短正确 rollout 的长度惩罚”以压住冗长。结果：GPQA 从 68.18 升到 73.50（+5.32），AIME 两届分别回落 2.81&#x2F;2.60——作者当时把 AIME 当护栏（SFT 已在 90+，30 题下 3 点以内不到一题的量级），主目标看 GPQA（表 6）。
 ③ Coding RL（§3.3）。 4 个来源共 29,405 题（EvolveCoder 14,743 &#x2F; Nemotron 9,393 &#x2F; Dolci 3,109 &#x2F; ADR 2,160，表 7），代码块提取后在沙箱执行测试，奖励二元（每题确定性抽 ≤50 个测试）。训练前做 LCB v6 泄漏检查（1,055 题无前缀哈希命中、无 ≥5 个 60-gram 重叠）与”热启动四采样全过则丢弃”的难度过滤。训练中 64K 响应预算下 11–28% 的样本被截断并掩码，于是在第 23 步把响应预算扩到 128K 并从该 checkpoint 继续，截断率降到 &lt;0.1%，奖励从 0.26 继续爬到 0.42（图 4）。LiveCodeBench v6 pass@1 从 68.6 升到 75.9（+7.3，单阶段评测口径；训练曲线在 step 33 达到同值峰值），pass@8 仅 +2.3——作者总结的实践教训是”扩响应预算、去截断掩码”直接带来了后续上涨（表 8、图 4）。
 ④ Instruction-Following RL（§3.4）。 两个数据轴：多约束单轮（14K 条，每条 2–6 个原子约束，教师 Qwen3-235B-A22B 生成约束及对应 Python 校验函数）与多轮对话式（13K 段对话，平均 6.1 轮、2.7 条 rubric；用户侧由教师模型扮演并主动”下套”：叠加指令、中途改需求、插入干扰项，助手侧轮换多个开源模型避免风格偏置）。奖励是rubric 二元奖励：所有 rubric 全过才给正奖励；rubric 只描述”必须满足”的条件，作者特意排除”可选&#x2F;加分项”rubric——他们观察到把可选 rubric 也挂上去后（每例十条量级），策略出现明显长度偏置，输出又长又冗余。三道过滤：去超长对话并对”应拒绝”样本降采样防过度拒答、教师在 4 次内至少过一次、策略通过率 &gt;80% 的丢弃。用 GRPO 训练 90 步。结果：IFEval 90.5→94.5（+4.0）、IFBench 63.8→77.8（+14.0）、Multi-challenge 31.1→55.8（+24.7）、AdvancedIF 45.5→62.9（+17.4），GPQA 还 +3.2、AIME 25 仅 −1.2（表 9）。最终响应长度从约 5.4K 降到 3.6K token（图 5）。作者还报告一个课程现象：同样的 IF RL 跑在 Reasoning RL checkpoint 上比直接跑在 SFT 上收益更大——复杂指令需要先”想清楚”再答。
 ⑤ General Agent（§3.5）。 数据为 AgentWorldModel（AWM）的 10K 条单服务器 MCP 任务（1K 个人造环境，每环境约 35 个工具），经 correctness 与 difficulty 过滤留下约 2K 条。环境是”任务绑定一个合成数据库 + MCP server”的设定，工具读写数据库，奖励在 episode 结束时由规则校验数据库状态给出二元值（去掉了 AWM 原带的 LLM judge 奖励与格式奖励，后者被”把全部工具 schema 直接写进 system prompt”取代）。用 GRPO + DAPO 式动态采样 + R3 训练。结果：MCP-Atlas 34.95→42.75（+7.80）、Tau2-Retail 74.00→83.80（+9.80），轨迹长度从约 14K 涨到 16.5K token（表 10、图 6）——作者把增益解读为”合成 MCP 环境提供的通用工具编排先验”。
 ⑥ Coding Agent（§3.6）。 数据来自 Endless-Terminal、SETA-Env（4,500+ Harbor 格式环境）、Scale-SWE，过滤后约 4K 条。统一成 Harbor 任务格式（instruction.md + environment Dockerfile + tests/test.sh），工具面只有一个 execute_command（返回 stdout&#x2F;stderr&#x2F;exit code），文件读写、构建、跑测试都是 shell 命令；奖励是任务自带 verifier 的二元结果。工程上把每个容器镜像预烘成沙箱模板快照，rollout 时直接恢复。训练时把沙箱启动失败、verifier 超时、连接断开等基础设施噪声标为 aborted 并从组内优势计算中剔除，避免污染基线。结果：Terminal-Bench 2.1 38.76→40.17（+1.41）、SWE-bench Verified 65.60→67.80（+2.20）；作者明确标注**该阶段是”按可用算力训练、未训到收敛”**（表 11）。
-⑦ Search Agent（§3.7）。 从 MiroVerse 抽出 36,614 条可验证问答（另留 4,069 条验证）。因为 rollout 贵，做了两遍强筛选：先删掉”关掉工具也能答对”的题（约占四分之一，防止奖励工具无关的捷径），再按初始策略 8 次 rollout 的正确数 $c$ 只保留 $0&lt;c&lt;4$ 的题目（其余极端值 15.5% 从未解出、31.4% 全对，组内优势为零），最终训练集约 2.2K 题。工具是 Web Search、Web Scrape（超长页面先摘要但保留人名&#x2F;日期&#x2F;数字原文）、沙箱 Python；训练最多 100 次调用、评测 200 次。奖励是LLM judge（训练用 Qwen3-32B）在 [0,1] 上的连续分，含部分正确加分；为防止”不查资料直接背答案”，正奖励要求至少 2 次成功工具调用，畸形调用按比例打折（最低 ×0.5），预算耗尽无最终答案罚 −0.1；早期那个”提交 boxed 答案就给格式分”的项因被策略钻空子而删除。优化上有一个关键的算法改动：GRPO 只用组均值优势、去掉标准差归一化（$G&#x3D;16$）：
-$$\widehat{A}i&#x3D;r_i-\mathrm{mean}({r_j}{j&#x3D;1}^{G})$$
+⑦ Search Agent（§3.7）。 从 MiroVerse 抽出 36,614 条可验证问答（另留 4,069 条验证）。因为 rollout 贵，做了两遍强筛选：先删掉”关掉工具也能答对”的题（约占四分之一，防止奖励工具无关的捷径），再按初始策略 8 次 rollout 的正确数 ccc 只保留 0&lt;c&lt;40&lt;c&lt;40&lt;c&lt;4 的题目（其余极端值 15.5% 从未解出、31.4% 全对，组内优势为零），最终训练集约 2.2K 题。工具是 Web Search、Web Scrape（超长页面先摘要但保留人名&#x2F;日期&#x2F;数字原文）、沙箱 Python；训练最多 100 次调用、评测 200 次。奖励是LLM judge（训练用 Qwen3-32B）在 [0,1] 上的连续分，含部分正确加分；为防止”不查资料直接背答案”，正奖励要求至少 2 次成功工具调用，畸形调用按比例打折（最低 ×0.5），预算耗尽无最终答案罚 −0.1；早期那个”提交 boxed 答案就给格式分”的项因被策略钻空子而删除。优化上有一个关键的算法改动：GRPO 只用组均值优势、去掉标准差归一化（G=16G=16G=16）：
+A^i=ri−mean({rj}j=1G)\widehat{A}_i=r_i-\mathrm{mean}(\{r_j\}_{j=1}^{G})Ai​=ri​−mean({rj​}j=1G​)
 理由是 judge 奖励噪声大：若按组标准差归一化，”8 次里只对 1 次、但奖励差距 1.0”与”差距 0.1 的部分分”会得到同样的 +3.75 优势，是平衡组里成功样本的约 3.9 倍，等于把评分噪声放大成”真解出”量级的信号。同配置配对消融中，mean-only 在各次评测都领先（留出集 55.8–64.8 vs 49.7–58.7）。结果：BrowseComp 34.2→37.2（+3.0）、Seal-0 48.6→54.0（+5.4）、HLE-Verified 47.7→51.1（+3.4）（表 12）。轨迹分析（图 7、附录 E）显示工具调用数先降后升，且”变长”发生赢家一侧（赢家中位仍约 25 次调用，90 分位从 40 升到 54.5；&gt;45 次调用的轨迹从 49 条增到 133 条、其中赢家占比从 24% 升到 43%）；附录 E 的评测轨迹进一步显示，BrowseComp 上错误答案的轨迹深度约为正确的两倍（92 vs 43 次迭代），超过约 50 次迭代后准确率降到 30% 以下，”更长”本身不是好事。
 ⑧ RLHF（§3.8）。 用公开奖励模型 Skywork-Reward-V2-Qwen3-8B（不新训 RM、不新标数据），在 HH-RLHF 的 75,815 条 prompt 上做 on-policy GRPO（”RLHF”在这里指对学习到的奖励模型做 RL，而非直接用人类标注）。选 prompt 之前先做了数据对比（表 13）：Arena Human Preference 两侧分数都高、回复最长；HelpSteer3 分数区分度最大但 RM 打分不稳、训练时科学推理与指令跟随回退；HH-RLHF 回复最短、两侧绝对分都为负。由此得到三条负面结论：未过滤的 HH-RLHF prompt 会明显损伤编码与指令跟随（这正是加”有效性过滤”的原因）、HelpSteer3 的 prompt 对 RM 太难打准、指令跟随与 Agentic prompt 不适合这一阶段（RM 判不准复杂约束）。最终只取有效性过滤后的 75,815 条 HH-RLHF prompt，奖励为原始 RM 分数加一条线性长度惩罚（对正奖励的超长回复打折、负奖励不动）。结果：Arena-Hard v2 Hard Prompt 83.06→89.05（+5.99）、Creative Writing 38.56→52.97（+14.41），交付 checkpoint 为第 29 次迭代（表 14、图 8）。
 训练基础设施（§4）。 两个自研组件都建立在开源栈上：Rufus-Slime（Slime 的改造版，Megatron-LM 训练 + SGLang rollout）负责 SFT 与全部 RL；Rufus-Gym 负责多轮 Agent rollout。图 9 给出 Agent rollout 栈：Data Sampler 产出 Task → Environment（每个 rollout 一个）经 Rollout Engine 生成 → 返回 RolloutResult（token 轨迹、奖励、类型化终止原因）给 Training Engine，环境内部是 Agent Loop（Inference Client + Tool Execution）加 Reward Service。
@@ -431,266 +359,8 @@ SWE-bench Verified
 
 
 逐阶段进展（§5.2、表 2）。 每个阶段都提升自己瞄准的指标，读法是”与上一行比”：SFT（对 GLM-4.5-Air 公开版）IFEval 88.33、IFBench 57.75、AIME 25&#x2F;26 双升、GPQA 反而低 5.72；Reasoning RL 补上 GPQA（68.18→73.50）；Coding RL 把 LCB v6 推到 75.9；IF RL 是最大单阶段跃迁之一（Multi-challenge +24.7）；General Agent 抬 MCP-Atlas（+7.8）与 Tau2-Retail（+9.8）；Coding Agent 只加 +1.4&#x2F;+2.2；Search Agent 三项检索 benchmark 各 +3.0&#x2F;+5.4&#x2F;+3.4；RLHF 把两个 Arena-Hard v2 分轨抬 +6.0&#x2F;+14.4。SFT-only checkpoint 在已测的 5 项上除 GPQA 外全部超过带 RL 的公开 GLM-4.5-Air（IFEval +5.33、IFBench +24.15、AIME 25 +6.63、AIME 26 +3.50、GPQA −5.72；表 4），这是”SFT 是能力建设阶段”主张的直接证据；但该 checkpoint 未测多轮指令跟随，作者另据 IF RL 起点在 Multi-challenge 上仅 31.1 判断这一短板真实存在。
-代价与边界。 成本是分层的：SFT 是作者能核算的各阶段中最大的单项（约 105 小时&#x2F;epoch、3 epoch 共约 13 天 &#x2F; 832 node-days，64 节点）；各 RL 阶段 8–32 节点；Agent 阶段的额外开销更贵——Coding Agent 的沙箱服务按约一万个并发沙箱规模运行、维护费约 每月 1 万美元量级，Search Agent 每次评测遍历 BrowseComp 1,266 题约产生 $10^{5}$ 次检索&#x2F;抽取调用、按列表价几百美元，训练里每次 rollout 还要过一遍 LLM judge（§6）。作者主动列出的”配方未证明的东西”也很清楚：阶段顺序是”能work的一种”而非最优，没做顺序消融，也没试”分域专家 + 多教师 on-policy 蒸馏再合并”的替代路线；Coding Agent 按算力截断、未训到收敛，其 SWE-bench 增益（67.8）没有保持到最终 checkpoint（65.6），而 Terminal-Bench 2.1 最终是 42.7，但这两项在 Search Agent 后没再测，无法归因到具体阶段；没有任何一个 benchmark 全阶段贯通；LCB v6 与 Tau2-Retail 的阶段行与表 1 口径不同、不能直接比；Search Agent 的奖励门只检查”工具调用执行过”而不检查”答案依赖调用结果”，背答案顺带调工具的残余路径仍需靠轨迹审计（§3.7）。评测口径本身也要小心：Tau2-Bench 分数随用户模拟器最多变动 23.7 点（附录 F：GLM-4.5-Air 零售域在 Sonnet 4 下 57.0、Sonnet 5 下 80.7），作者因此强调跨论文比较必须对齐模拟器设置。
+代价与边界。 成本是分层的：SFT 是作者能核算的各阶段中最大的单项（约 105 小时&#x2F;epoch、3 epoch 共约 13 天 &#x2F; 832 node-days，64 节点）；各 RL 阶段 8–32 节点；Agent 阶段的额外开销更贵——Coding Agent 的沙箱服务按约一万个并发沙箱规模运行、维护费约 每月 1 万美元量级，Search Agent 每次评测遍历 BrowseComp 1,266 题约产生 10510^{5}105 次检索&#x2F;抽取调用、按列表价几百美元，训练里每次 rollout 还要过一遍 LLM judge（§6）。作者主动列出的”配方未证明的东西”也很清楚：阶段顺序是”能work的一种”而非最优，没做顺序消融，也没试”分域专家 + 多教师 on-policy 蒸馏再合并”的替代路线；Coding Agent 按算力截断、未训到收敛，其 SWE-bench 增益（67.8）没有保持到最终 checkpoint（65.6），而 Terminal-Bench 2.1 最终是 42.7，但这两项在 Search Agent 后没再测，无法归因到具体阶段；没有任何一个 benchmark 全阶段贯通；LCB v6 与 Tau2-Retail 的阶段行与表 1 口径不同、不能直接比；Search Agent 的奖励门只检查”工具调用执行过”而不检查”答案依赖调用结果”，背答案顺带调工具的残余路径仍需靠轨迹审计（§3.7）。评测口径本身也要小心：Tau2-Bench 分数随用户模拟器最多变动 23.7 点（附录 F：GLM-4.5-Air 零售域在 Sonnet 4 下 57.0、Sonnet 5 下 80.7），作者因此强调跨论文比较必须对齐模拟器设置。
 作者发现后训练配方普遍披露不足，因此在公开基座 GLM-4.5-Air-Base 上完整记录了八阶段流水线 Rufus-Air（数据、奖励、基础设施与逐阶段结果，全部基于公开组件与数据、无新增人工标注），并给出四条可迁移经验——SFT 是能力下限、难度过滤是自动课程表、奖励可靠性决定阶段顺序、基础设施属于配方本身；实验表明最终模型在除 Creative Writing 外的全部报告基准上超过官方 GLM-4.5-Air 后训练版、与同级开源模型各有胜负，但阶段顺序未经消融、Agent 阶段未训到收敛、跨阶段归因与评测口径（用户模拟器、harness）都留有明确的不确定性。
-]]></content>
-      <categories>
-        <category>daily paper</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Your Transformer Can Hold Two Thoughts at Once: Evidence of Linear Superposition in LLMs</title>
-    <url>/2026/09/27/2609.29845v1_Your_Transformer_Can_Hold_Two_Thoughts_at_Once_Evidence_of_Linear_Superposition_in_LLMs/</url>
-    <content><![CDATA[作者：Pavel Tikhonov、Anton Korznikov、Matvey Mikhalchuk、Nikita Dragunov、Temurbek Rahmatullaev、Polina Druzhinina、Anton Razzhigaev、Ivan Oseledets、Elena Tutubalina（共 9 人）。
-论文：2609.29845v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
-Hugging Face · arXiv 原文 · 官方全文
-分析范围：官方 arXiv v1 HTML 全文，含正文第 1–8 节与附录 A–L；已核对表 1–11、图 1–5 的编号与数值。v1 为唯一版本。报告中的三张图由官方 HTML 里的矢量图（SVG）按 3 倍分辨率渲染得到，不是 PDF 截图；图中坐标轴标签与原文一致。
-1. 作者发现了什么问题？背景是这样一组矛盾。Transformer 由强非线性部件构成——softmax 自注意力、带非线性激活的 MLP——所以主流做法默认一次前向只能处理一条语义流：要并行处理多段互不相关的文本，通常只能多跑几次前向、串行处理，或者改架构把多路输入隔开（§1）。但已有工作观察到残差流里”相邻层之间的映射常常能被仿射变换很好地近似”（Razzhigaev et al. 2024）。作者于是问了一个更进一步的、也很自然的问题：这种线性只是层与层之间的几何性质，还是能一直延伸到模型端到端的输入-输出行为？
-作者把它形式化成 Superposition Linearity Hypothesis（叠加线性假设）：如果两条 token 流的 embedding 被线性组合（本文用逐元素平均），模型会把混合输入当作两条通路的叠加来处理。他们得到的观察是：
-
-信号确实活下来了。把两段不同文档的 embedding 按位置逐元素平均后送进标准预训练 LLM，两段文本各自的 next-token 预测仍有可观的概率质量留在混合分布里：真值 token 落在 top-10 的比例约 **30–40%**，top-50 约 **50–60%**，top-100 达 **60–65%**（§2.2、图 1）。考虑到词表规模 |V| ≥ 50,000，这个比例远高于”随机噪声”该有的水平——混合状态并没有崩成胡言乱语，而是把搜索空间收窄到了同时包含两条上下文合法续写的那个小邻域。
-这不是词频假象。附录 B 做了频率基线对照：拿单流模型在不相关文本对上的 logits，去查另一条流的真值 token，top-3 只命中 1.12%、top-10 命中 2.63%、top-100 命中 10.41%，两段不相关文本同位置 token 的重合率只有 0.2%。也就是说，真正做叠加前向时的 top-10 命中率（30–40%）比”纯词频先验”高一个数量级，叠加效应不能用 Zipf 分布解释。
-它是架构的固有属性，而不是训练学出来的能力。作者沿着 Pythia 系列的预训练轨迹跟踪 hidden-state 的可加性误差，发现误差在最早的 checkpoint 上最小，并随训练进程单调上升（§2.4、图 2）——也就是说，预训练在破坏这个线性，而不是在建立它。附录 F 的分层分析给出了几何解释：线性度随深度呈 U 形，中间层掉到 0.65 左右，最后三分之一层又回升到 0.95 以上，这个”终端线性”让叠加信号在被 unembedding 之前不会塌掉。
-不止两条流。把 N&#x3D;3 条流的 embedding 等权混合（附录 I、表 10–11），近似比率虽然变差（$\mathcal{R}_{\mathrm{KL}}$ 上升 +0.04 到 +0.09），但仍在 1 以下、没有定性变化，说明同样的干扰机制在多个流数下都成立（§2.4）。
-
-作者还发现一个方法上的陷阱，我认为这是全文最值得学的一点：用聚合指标看，模型的”自我一致度”会严重高估叠加质量。例如 donor patching（把另一段文本的注意力权重整体替换进来）在自一致指标下看着很温和（中位名次 8、$R_{\mathrm{KL}}&#x3D;0.27$），但在 LAMBADA 这种真正吃语义的任务上把准确率从 73% 打到 **0.5%**（§3）。原因是位置被分成了两类：约 65% 的”可预测位置”（虚词、标点）本来就由 LM head 的词频先验支配，任何保留注意力形状的扰动都能表现不错；真正有区分度的只有约 35% 的”内容位置”。这解释了为什么”看起来很线性”和”真的在处理两条语义”是两回事，也直接决定了作者后面要用内容位置来检验微调是否真的起作用。
-2. 作者如何解决？核心思路分三步：先用一套可量化的指标把”叠加”这件事测清楚并定位到机制，再用极轻量的自蒸馏微调把这个被预训练破坏掉的线性找回来，最后设计一个引导式解码器，把混合输出重新拆成两条独立的续写。第 1 步回答”现象是什么、为什么”，第 2 步回答”能不能恢复”，第 3 步回答”恢复了有什么用”。
-（a）怎么测量。 记 $E:\mathcal{V}\to\mathbb{R}^d$ 为 token embedding，第 $t$ 个位置的混合 embedding 定义为两条流该位置 embedding 的逐元素平均（式 1）：
-$$e_t(z)&#x3D;\tfrac{1}{2}\bigl(E(x_t)+E(y_t)\bigr).$$
-假设检验的目标是”混合输出 $P_{\text{mix}}$ 是否逼近两条独立分布的算术平均”（式 2）：
-$$P_{\text{target}}(x\mid A,B)&#x3D;\tfrac{1}{2}\bigl(P(x\mid A)+P(x\mid B)\bigr).$$
-由于不同模型、不同上下文下散度的绝对值不可比，作者把它归一化成叠加近似比率（Superposition Approximation Ratio）（式 3）：
-$$\mathcal{R}{\mathcal{D}}&#x3D;\frac{\mathbb{E}{(A,B)}\bigl[\mathcal{D}(P_{\text{target}}\Vert P_{\text{mix}})\bigr]}{\mathbb{E}_{(A,B)}\bigl[\mathcal{D}(P(\cdot\mid A)\Vert P(\cdot\mid B))\bigr]}.$$
-分母是”两段不相关文本的分布之间的距离”，所以比率小于 1 就意味着混合输出比一对无关文本更接近目标混合；他们还用 KL、JS，以及在 top-256 token 上以 embedding 余弦距离为地面度量的 Wasserstein 三种距离（§2.3）。跟踪预训练轨迹时，则用归一化后的 hidden-state 可加性误差（附录 C 式 8）：分别跑 $A$、$B$、混合三次前向，逐层去均值、$\ell_2$ 归一化后比较混合 hidden state 与两条单流之和的距离，越小说明越线性。这套指标的组合是本文的主要技术贡献之一——它把”线性”从一个模糊的说法变成了可比较的数字。
-（b）怎么定位机制。 作者设计了一组注意力打补丁实验（§3），在 Qwen2.5-3B 上、用 FineWeb-Edu 的 128 token 片段做三类前向对比：vanilla 前向 $A_1$；donor patching $A_d$——每一层每个 head 都把无关文本 $C$ 产生的 post-softmax 注意力权重替换进来，但 $A$ 自己的 Q&#x2F;K&#x2F;V、RoPE 和 value 通路保持不变；permutation patching $A_p$——不用外部权重，而是把 $A$ 自己的注意力矩阵每一行在因果前缀内随机重排，这样保住了因果性、行和与每行权重的多重集，但破坏了位置和内容结构。然后测量”$A_1$ 的 vanilla top-1 token 在扰动后分布里的名次”。这两个扰动构成一组很干净的控制：donor 保留注意力的结构形状但切断它与内容的关联，permutation 保留了逐 token 的权重分布却破坏结构。
-结果（表 2、表 3）：在可预测位置上，混合与 donor 都还能打（中位名次 6 和 3）；在内容位置上两者分化，混合是 284，donor 是 111；而 permutation 直接把两类位置都打崩（3,079 和 19,246），说明光有词频先验不够，自然注意力的结构形状也是必需的。更关键的是在 LAMBADA 上（内容词、长叙述末尾，可预测位置的占多数救不了场）：embedding 混合拿到 2.25% 的 argmax 准确率、目标中位名次 339，而 donor patching 只有 0.5%、中位名次 2,350——4.5 倍准确率和 7 倍名次差距。作者据此认为，embedding 叠加所携带的信息多于”词频先验 + 注意力形状”这两项之和，这给”加法式 embedding 组合到底保留了什么”给出了一个非平凡的下界（§3）。
-
-论文原图 5（附录 F）。横轴是相对深度（层号 &#x2F; 总层数），纵轴是相邻层之间的线性度得分 $1-\mathrm{err}^2$（越接近 1 说明第 $\ell+1$ 层越接近第 $\ell$ 层的仿射重参数化），实线是基座模型、虚线是微调后，三个子图分别是 Pythia-2.8B、Llama-3.2-3B、Qwen2.5-3B。要读出的形状是 U 形：中间层掉到 0.65 附近，最后三分之一层回到 0.95 以上。作者把这个”终端线性”当作叠加信号能活着抵达输出 logits 的几何解释——如果最后一跳是强非线性的，$z\approx x+y$ 早就塌了。
-（c）怎么恢复。 自蒸馏（§4）。学生模型 $M_{student}$ 从预训练权重初始化，教师是同一个模型的冻结副本 $M_{teacher}$；对一对文本 $(x^{(A)},x^{(B)})$，目标是两条独立预测的算术平均（式 4）：
-$$P_{target}&#x3D;\tfrac{1}{2}\bigl(M_{teacher}(x^{(A)})+M_{teacher}(x^{(B)})\bigr),$$
-学生的输入是两条流 embedding 的平均 $z&#x3D;\tfrac{1}{2}(E(x^{(A)})+E(x^{(B)}))$，优化目标就是让学生输出逼近这个混合目标（式 5）：
-$$\mathcal{L}&#x3D;D_{KL}\bigl(P_{target},\Vert,M_{student}(z)\bigr).$$
-注意这里没有加任何新参数、也没有改架构（Two-Head 变体才加投影，见附录 G.2），改进完全来自权重层面的对齐；训练数据是 FineWeb 的一个子集，超参见附录 J（AdamW，heads 学习率 $10^{-3}$、backbone $10^{-4}$，ReduceLROnPlateau，蒸馏温度 2.0，最大序列长度 128）。这一点很重要：它说明”线性”不是要靠专门的 mux&#x2F;demux 层去外部强加的能力。
-（d）怎么把两条流拆开。 作者先指出一个绕不开的障碍，称之为几何平均阻塞（geometric-mean obstruction）（§5）。如果混合 logits 近似等于两条流 logits 的平均，那么混合概率就正比于两者概率的几何平均：
-$$P’{\text{target}}(t);\propto;\exp!\bigl(\tfrac{1}{2}(\ell{A}(t)+\ell_{B}(t))\bigr);\propto;\sqrt{P_{A}(t),P_{B}(t)}.$$
-后果是：在 A 里很可能、在 B 里很不像的 token 会被几何平均狠狠压低。所以即便微调后两条流的真值 token 都能稳定进 top-5，”用标准解码让两条流同时排到第 1”依然非常困难；直接采样混合分布得到的文本会在 A 和 B 两类 token 之间来回跳、语义不连贯。绕过它的办法是引入一个小的辅助模型做逐流对比引导（Joint Contrastive decoding）（式 7）：
-$$\tilde{\ell}^{(A)}&#x3D;\ell_{\text{large}}(z)+\alpha,\ell_{\text{small}}(A)-\beta,\ell_{\text{small}}(B),\qquad \tilde{\ell}^{(B)}&#x3D;\ell_{\text{large}}(z)+\alpha,\ell_{\text{small}}(B)-\beta,\ell_{\text{small}}(A),$$
-其中 $z&#x3D;\tfrac{1}{2}(E(A)+E(B))$；直觉是”给小模型的 A 流 logits 加分、给它在 B 流上的 logits 减分”，把混在一起的信号推开。$\alpha,\beta$ 初始化为 1，与 backbone 一起在对称的逐流交叉熵上联合训练（超参：学习率 $5\times10^{-5}$、有效 batch 16、序列长度 512、1,000 步线性 warmup、梯度裁剪 1.0；Qwen&#x2F;Llama 取第 30,000 步、Pythia 取第 700,000 步 checkpoint，附录 J）。附录 G 还给了两个替代方案并说明它们更差：推理期只优化 $\alpha,\beta$ 的 logit 算术（G.1），以及用对称性破缺的 $W_A,W_B$ 投影 + 双头输出（G.2）。
-3. 解决得怎么样？恢复效果是显著的。 在 Pythia-2.8B 上，平均 KL 散度从 1.86 降到 0.27，叠加近似比率 $\mathcal{R}_{\mathrm{KL}}$ 从 0.42 降到 0.06（§4）；图 1 里最直观的一处是，真值 token 进入 top-5 的概率从约 30% 升到 **&gt;60%**。
-
-论文原图 1。横轴是 top-$i$，纵轴是 $P(\mathrm{rank}{\ell{\text{mix}}}(\hat t)\le i)$，即单流预测出的 token 还能留在混合分布前 $i$ 名的概率；实线是原始预训练模型，虚线是轻量微调之后。三组曲线分别是 Pythia-2.8B、Llama-3.2-3B、Qwen2.5-3B。这张图同时承载了本文两个结论：实线在 top-10 就有 30–40% 已经远高于随机，虚线整体上移说明线性可以被微调找回。
-
-论文原图 2（其内容来自 HTML 中的矢量图 linearity_training_dynamics_pythias.svg）。纵轴是逐层平均的 hidden-state 叠加误差 $\bar{\mathcal{E}}$（越低越线性），横轴是对数刻度的训练步数，六条曲线是 Pythia 的 70M 到 2.8B。误差在训练最早阶段最小、随后单调上升——这是”叠加线性是架构固有属性、被预训练削弱”这一核心判断的直接证据，也意味着模型越大误差越高。阴影是跨 hidden-state 索引的标准误。
-但”恢复”不只是喂饱词频先验。 这是我认为全文最扎实的一段证据（表 2）：微调后，聚合中位名次从 19 改善到 6，而拆开看，可预测位置几乎没有变化（中位名次 6 → 8，exact top-1 从 24.8% 略降到 21.6%），**内容位置则从 284 暴跌到 5，exact top-1 从 4.2% 跳到 22.8%**。也就是说，改善几乎全部发生在真正吃语义的那 35% 位置上，作者据此宣称微调”不是在走捷径，而是真的让模型并行处理两条流的内容”。这个”分位置看指标”的做法，正好呼应了第 1 节里”聚合指标会骗人”的发现，是方法自洽的。
-代价是真实的，而且和收益直接冲突。 同一个目标会损害单流的下一个 token 预测质量：Pythia-2.8B 的 LAMBADA 从 0.544 掉到 0.357，Qwen2.5-3B 从 0.602 掉到 0.460（§4）。附录 G.4 &#x2F; 表 8 把这件事量化到 FineWeb 的 NLL&#x2F;PPL 上：纯蒸馏（”Tuned distillation”）在 Qwen 上把 PPL 从 12.44 抬到 65.52（NLL 2.521 → 4.182），Llama 从 11.20 抬到 71.44，Pythia 从 14.09 抬到 43.95；而带引导的 Joint Contrastive 版本只退化到 19.31 &#x2F; 14.75 &#x2F; 29.72，基本贴着同规模小模型的基线。换句话说，最能恢复叠加线性的配方对单流能力的破坏最大，而单流保持得最好的配方收益最小——这个 trade-off 是论文非常诚实地摆出来的（表 8 的标题里就写了 “Tuned distillation incurs a substantially larger penalty”）。
-解码目前只是概念验证。 表 5 在混合前向下的 LAMBADA 平均准确率：Qwen2.5-3B + 0.5B 引导，从原始预训练的 0.168 提到 0.345；Llama-3.2-3B + 1B 从 0.182 提到 0.430；Pythia-1.4B + 160M 从 0.065 提到 0.110。读 Pythia 这一行时要小心：表 5 里 Pretrained 行用的是 Pythia-2.8B，而 Joint Contrastive 行用的是 Pythia-1.4B，两行不是同一个底座（Qwen 与 Llama 的两行底座一致），所以 Pythia 那一对的提升幅度受底座变化污染。两条流的分离度（FineWeb 生成文本的 Jaccard token 重叠，越低越好）也同步下降（0.126 → 0.061、0.094 → 0.067、0.109 → 0.080），说明提高的不只是”猜中 token”而是真的有两条不同的续写。但和小模型单独跑的基线比仍有明显差距（0.345 vs 0.437；0.430 vs 0.540），作者明确把它称为 proof of concept，并把剩下的差距归因于式 6 的几何平均阻塞而不是微调不充分。这里要注意：这一归因目前是对应于他们的理论分析，论文没有做实验把”阻塞”和”微调不足”单独分离出来——这是作者的解读，不是被直接验证的事实。
-效率账要看得更细一点。 结论里写的是”理论上带来 2× 推理吞吐、并把每条活跃流的 KV-cache 减半”。附录 G.5 &#x2F; 表 9 给的实际数字是（Pythia-2.8B + 160M，prompt 128、生成 128）：Separate 模式 109.6 tok&#x2F;s，”引导”模式 79.4，普通 batch&#x3D;2 的独立推理 113.1，两条流串行 56.0。也就是说 2× 是相对于”串行跑两遍”而言的，而相对”直接 batch&#x3D;2”的独立推理，Separate 只差 3% 以内（113.1 vs 109.6）——论文自己也这么描述。显存方面，Separate 相对单次 vanilla 前向只是小幅增加（Pythia-2.8B 7.15 vs 6.34 GB；Llama-3B 9.26 vs 6.72 GB），引导模式因为大小模型都要常驻而更贵（Llama-3B+1B 峰值 12.93 GB）。所以真正有说服力的收益是存储与”单次前向同时产出两条续写”这一能力本身，而不是在已有 batch 推理上再拿一份墙钟加速。
-最后是边界和我核对出的几处小出入。 论文自陈的限制是：序列长度基本限于 $L\le128$（只有 §2.3 扩展到 512）、以单语文本为主、完全没有验证多模态（§8）。训练规模上，引言说用不到原预训练数据量的 **0.025%**（这是作者的主张，正文没有给出推导；可核对的实参是 FineWeb 子集、128&#x2F;512 长度、每个 run 15 万–20 万步），而算力并不便宜：附录 A 说 Pythia-2.8B 单次微调 15 万步要 2×A100 80GB 跑约 114 小时，Qwen2.5-3B 约 132 小时、Llama-3.2-3B 约 128 小时，Joint Contrastive 的 Pythia-1.4B 单卡 A100 要 68 小时。另外两处内部小矛盾我核对了原文：§4 说”近似 200k steps”，而附录 A 记的 Pythia-2.8B 是 150,000 步；§4 把微调后的 KL 数值标注为”表 1 最后一行”，但表 1 实际只有 4 个基座模型 × 2 个长度的 8 行（我在 HTML 原始表格里逐行确认过），并不含微调行——这些是引用与行文层面的瑕疵，不影响结论。
-作者发现 Transformer 尽管由强非线性部件构成，却对”逐元素平均两条 embedding 流”表现出出人意料的端到端线性：真值 token 在混合分布 top-10 里的存活率有 30–40%，且这一性质在预训练最早阶段最强、随后被训练单调削弱，说明它是架构固有而非学得的；因此提出用自蒸馏把学生输出对齐到两条独立分布的算术平均来找回线性，并用小模型对比引导把混合信号拆回两条流；实验表明微调后 $\mathcal{R}_{\mathrm{KL}}$ 从 0.42 降到 0.06、内容位置上真值 token 的中位名次从 284 回到 5，混合前向的双流 LAMBADA 平均准确率最高提升到 0.430，但仍存在单流能力明显退化、解码质量不如直接跑小模型、实际吞吐只与 batch&#x3D;2 相当，以及长上下文与多模态未验证等未解决的问题。
-]]></content>
-      <categories>
-        <category>daily paper</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Parts-of-Speech as Emergent Categories in SAE Latent Space</title>
-    <url>/2026/09/27/2609.29362v1_Parts-of-Speech_as_Emergent_Categories_in_SAE_Latent_Space/</url>
-    <content><![CDATA[作者：Alessandro Bondielli*、Lucia Passaro*、Serena Auriemma、Alessandro Lenci（*共同第一作者；CoLingLab 与比萨大学计算机科学系；EMNLP 2026 预印本）。
-论文：2609.29362v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
-Hugging Face · arXiv 原文 · 官方全文
-分析范围：官方 arXiv v1 HTML 全文，含正文 §1–6、附录 A.1–A.3 与 B.1–B.3.1、表 1–8 及本报告引用的图 1–4、6–7、13、18–19。未发现缺失章节；实现细节（如 SAE 的稀疏化方式与系数、探针除 $C$ 外的超参）论文未给出。
-1. 作者发现了什么问题？背景与探究对象。 大语言模型内部表示中同时含有词汇、句法、语义信息，但”这些信息如何组织”仍不清楚：语法类别究竟对应少量局部可解释的方向，还是分散在大量维度上（§1）。稀疏自编码器（SAE）被当作回答该问题的工具——它把稠密激活分解成高维稀疏向量，期望每个 latent 更接近单义（monosemantic）特征。作者要检验的正是这个期望在语法层面是否成立。
-已有方法具体哪里不够。 一是探针（probing）类研究的天花板：探针准确率高只能说明信息”存在”，无法说明它”如何组织”，甚至探针可以拟合任意映射（Hewitt and Liang, 2019；Pimentel et al., 2020），因此”可恢复”不等于”被模型使用”。二是已有 SAE 的语言学分析多聚焦孤立现象（如 Marks et al. 2025 的主谓一致回路）或宽泛属性（语言身份），缺少对理论定义的语法类别的系统考察（§2）。三是近期工作本身就在质疑 SAE latent 的单义性：Kantamneni et al. (2025) 发现基于 SAE latent 的探针并不稳定优于简单基线，SAEBench 也显示代理指标的提升未必迁移到下游。
-为什么选词性（PoS）当测试台。 PoS 标签离散、独立标注、语言学上可解释，而且在频率、词汇开放性、句法功能上差异极大——开放类（名词、动词）词汇能产、变化大，封闭类（限定词、连词、代词）形式受限、常绑定特定句法角色（§1）。这使它成为检验”类别 ↔ latent 是否为一一映射”的合适受控场景。作者据此提出三个问题：RQ1 词性能否从 SAE 激活中恢复；RQ2 这些编码在 latent 空间中如何组织；RQ3 这种表征在跨数据与评估设置时是否稳定系统（§1）。
-需要区分已存在的问题与本文的新观察：**”PoS 可从 SAE 激活中恢复、但不与单个 latent 一一对应、而是由紧凑的 latent 组支撑”是本文的实验结论，不是前置假设**。论文并未先验断言语法类别必然分布式编码。
-2. 作者如何解决？
-原文图 1，工作流总览。左侧三步依次为可恢复性测试（one-vs-rest 探针）、定位（系数显著性找 latent 组）、紧凑性（95% 覆盖与多分类探针）；右上给出一个真实 token 序列的 latent 激活示例，右下用留出树库与受控数据做验证。
-核心思路。 把”SAE 是否编码词性”拆成三层可测量的实验：先证明信息可线性恢复，再把”支撑某个类别判别”的 latent 找出来并量化需要多少个 latent 才能覆盖该类别 95% 的实例，最后检验这些 latent 组在未见数据上是否仍然激活、是否能独立支撑多分类。关键设计是**不追求”每个词性一个 latent”**，而是允许每个类别有自己大小的 latent 组，用覆盖率而非系数阈值来定义这个组（§4.2）。
-输入与表示（§3.2）。 模型是 LLaMA-3-8B，SAE 用 EleutherAI&#x2F;sae-llama-3-8b-32x（32 倍扩展，即 $4096\times32&#x3D;131{,}072$ 个 latent），经 Sparsify 库调用，实现遵循 Gao et al. (2025) 描述的 SAE 设计（论文未进一步说明该 checkpoint 的稀疏化方式）。激活取自第 30 层（输出前最后一层）残差流在 MLP 之后的位置，只对单个子词编码。子词与 UD token 用字符跨度重叠对齐，并取最左子词作为锚点——作者给出的理由是 UD token 的身份在第一个子词处才对模型可见，跨子词平均会把类别信息与续写片段激活混在一起。最后只保留在树库中至少出现过一次的 latent，得到 $D&#x3D;130{,}246$ 维的稀疏特征矩阵 $X\in\mathbb{R}^{N\times D}$。
-数据。 自然语料用 UD English GUM treebank（14,353 句、252,284 token，完整覆盖 17 个 UPOS 标签），训练集用于”发现” latent 组，测试集全程留出（§3.1）。另构造一个 180 项的受控数据集：160 个名词（跨多个语义类别，生命&#x2F;无生命各半，以单复数嵌入 There is a dog、I see the dog、I have a dog 等中性模板）与 20 个高频动词（10 规则 + 10 不规则过去式，模板 I [VERB]），每个基句再附加”插入相邻形容词&#x2F;副词”和”再加标点”两个变体，并区分现在时与过去时。
-RQ1：可恢复性（§4.1）。 对每个 PoS 训练 one-vs-rest 的二分类逻辑回归，L1 正则（$C&#x3D;0.1$，liblinear，balanced 类权重），5 折交叉验证。L1 的作用不只是正则，更是特征选择——把系数压到零，从而为 RQ2 提供”哪些 latent 支持该类别”的排序依据。
-RQ2：定位与紧凑性（§4.2）。 分三步。第一步取显著度：只保留 $\beta&gt;0$ 的系数（激活提升该类概率），得到每个 PoS 的显著度排序。第二步定义覆盖率：
-$$\mathrm{Cov}{c}(k)&#x3D;\frac{1}{|T{c}|}\sum_{t\in T_{c}}\mathbf{1}\left[\exists,\ell\in L^{(k)}{c}:a{\ell}(t)&gt;0\right],\qquad k^{\star}{c}&#x3D;\min{k\in\mathbb{N}:\mathrm{Cov}{c}(k)\geq\tau}$$
-其中 $T_c$ 是金标签为 $c$ 的 token 集合，$a_\ell(t)$ 是 latent $\ell$ 在 token $t$ 上的激活，$L^{(k)}_c$ 是显著度前 $k$ 的 latent 集合，阈值取 $\tau&#x3D;0.95$。也就是问：最少要多少个高系数 latent，才能让该类别 95% 的 token 至少激活其中一个。作者特意用 per-class 阈值而非全局 top-$k$，以免被各类别之间 latent 数量与系数分布的不平衡带偏。第三步做紧凑特征分类：把所有类别的最小覆盖集合取并
-$$L^{\star}&#x3D;\bigcup_{c\in C}L^{(k^{\star}{c})}{c},$$
-只用 $L^\star$ 作输入再训一个 multinomial 逻辑回归做联合词性预测。这是比覆盖率更严格的检验——如果这些 latent 真的抓住了系统性的形态句法信息，多分类不该大幅掉点；掉得厉害就说明信息仍分散在别处。
-RQ3：留出验证（§4.3）。 不再训练新分类器，而是检验”发现阶段选出的 latent 组是否在未见 token 上仍然激活”。定义跨 PoS 激活矩阵
-$$M_{c,c’}&#x3D;\frac{1}{|T_{c}|}\sum_{t\in T_{c}}\mathbf{1}\left[\exists,\ell\in L^{(k^{\star}{c’})}{c’}:a_{\ell}(t)&gt;0\right],$$
-对角项 $M_{c,c}$ 即该类召回，非对角项是”为 $c’$ 选出的 latent 却在 $c$ 的 token 上点火”的假阳率。再用 $\mathrm{D}(c)&#x3D;M_{c,c}\big&#x2F;\sum_{c’\in C}M_{c,c’}$ 衡量类别专属度，$1&#x2F;|C|&#x3D;0.06$ 为均匀共激活下的随机基线。
-对照与基线（§4.4）。 三项：词形记忆控制（给每个词型随机指定 UPOS 标签重跑探针）；稠密基线（改用第 0 层 embedding 与第 30 层原始激活作特征）；随机替换基线（保留 0&#x2F;25&#x2F;50&#x2F;100% 的 $L^\star$，其余随机抽 latent）。
-代价（附录 A.2）。 8×A100 80GB 节点，单层激活提取约占 0.16 GPU 小时；一次 5 折交叉验证在训练集上约需 4 小时（scikit-learn，纯 CPU 并行）。
-3. 解决得怎么样？RQ1：可以恢复，但不均匀（图 2）。
-
-原文图 2，5 折交叉验证下各词性的 one-vs-rest 探针 F1，右侧灰色柱为该类别在数据中的 token 支持量。红色为开放类、蓝色为封闭类、深色为其他类。
-图 2 显示大多数类别 F1 很高：PUNCT、PRON、CCONJ、DET 最高（约 0.9 及以上），其后是 NOUN、AUX、ADP、VERB；SYM 约 0.62、SCONJ 约 0.53、INTJ 约 0.43，最低的 X 只有约 0.13（图 2 为柱状图，此处为读数近似）。规律是封闭类与低变化性标签（标点）更易恢复，开放类中名词和动词最好。作者据此回答 RQ1 为”是”，同时强调高探针分数并不能说明组织方式（§5.1）。
-RQ2：latent 组存在、大小因类别而异、且整体很紧凑。 显著度分析显示二分类器并不均匀使用整个 latent 空间：每个 PoS 只有一部分 latent 得到正系数，但绝不是单个 latent。非零系数数量（表 4、图 3）差异很大：NOUN 10,043（占 latent 空间 7.66%）、ADJ 8,877、VERB 7,404、ADP 6,511，而 CCONJ 只有 645、SYM 460。按类别汇总（表 5）：开放类平均 7,926.5 ± 2,153.7，封闭类 3,281.7 ± 1,895.7，其他类 2,094.4 ± 221.9。
-覆盖分析给出更关键的答案。
-
-原文图 4，每个词性为达到 95% 覆盖所需的高系数 latent 数 $k^{95}_{c}$（柱越低越紧凑）。红色为开放类、蓝色为封闭类、深色为其他类。
-图 4 显示达到 95% 覆盖所需的 latent 数 $k^{95}_{c}$ 从个位数到八十余不等：X 最高（约 82），其后 ADJ 约 80、ADV 约 71、PROPN 约 59、VERB 约 52，封闭类整体更少，CCONJ 最低（约 5）；NOUN 约 33、ADP 约 16（图 4 为柱状图读数，均为近似；附录 A.1 给出的第 30 层精确值为 NOUN 34、ADP 16、SCONJ 17、PROPN 60，与读数一致）。把 17 个类别的最小覆盖集合取并后，$L^{\star}$ 总共只有 498 个 latent，其中 12% 被 2 个以上 PoS 共享（§5.2）。只用这 498 个（对比全空间 130,246 个）训练的多分类器达到 accuracy 0.89、macro-F1 0.81、weighted-F1 0.90（表 7，n&#x3D;177,410），逐类 F1 从 PUNCT 0.96、CCONJ 0.96、DET&#x2F;PRON 0.94 到 X 0.24、SYM 0.49、INTJ 0.52（表 7）。参数敏感度检查显示结果对 $C$ 与 $\tau$ 都不敏感（附录 B.2，图 13）。
-RQ3：稳定，但只是部分类别专属（图 6、表 8）。 在留出测试集上，对角项 $M_{c,c}$ 大多 $\geq 0.95$，说明为某类别选出的 latent 确实在未见同分布 token 上继续激活；但非对角项波动较大，说明存在跨类别重叠。整体专属度 $\mathrm{D}$ 的均值仅 $0.27$（$\sigma&#x3D;0.07$），远高于随机基线 0.06，却远不到 1——latent 组既不是随机的，也不是类别互斥的（§5.3、表 8）。表 8 还给出零激活比例：NUM 0.006、PART 0.007 最低，X 0.273、SYM 0.111 最高。
-受控数据集给出互补证据，也暴露了一个 artifact。表 1 的伪多标签结果平均 precision 仅 0.192、recall 0.937、F1 0.318：高召回、低精度，部分模板间有波动。作者追查到一组与”首 token”概念相关的 latent 在干扰结果，并做了验证——在句首加一个词性不同的前缀（如把模板改成 1. I saw the cute cat）后，原本在首 token “I”（PRON）上点火的 latent 整套转移到新的首 token（NUM）（附录 B.3.1，图 19）。这既说明混淆存在，也说明 latent 组确实随 token 属性系统性地移动。图 7 进一步显示，往句子里加入新 token（如给 There is a dog 加 loyal）时，对应类别（adj）的 latent 会被一致地点亮，激活大致可加；不过名词组在出现相邻形容词后分布有轻微漂移（附录 B.3）。
-对照与基线支持”不是词形记忆”（§5.4）。 随机标签控制探针得到 0.54 Accuracy &#x2F; 0.42 Macro-F1，而真实探针为 0.88 &#x2F; 0.97，34–37 点的差距说明可恢复性主要不是靠记住词形——不过作者也承认混淆”不可忽略”。（注：这两个数与表 2 的 SAE 行 0.88 &#x2F; 0.78 不是同一评估设置，论文未逐项说明口径，此处按原文分别引用。）表 2 显示 SAE 探针与稠密基线相当（SAE 0.88&#x2F;0.78；第 30 层原始激活 0.92&#x2F;0.84；第 0 层 embedding 0.88&#x2F;0.78），但 SAE 只用了约 1&#x2F;8 的特征。作者明确不主张 SAE 作为探针工具更优，只主张它的贡献是分解与定位。表 3 的随机替换实验则从反面确认 $L^{\star}$ 与词性相关：重叠 0&#x2F;25&#x2F;50&#x2F;100% 时交叉验证准确率依次为 0.24&#x2F;0.49&#x2F;0.69&#x2F;0.87。
-机制解释的边界。 §5.5 给出四条解释，其中两条值得注意作者自己就做了限定：其一，封闭类更紧凑（表 4、图 4）作者归因于”词汇变异性梯度”而非抽象程度更高——像 DET 这种自带少量不变词形的类别，用一组”词形专属 latent”就能覆盖，不需要类别级抽象；受控数据支持这一读法：DET 在限定词恒为 the 的模板里退化成单一激活值（附录图 18），只有引入 a&#x2F;an 与光杆复数的形式变化后才出现结构（图 7）。其二，开放类的跨类共激活更多来自词形、词干共享与位置：adj 主要与 noun&#x2F;propn&#x2F;adv 混淆（定语名词用法、形容词—副词重叠），adv 与 adp&#x2F;noun&#x2F;sconj&#x2F;verb 弥散共激活，verb 与 noun 在同形异义词（to drink &#x2F; the drink）上重叠；intj 的高假阳率则可能源于标注约定（like、well、God 在不同语境被标 intj）。
-仍未解决与适用范围。 论文在 Limitations 中列出四项局限。其中与本报告结论最相关的三项是：只用一个底座模型（LLaMA-3-8B）与一个公开 SAE，结论可能依赖模型、层、SAE 训练过程与稀疏度（作者用层扫描部分缓解：附录 A.1 报告 $L^{\star}$ 在层 2&#x2F;15&#x2F;30 为 530&#x2F;501&#x2F;498，macro-F1 为 0.77&#x2F;0.79&#x2F;0.81，专属度为 0.15&#x2F;0.32&#x2F;0.27，说明结论不限于第 30 层）；定位依据是线性探针系数，probe 系数不应被解读为直接因果证据，要确认模型是否真用这些 latent 做形态句法处理还需因果干预；受控数据集只有 180 项且以名词、动词为主，无法覆盖英语全部的句法与词汇变化。第四项是 PoS 只代表一个语言学抽象层级，形态特征、依存关系、语义角色与篇章现象需要另行研究。
-作者发现探针准确率只能证明词性信息”存在”、无法说明它”如何组织”，因此提出以 PoS 为受控测试台的”可恢复性—定位—验证”三段流程，通过 L1 探针系数、95% 覆盖率筛选出总共 498 个 latent 的类别相关组，实验表明这些组在留出数据上稳定、足以独立支撑多分类，但仍存在明显的跨类别共激活、开放类与封闭类的紧凑度差异更多反映词汇变异性而非抽象层级，且缺少因果干预证据与多模型、多 SAE 的验证。
-]]></content>
-      <categories>
-        <category>daily paper</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>WanPE: Towards Cinematic Prompt Enhancement for Modern Text-to-Video Generation</title>
-    <url>/2026/09/27/2609.30221v1_WanPE_Towards_Cinematic_Prompt_Enhancement_for_Modern_Text-to-Video_Generation/</url>
-    <content><![CDATA[作者：Yubo Zhu、Yawen Shao、Ziyun Dai、Zixun Fang、Kai Zhu、Siyang Sun、Haolan Xue、Chuxin Wang、Tingyu Weng、Jingming Luo、Chen Shi、Lianghua Huang、Yufeng Ai、Yuzheng Wang、Wenyuan Zhang、Yu Shang、Yuxiang Bao、Zoubin Bi、Jie Xiao、Jinbo Xing、Jiaxing Zhao、Chongyang Zhong、Hengjian Chen、Chenwei Xie、Akide Liu、Zhehan Kan、Yu Liu、Wei Zhai、Sheng Zhong、Wei Tong。
-论文：2609.30221v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
-Hugging Face · arXiv 原文 · 官方全文
-分析范围：官方 arXiv v1 全文，正文 §1–§5 与附录 A–D 均已读取；表 1–3 及附录表 4–6 的数值逐项核对。v1 为目前唯一版本（2026-09-24 提交），无更新版本。
-1. 作者发现了什么问题？现代文生视频（T2V）系统由两部分紧耦合而成：把用户输入变成文本条件的 prompt enhancer 和把条件渲染成视频的 video generator。Wan3.0、Seedance 2.5 这类生成器已能输出最长 30 秒、运镜与叙事都连贯的视频，且还能继续吃更长的上下文。作者据此提出一个判断：文本控制已经抵达”电影导演”层面，增强器的职责不再是给请求补描述性细节，而是规划动作、镜头、灯光、对白、声音如何在多镜头、整段时长上连贯展开（§1）。论文标题中的 “cinematic prompt enhancement” 就指这件事。
-已有的提示增强方法（多步 LLM 精修、监督&#x2F;偏好优化、推理期自我精修等，§4）几乎都建立在正向扩写（forward expansion）上：从用户请求出发，把事情写得更丰富。作者指出两个具体缺陷：
-
-训练—推理分布错配。 下游生成器是对着 video-grounded captions（真实视频反推的字幕式标注）训练的，而正向增强器的输出来自一个”合成改写分布”。两者的差距不只是语言风格：当增强目标升级为连贯的电影化规划时，正向扩写必须在想象中同时决定多次快速交互如何随镜头运动、灯光、音频一起演进——而真实拍摄的动作场面本来就包含表演、编排、摄影、剪辑、灯光、声音的协同。图 1 右侧用 t-SNE 佐证：WanPE 的输出与 video-grounded captions 高度重合，正向增强的输出明显偏离，存在 distribution gap。
-语义保持升级为全局一致性要求。 用户指定的主体、动作、台词、镜头指令、事件顺序必须被传播到每个相关镜头，并保持绑定关系和时序关系；新引入的细节还要与原始请求和已完成的前文规划兼容。规划一长，就会出现遗漏、篡改、绑定到错误主体或错误镜头、前后矛盾（§1）。
-
-两者的共同根源是监督来源：正向改写只能经由”模型想象”产生目标，而真实视频是”已实现的电影化结构”。因此作者的核心判断是：把监督构造方向反过来——先有真实视频的电影化字幕，再反推用户请求。
-需要区分的是：分布错配与长程语义保持是作者提出的问题诊断（图 1 的 t-SNE 是支持性证据，不是因果实验）；”反向构造优于正向改写”是后续实验（§3.2）的结论，不是先验设定。
-2. 作者如何解决？一句话概括：把提示增强重新定义为电影化规划（cinematic planning），用一个训练式增强器 $\pi_\theta$ 输出跨镜头、跨时间的”视频蓝图”，训练分两步——先用 video-grounded reverse SFT 学习生成器条件分布里的电影化结构，再用 SC-GRPO（Semantic-Consistency GRPO）以九维语义一致性奖励保证规划全程不丢用户要求。整个方法只训练增强器，视频生成器 Wan3.0 保持冻结。
-
-原文图 1（官方 HTML 版 intro.png）。左：早期模型只需要可选扩写（如 Wan2.2），WanPE 面向能处理长上下文、复杂指令的现代生成器，直接产出分镜级规划（shot plan）。右：t-SNE 显示 WanPE 输出对齐 video-grounded captions，正向增强存在分布间隙——这是问题诊断的可视化证据。
-问题形式化（§2.1）。 设增强器为 πθ、生成器为 Gφ，链路为 x∼p_u，y∼πθ(·|x)，v̂∼Gφ(·|y)（公式 1）。理想目标是”生成器条件分布中语义合法的那一部分”：
-$$p^{}(y\mid x)&#x3D;\frac{p_{\mathrm{vg}}(y),\mathbb{I}!\left[y\in\mathcal{Y}_{\mathrm{sem}}(x)\right]}{Z(x)}\qquad(3),\qquad \theta^{}&#x3D;\arg\min_{\theta}\mathbb{E}{x\sim p{\mathrm{u}}}\left[D_{\mathrm{KL}}\left(p^{*}(\cdot\mid x),|,\pi_{\theta}(\cdot\mid x)\right)\right]\qquad(4)$$
-其中 $\mathcal{Y}{\mathrm{sem}}(x)$ 是由用户请求里全部语义&#x2F;指令约束 $\mathcal{C}(x)$ 定义的合法输出集合（公式 2），$p{\mathrm{vg}}$ 是视频字幕分布。这给出两个难点：(i) 跨镜头的电影化联合组织要匹配 $p_{\mathrm{vg}}$；(ii) 长程语义保真。两个训练阶段恰好对应这两点。
-
-原文图 2（官方 HTML 版 pipeline.png）。左：video-grounded reverse SFT——真实视频经 captioner 得到电影化条件 y，再由 LLM 反推用户请求 x；右：SC-GRPO——覆盖广的普通请求与困难样本混合，加强版增强器输出经九维语义一致性奖励转成组相对优势做策略更新。
-阶段一：Video-grounded reverse SFT（§2.2，图 2 左）。 数据侧先收集约 1.05M 条公开或授权的真实视频片段（切成 ≤30 秒，经过技术有效性、画质、运动质量多阶段过滤，覆盖十个内容维度、同时保留镜头级片段和多镜头序列，附录 A）。对每个片段 $v_i$，用多模态视频 captioner $f_{\mathrm{cap}}$ 生成层级化电影化目标
-$$y_i&#x3D;f_{\mathrm{cap}}(v_i;s_i)\qquad(5)$$
-$y_i$ 含视频级摘要和带时间戳的镜头级描述；每个镜头写明构图、主体、动作、灯光、运镜、转场、对白、音乐、音效及其时间演进，且按内容类别使用不同 caption 方案（附录 B.2），并做结构完整性、时间戳有效性、与源视频一致性的质量检查（附录 B.3）。然后反推用户请求：直接”摘要 y”只会得到压缩版字幕，因此改用 gpt-5.4 few-shot——从一个 2K 条人工撰写请求池中按类别抽 5 个示例，生成
-$$x_i&#x3D;f_{\mathrm{LM}}(y_i;\mathcal{E}_i)\qquad(6)$$
-构造提示要求 $x_i$ 只包含 $y_i$ 支持的要求，从而保证 $y_i\in\mathcal{Y}_{\mathrm{sem}}(x_i)$。最后在 $(x_i,y_i)$ 上做标准监督微调：
-$$\mathcal{L}{\mathrm{SFT}}(\theta)&#x3D;-\frac{1}{N}\sum{i&#x3D;1}^{N}\log\pi_{\theta}(y_i\mid x_i)\qquad(7)$$
-这一步直接对应问题 (i)：学习目标分布是”真实视频的标注”，而不是模型自己扩写的产物。
-阶段二：SC-GRPO（§2.3，图 2 右）。 对应的难点是长程语义保真。训练数据约 15K 条提示词：人工撰写，用 Wan3.0 生成视频后由标注员挑出”视频未充分实现请求”的困难样本，与多样的人工提示混合。奖励是一个文本级语义一致性分数 $r_{\mathrm{sem}}(x,y)\in[0,100]$，由 Qwen3.7-Max 担任评估器，覆盖九个维度：style、subjects、actions、dialogue、sound、camera、lighting、spatial relations、scene。评估器检查遗漏、弱化、篡改与矛盾，检查主体—属性、说话人—台词绑定错误、动作与镜头顺序错误、跨镜头冲突；同义改写和兼容扩展算通过，偏差按严重程度扣分。优化用 GRPO：对每个 $x$ 采样 $G$ 个条件，组内标准化奖励得到优势 $\hat{A}_g$，最大化
-$$\mathcal{J}{\mathrm{SC\text{-}GRPO}}(\theta)&#x3D;\mathbb{E}!\left[\frac{1}{G}\sum{g&#x3D;1}^{G}\frac{1}{T_{g}}\sum_{t&#x3D;1}^{T_{g}}\left(\min!\left{\rho_{g,t}\hat{A}{g},\operatorname{clip}(\rho{g,t},1-\epsilon,1+\epsilon)\hat{A}{g}\right}-\beta\mathcal{K}{g,t}\right)\right]\qquad(8)$$
-其中 $\rho_{g,t}$ 是当前&#x2F;旧策略比率，$\mathcal{K}_{g,t}$ 是相对 SFT 参考模型的 KL 惩罚，初始策略即 SFT 模型。这个设计值得注意：奖励不看视频、只看”条件 y 是否忠实承载了请求 x”，是一种代理奖励——论文用表 3(ii) 说明它与下游视频偏好正相关（见下节），但没有单独实验证明”语义分数变高”必然带来”视频变好”。
-评测集 WanPEval（§2.4）。 249 条人工撰写请求，覆盖 5–30 秒、三种粒度（intent &#x2F; scene &#x2F; shot 级）、七个内容类别与两种画幅（附录 C）。文本级直接用 $r_{\mathrm{sem}}$ 打分；视频级采用盲测成对偏好（仿 Artificial Analysis Video Arena）：60 位编剧、导演、摄影等影视从业专家，四选一（A 好、B 好、都好、都差），据此计算下界 $S_{\mathrm{lower}}$、上界 $S_{\mathrm{upper}}$ 与 $S&#x3D;(N_{\mathrm{win}}+0.5N_{\mathrm{bg}})&#x2F;N$，并拟合 Bradley–Terry 强度 $b_k$ 得到 $\mathrm{BT}^k&#x3D;100,\sigma(b_k)$。摘要所述”约 11K 次盲测比较”即来自该协议。
-训练配置。 增强器实例化四个规模：Qwen3.5-4B、9B、35B-A3B、397B-A17B，分别记为 WanPE-4B&#x2F;9B&#x2F;35B&#x2F;397B；实验用 512 张 GPU（§3 设置）。管道里的 captioner、GPT-5.4、Qwen3.7-Max 评估器都是现成模型，论文没有提出新的视频生成器或新的 RL 算法，贡献集中在监督构造方向与奖励设计。
-3. 解决得怎么样？主实验在 WanPEval 上做。除无增强基线（原始请求直接给 Wan3.0）外，对比 Seedance 2.5&#x2F;2.0、Kling 3.0、HappyHorse 1.1、MiniMax-H3、LTX-2.5；时间划分按各系统最大支持时长：Seedance 2.5 参与 30 秒子集，其余都评 5–15 秒子集（§3.1）。
-
-原文图 3（官方 HTML 版 cinepeval_evaluation.svg 转 PNG）。左：按生成时长（5&#x2F;10&#x2F;15 秒）与请求粒度（intent&#x2F;scene&#x2F;shot）的 S 分数，横线标出 $[S_{\mathrm{lower}},S_{\mathrm{upper}}]$ 区间；右：七个内容类别的雷达图，读数为 WanPE-397B 的类别 S 分数。可以直观看到增强收益随时长增大、397B 在大多数类别接近或超过商业系统。完整数值见附录 D.2 的 Table 5 与 Table 6（该节正文引用写作 “Tables D.2 and D.2”，原文如此；渲染出的表号是 5、6）。
-表 1（5–15 秒，S&#x2F;BT）核心数值：
-
-
-
-方法（商业系统为端到端 API，其余下游均为 Wan3.0）
-5 秒 S
-10 秒 S
-15 秒 S
-Overall S
-Overall BT
-
-
-
-Seedance 2.0
-46.20
-41.40
-44.31
-43.42
-54.70
-
-
-MiniMax-H3
-29.09
-36.46
-38.30
-36.40
-49.27
-
-
-原始请求（无增强）
-46.08
-33.63
-30.59
-33.80
-49.59
-
-
-+WanPE-397B
-56.74
-49.91
-49.43
-50.61
-61.85
-
-
-WanPE-397B 在每个时长上 S 与 BT 都是第一，overall S 50.61 比 Seedance 2.0 高 7.19 点，实现了摘要中”5–15 秒领先所有被评估商业系统”的表述。相对原始请求的提升随生成时长增大：5&#x2F;10&#x2F;15 秒分别为 +10.66、+16.28、+18.84 点（§3.1；逐项区间见附录 D.2 的 Table 5）；按粒度看 intent&#x2F;scene&#x2F;shot 级分别达 52.44&#x2F;49.26&#x2F;49.32，比无增强高 18.55&#x2F;16.97&#x2F;13.45 点。30 秒子集（表 2 Exp1）：WanPE-397B S 60.24，与 Seedance 2.5 的 59.76 基本打平（动画 81.25、语音 73.68 领先，动作类 50.00 落后对方 68.18），而原始请求只有 9.38（+50.86）——增强对长视频几乎从”不可用”到”可用”。
-监督方向的消融（§3.2，表 2 Exp2） 支撑了方法的核心设计：在同一个 Wan3.0 下游、同一套 249 条请求上，WanPE-397B-SFT 的 overall S 为 49.86，比精心迭代 27 版的 “Forward Rewriting” 基线（39.49）高 10.37 点，比用同样数据做”正向目标 SFT”（35.17）高 14.69 点，且七个内容类别全部第一。也就是说，差异主要来自监督目标的来源（真实视频字幕 vs 模型改写），不是提示词写得好不好。一个值得注意的细节是：表 3(i) 里 Forward Rewriting 的文本语义一致性其实有 90.7 分（接近 WanPE-397B 的 97.6），但它的视频偏好只有 39.49——这支持作者”问题主要出在条件分布错配”的解释，不过论文没有做把”语义保真”与”分布对齐”两个因素分离的直接实验，该因果链条仍属推断。
-SC-GRPO 消融（§3.4，表 3、图 4）：图 4 显示四个规模训练奖励都显著上升；WanPEval 上文本语义一致性提升 18.6–23.3 点（397B-SFT 75.5 → 97.6，完美输出比例 29.7% → 85.5%，失败率 36.9% → 2.8%）；更重要的是下游视频偏好从 42.70 升到 49.69（表 3(ii)），七个类别全涨——说明”文本级语义奖励”这一代理确实与视频质量同向。注意：训练奖励用 Qwen3.7-Max，表 3 的一致性评估用 gemini-3.1-pro-preview，两个数字口径不同。
-跨生成器迁移（§3.3，表 2 Exp3）：用 GPT-5.4 把 WanPE 输出转成目标系统的条件格式后，在 LTX-2.5-Base 上 35.56 vs 原生增强器 21.11（+14.45），MiniMax-H3-Base 上 41.09 vs 原生 35.92（+5.17）。说明学到的电影化组织不绑定单一生成器格式，但这一环节引入了对外部模型（GPT-5.4）格式转换的依赖。
-代价与边界。 训练侧要处理 1.05M 视频的字幕化与质检、构造约 15K RL 样本、跨 4B–397B 四个规模在 512 卡上训练；推理侧 397B 增强器本身的成本未在论文中给出。评测只有 249 条请求、约 11K 次成对比较，且 30 秒只做到”与 Seedance 2.5 竞争”而非超越；论文没有报告美元&#x2F;GPU 小时成本，也没有讨论对 LLM judge 过优化（reward hacking）的风险——15K 提示词加一个固定 judge，长期 RL 的奖励饱和行为值得后续关注。此外 $S$ 分数把 “both good” 记 0.5 权重，与 BT 分数口径不同，跨表比较要谨慎。
-综上，作者发现正向扩写让增强器的输出分布偏离生成器的条件分布、且长程规划难以保信用户要求，因此提出 WanPE：用真实视频反推请求做 SFT，再用九维语义一致性奖励做 SC-GRPO，训练 4B–397B 的电影化规划增强器。实验表明它在 5–15 秒领先所有被评估商业系统、比原始请求最高提升 18.84 点（30 秒 +50.86 点），反向构造显著优于正向改写、SC-GRPO 同时提升文本语义与下游视频偏好，并能通过格式适配迁移到其它生成器；但提升仍依赖大规模数据与算力、评测规模有限、30 秒仅追平 Seedance 2.5，且”分布对齐”与”语义保真”各自的因果贡献尚未分离验证。
-]]></content>
-      <categories>
-        <category>daily paper</category>
-      </categories>
-  </entry>
-  <entry>
-    <title>Qwen-Planner-Agent: A Closed-Loop AI-for-AI Framework for Real-World Mobile Planner Agents</title>
-    <url>/2026/09/27/2609.29892v1_Qwen-Planner-Agent_A_Closed-Loop_AI-for-AI_Framework_for_Real-World_Mobile_Planner_Agents/</url>
-    <content><![CDATA[作者：MAI Team, Alibaba Token Hub, Alibaba Group。主要贡献者（§6 按贡献层级分组列出，脚注注明”Equal contribution, Alphabetic order”，arXiv 页面共列 26 位）：Tingyu Qu、Weigao Sun、Yuecheng Liu、Yucheng Zhao、Yi Zhu、Yifeng Ding、Qiyi Wang、Sihan Cao、Pengkun Jiao、Hanlei Xie、Xiongwei Wu、Qichao Wang、Haodong Zhang、Jiajun Liu、Yuhao Wang、Yuqing Xie、Junpeng Zhao、Long Chen、Ming Ma、Sihan Yang、Ziwang Zhao、Yanhao Jia、Liangquan Gong；指导组（Supervisory panel）Feida Zhu、Yiran Zhong、Steven Hoi；另有 13 名合作者（Collaborator）。
-论文：2609.29892v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
-Hugging Face · arXiv 原文 · 官方全文 · 项目页
-分析范围：官方 arXiv v1 HTML 全文，含正文 §1–6、附录 A–C、表 1–4 及正文引用的图 1–13（含 §3.5 的案例图 8–13）。材料不完整之处：论文为技术报告体例，未报告任何训练超参（学习率、批大小、组大小 $G$、训练步数、数据规模、GPU 小时数），也未给出 CARE 阈值 $p_{\mathrm{low}}&#x2F;p_{\mathrm{high}}$ 与权重 $\lambda$ 的具体取值；实验一节的设备与算力成本同样缺失。本报告只陈述论文实际给出的信息。
-1. 作者发现了什么问题？背景。 语言模型 Agent 正从”生成内容”走向”执行多步工作流”，这让一个老想法变得可操作：让 AI 不仅是被开发的对象，也参与开发下一代 AI 系统本身（§1，引 Turing 1950 与 Good 1965）。作者选择移动端规划（mobile planning）作为检验场景：用户一句高层目标，需要跨应用协调动作、在状态变化中维持上下文、从失败中恢复并确认结果真的达成。
-已有方法具体哪里不好。 作者把瓶颈归为三点。第一，真实设备交互昂贵且难以并行，直接限制了数据生产与评估的规模（§1，§2.2.1）。第二，已有移动 Agent 工作（AppAgent、Mobile-Agent-E 等）主要在解决”如何操作界面&#x2F;如何做屏幕定位”，已有移动 RL 工作（DigiRL、MobileRL、Mobile-R1、PhoneBuddy 等）主要在解决”如何训练策略”，但数据、训练、运行时支持三者是割裂的：运行时支撑（记忆、技能、工具暴露方式）变化后，模型的训练分布就过时了；反过来模型变强后，原有的运行时规则又不再适用（§2.5、§4.4）。第三，一个更具体的技术判断：固定的奖励设计无法匹配能力不同的轨迹组，而且标准的组内归一化会在成功率饱和后把小到可以忽略的效率差异放大成与”成功与否”同量级的优势信号，诱发过度的轨迹压缩（§2.4.3）。这一条是本文给出的最有技术含量的观察，并在式 (7)–(9) 中有推导。
-核心判断与提问。 作者的问题是：如何把 AI 的能力组织成一个可扩展、由反馈驱动的开发生命周期（§1）。他们给出的答案是闭环 AI-for-AI 框架——用执行证据同时驱动数据生产、模型训练与运行时（Harness）三者的协同改进，并以一个共享的”动作—反馈—验证契约”（action–feedback–verification contract）把三者串起来。
-2. 作者如何解决？
-原文图 2，AI-for-AI 生命周期。三个阶段相互连接：AI for Data 用 AI 辅助出题 + 自动采集与清洗轨迹，并用模型反馈调整下一轮任务与数据配比；AI for Training 在冷启动之后做混合环境在线 RL，CARE 随能力演进调整奖励与优势；AI for Harness 用统一 Harness 管理 Skills、持久 Memory 与执行反馈，AI 辅助诊断又反过来指导模型与 Harness 的修订。虚线橙色箭头表示迭代之间由人工把关的闸门。
-核心思路。 系统由两个可更新的对象组成：规划模型 $\pi_\theta$（Planner Model）和运行时脚手架 $\mathcal{H}\eta$（Harness）。形式化上（§2.1.2，式 (1)–(3)），Harness 把请求 $x$、检索到的记忆 $m_t$、加载的技能 $\mathcal{K}t$、观测与动作历史拼成上下文 $c_t&#x3D;\mathcal{H}{\eta}(x,m_t,\mathcal{K}t,o{\leq t},a{&lt;t})$，策略从中选动作 $a_t\sim\pi_{\theta}(\cdot\mid c_t,\mathcal{A}t)$；环境按转移与观测分布返回下一步；一个任务专属验证器 $\mathcal{V}$ 依据交互历史与后端状态证据 $\xi{t+1}$ 判定任务是否完成，证据本身不必暴露给策略。关键点是验证器提供的是可执行证据，而不是模型自评——这既是训练奖励的来源，也是后面所有”AI 驱动改进”的判断依据。
-三个阶段的具体做法：
-（i）AI for Data：人把门的 agentic 数据飞轮（§2.3）。 出题 Agent 把目标能力翻译成可执行任务规格，每份规格包含用户目标、可用资源、初始条件、目标能力、完成标准，只规定要达到什么、不规定唯一参考轨迹，因此同一个目标允许多种合法解法。构造时同时考虑场景覆盖（应用域、工具、意图、交互模式）与能力覆盖（信息获取、工具路由、参数落地、多步依赖、状态追踪、恢复、可验证完成）。轨迹采集在混合后端进行，失败与未完成的轨迹同样保留，因为诊断需要知道执行在哪里偏离、是否尝试恢复。数据清洗把”完成验证”和”适合训练”当作两件事：环境验证器管前者，清洗流程管后者（规范化、去重、schema 与证据一致性检查），低置信、冲突、涉安全或证据不足的样本转人工审核。数据集分移动与非移动两组，移动数据是核心（跨应用规划、工具执行、状态追踪、Memory、Skills、子 Agent 协调、恢复、任务完成），非移动数据（通用 Agent 轨迹走 MCP 服务、编码任务、推理与指令遵循）用于保住通用能力。反馈驱动的精修分两层：任务层把已稳定掌握的任务降采样（保留小规模保存集）、把完成不稳定的任务加权为”稳定化数据”、把特定失败模式归入定向修复集；能力层结合留出开发集的 Tool Use&#x2F;Memory&#x2F;Skills&#x2F;Sub-agent 结果与轨迹失败分布，判断是”池子里有合适样本就调采样比”还是”覆盖不足就让出题 Agent 造新题”。
-（ii）AI for Training：能力自适应的 Agent 优化（§2.4）。 先做面向规划的监督冷启动：在清洗后的数据上 SFT，学习任务分解、动作排序、工具使用、状态条件下的重规划与恢复；关键是回合级错误掩码——对轨迹 $\tau_i$，把清洗阶段判定为错误的回合索引集合记为 $\mathcal{E}_i$，最小化
-$$\mathcal{L}{\mathrm{SFT}}(\theta)&#x3D;-Z^{-1}\sum{i,j}\mathbf{1}{j\notin\mathcal{E}{i}}\log\pi{\theta}(\boldsymbol{y}{i,j}\mid h{i,j}),$$
-其中 $Z$ 是批内未被掩码的模型生成 token 数（式 (4)）。执行反馈保留在上下文里，而被验证过的恢复回合仍然参与监督——也就是教模型”看到报错后该怎么救”，但不学错误动作本身。冷启动之后是混合环境在线 Agent RL（沙箱、LLM 模拟与少量真机），不依赖人工示范覆盖策略演化后才会出现的新状态。
-
-原文图 4，训练框架。左侧是 SFT 冷启动（回合级错误检测 + 掩码）与在线 Agent RL 的流水（采样 → 环境执行 → 结果验证 → CARE 更新）；左下是三类混合环境（LLM 模拟、沙箱、真机）；右侧展开 CARE：按组成功率选择三种优化目标，并在最后加一步”保质量的优势校准”。
-CARE（Competence-Aware Reward-and-Advantage Engineering） 是这一阶段的核心，只改奖励与优势，不改优化器结构。对每个任务采 $G$ 条轨迹，用规则验证器或评分模型给出二元成功指示 $s_i\in{0,1}$，组成功率 $\overline{s}$ 作为”能力信号”（§2.4.3）。它包含三件互相咬合的事：
-
-能力自适应奖励调度。 同一批训练里允许不同组处在不同”制度”（regime）下：
-
-$$R_{i}&#x3D;s_{i}+\begin{cases}\lambda_{\mathrm{prog}}R_{\mathrm{prog},i}, &amp; \overline{s}\in[0,p_{\mathrm{low}}) \quad\text{进度塑造}\ 0, &amp; \overline{s}\in[p_{\mathrm{low}},p_{\mathrm{high}}) \quad\text{结果巩固}\ -\lambda_{\mathrm{eff}}e_{i}, &amp; \overline{s}\in[p_{\mathrm{high}},1] \quad\text{效率精修}\end{cases}$$
-其中 $R_{\mathrm{prog},i}$ 度量被验证的进度，$e_i$ 是归一化执行开销（式 (5)）。直觉是：还做不成的任务给过程引导，半成不成的任务聚焦把结果做对，已经稳过的任务才开始惩罚啰嗦。注意成功项 $s_i$ 始终保留，效率项是加性的惩罚而非替代。
-
-AI 辅助的调度配置。 上述制度只决定辅助项，阈值和权重本身可以随训练演进调整。一个有界的 LLM 控制器每 $N$ 步策略更新配置一次 $\boldsymbol{\phi}&#x3D;{\lambda_{\mathrm{prog}},\lambda_{\mathrm{eff}},p_{\mathrm{low}},p_{\mathrm{high}}}$，输入是固定提示 $\mathcal{P}$（目标、参数语义、允许范围、输出格式）、近期 on-policy 训练统计 $\mathcal{S}^{\mathrm{train}}{\leq t}$ 与留出开发集指标 $\mathcal{M}^{\mathrm{val}}{\leq t}$（式 (6)）。它只在预先定义的参数空间里选值，不生成奖励函数本身。
-
-保质量的优势校准。 这一步针对的正是 §2.4.3 指出的归一化副作用。在效率精修制度下 $R_i&#x3D;s_i-\lambda_{\mathrm{eff}}e_i$，记 $\overline{R}$、$\overline{e}$ 为组内均值，标准 GRPO 式优势为
-
-
-$$\widehat{A}{i}^{\mathrm{std}}&#x3D;\frac{R{i}-\overline{R}}{\sigma_{R}+\epsilon}&#x3D;\frac{(s_{i}-\overline{s})-\lambda_{\mathrm{eff}}(e_{i}-\overline{e})}{\sigma_{R}+\epsilon},\qquad \sigma_{R}^{2}&#x3D;\overline{s}(1-\overline{s})+\lambda_{\mathrm{eff}}^{2}\sigma_{e}^{2}-2\lambda_{\mathrm{eff}}\operatorname{Cov}(s,e)$$
-（式 (7)）。当一组全部成功（$\overline{s}\to1$，方差与协方差同时归零）时，分子分母里的 $\lambda_{\mathrm{eff}}$ 会约掉：
-$$\lim_{\overline{s}\to 1}\widehat{A}{i}^{\mathrm{std}}&#x3D;-\frac{\lambda{\mathrm{eff}}(e_{i}-\overline{e})}{\lambda_{\mathrm{eff}}\sigma_{e}+\epsilon}\approx-\frac{e_{i}-\overline{e}}{\sigma_{e}}$$
-（式 (8)）。也就是说，即使把效率权重设成 $\lambda_{\mathrm{eff}}&#x3D;0.1$ 这样的小值，饱和组里的纯效率差异依然会被拉回近似单位尺度，与”成败混杂”的组的优势同量级——作者的意图（先保成功、再谈效率）被归一化抹平了。作者不用”分量分别归一化再合并”（认为那会改变各分量在原始奖励空间中的有效权重、可能改变轨迹排序），而是给分母加一个由成功率导出的下界：
-$$\sigma_{\mathrm{anchor}}&#x3D;\sqrt{p_{\mathrm{high}}(1-p_{\mathrm{high}})},\qquad \widehat{A}{i}&#x3D;\frac{R{i}-\overline{R}}{\max(\sigma_{R},\sigma_{\mathrm{anchor}})+\epsilon}\ \ (\text{效率精修制度})$$
-其余制度仍用 $\sigma_R+\epsilon$（式 (9)）。这样在饱和组里优势尺度退化为 $\lambda_{\mathrm{eff}}\sigma_{e}&#x2F;(\sigma_{\mathrm{anchor}}+\epsilon)$，保留了对 $\lambda_{\mathrm{eff}}$ 的依赖，效率差异不再被放大到主导梯度。最终用带裁剪的组相对目标（式 (10)）做更新（GRPO 式、无 critic；引用 Shao et al. 2024 与 Yu et al. 2026）。
-（iii）AI for Harness：模型—Harness 共演化（§2.5）。 Harness 里放的是”不该塞进参数、也不该全塞进 prompt”的东西：Scenario Adapter 把当前实际暴露给模型的工具集映射到对应的 Skill 指导（删掉依赖不可用工具的规则、加上路由与多轮指令，但它不发现新工具也不执行动作）；Persistent Memory Manager 把跨会话信息分层——紧凑用户模型（稳定偏好）、情节记忆（观察与对话证据）、长期记忆（合并后的事实与经验）、前瞻记忆（带激活条件、范围、过期与完成状态的未来意图），生命周期为捕获→验证→索引→检索→固化→修订，每条记忆链接结构化摘要与原始证据（摘要质量与源保真度分开观测，错误的摘要算”入库失败”而非静默替换），新证据推翻旧事实时显式标记 superseded 而不是留下冲突版本；检索融合语义与关键词匹配，并按相关性、时近性、重要性、多样性控制，且按问题结构装配证据（时间类问题要事件排序，跨会话聚合要去重，变化中的事实要显式解析替代关系）。检索到的记忆只是”证据”，不是可执行指令，也不获得调用工具的权限。共演化的形式化是
-$$J(\theta,\eta)&#x3D;\mathbb{E}{x\sim\mathcal{D},\ \tau\sim p{\theta,\eta}(\cdot\mid x)}\left[R_{x}(\tau)\right]$$
-（式 (11)），当前实现用交替更新逼近（式 (12)）：$\theta^{(k+1)}&#x3D;\mathcal{U}{M}(\theta^{(k)};\mathcal{B}^{(k)},\eta^{(k)})$（在固定 Harness 指令配置下做 RL），随后在留出开发集上用同一配置评估得到反馈 $\mathcal{F}$，再由 LLM 编辑器 $\mathcal{U}{H}$ 修订执行指令得到 $\eta^{(k+1)}$。所有模型与 Harness 更新都是离线、版本化、经审查的，服务期参数固定，候选改动不自动上线。作者自己强调：这是”开发路径”的论述，不等于已经实现了持续自主的共演化（§2.5.4）。
-承上启下：这套流程对应了前面的问题。 真机昂贵 → 用沙箱&#x2F;模拟&#x2F;真机三种后端分工，把可并行部分从真机上卸下来；数据、训练、运行时割裂 → 用同一份”动作—反馈—验证”记录贯穿三者，并让 Harness 修订反过来改变后续训练的上下文分布；奖励设计错配 → 用能力自适应调度；归一化抹平权重 → 用成功率锚定的优势校准。
-3. 解决得怎么样？主结果（表 1、图 1）。
-
-原文图 1，(a) MobilePA-Bench Overall（注意纵轴自 60 起）、(b) 四项分项能力对比、(c) Overall 与每千任务输出成本的权衡（成本轴带断裂，刻度分 5–20 与 60–68 两段）。
-在 MobilePA-Bench（1,700+ 可执行任务、200+ 移动工具、13 个查询—任务域）上，Qwen-Planner-Agent 27B 的 Overall 为 77.05%，在被评估的模型与系统中排第一，超过 GPT 6 Astra（76.84%）与 Claude Opus 5（75.71%）；分项为 Tool Use 77.79%（该列最高）、Memory 74.76、Skills 86.25、Sub-agent 59.55。两个尺寸都相对各自基线大幅提升：27B 由 67.22% → 77.05%，35B-A3B 由 54.90% → 69.91%。作为参照，开放权重模型中 Overall 最高的是 GLM 5.3（744B-A40B，73.88%），Qwen 3.8 Max 为 71.77%。注意两点：其一，主表比较的是”完整系统 vs 其他模型&#x2F;系统”，其中 Harness 的贡献是系统性的（见下面的配对消融）；其二，图 1 左侧子图的 Overall 柱状图纵轴从 60 起画，视觉上放大了差距，应以上表数值为准（此为该图的读图提醒，非论文结论）。
-成本（§3.1、图 1 右）。 按每题平均输出 token（含 thinking token）与对应输出单价估算，Qwen-Planner-Agent 为 $2.41 &#x2F; 千任务，对比其他被评估模型的 $3.06–$67.76。作者明确说明该估算只覆盖输出 token 费用，不含输入 token、外部工具调用、设备执行与 Harness 自身的处理开销，因此不能当作端到端成本。
-CARE 消融（§3.2.1、图 6）。
-
-原文图 6，相同训练配置下三条曲线对比。左：训练准确率；右：平均输出 token 数。蓝实线为 Vanilla RL，红实线为完整 CARE，绿虚线为去掉优势校准的 CARE（原文注：曲线为四个训练环境上的平滑均值，阴影为对应的离散范围）。标注的 32.5% 是最终共同记录步数上的输出长度降幅。
-用 27B 基座、相同训练配置比较三条曲线：完整 CARE 与 Vanilla RL 的训练准确率相当，但到最后一个共同记录的步数，**输出 token 少 32.5%**；去掉优势校准后输出更短，但准确率在整段区间明显更低并提前平台化。作者认为这印证了 §2.4.3 的归一化分析——小效率差异获得了不成比例的优势尺度。
-Harness 的配对贡献（§3.2.2）。 固定 checkpoint 只加 Harness：27B 由 71.90% → 77.05%（Tool Use 72.79→77.79，Memory 70.74→74.76，Skills 79.25→86.25，Sub-agent 55.06→59.55）；35B-A3B 由 64.79% → 69.91%，但 Sub-agent 保持 52.81% 不变。这说明主结果里相当一部分提升来自部署期上下文而非参数更新，也说明 Harness 并非对每项能力都有效。
-模型—Harness 共演化（§3.2.3、表 2、图 7）。 用另一个 27B 基座，在 MobilePA-Internal 与 MCPMark 上做多轮交替：MobilePA-Internal 的 Overall 由 Model Only 82.67% → Model+Harness 84.23% → 共演化四轮后 **88.50%**（Tool Use 89.76、Long Context 88.69、Personalized Planning 82.42）；MCPMark 由 38.00% → 42.26% → 三轮后 **46.98%**。两个任务的最终分数都高于”只加 Harness”的 84.23%&#x2F;42.26%，即交替迭代带来了超出单次运行时增强的增益。需要留意：这里的评估集是留出的 evolve&#x2F;开发集，作者自己说明它”用于共演化而非独立最终测试集”（§3.2.3），因此不能与表 1 的主结果混为一谈。
-长历史记忆（§3.3、表 3）。 在 LoCoMo、LongMemEval 与 BEAM 的 100K&#x2F;500K&#x2F;1M&#x2F;10M 四档上，比较四对”同 checkpoint、仅历史访问机制不同”的 Qwen 模型。结论是增益集中在长档：BEAM-500K 均值 42.18% → 68.29%，BEAM-1M 40.41% → 70.27%，BEAM-10M 23.42% → 61.66%；而 LoCoMo 93.90% → 94.12%、LongMemEval 91.65% → 92.24%、BEAM-100K 71.12% → 72.05% 基本持平，个别配对还出现小幅回退。具体到 Qwen-Planner-Model 27B，加 Harness 后 BEAM-500K 42.01→72.20、BEAM-1M 40.12→73.71、BEAM-10M 21.99→67.24。作为参照，直接上下文（不裁剪）的方案在 BEAM-10M 上没有一个超过 25.64%（Claude Opus 5 在 1M 档为 54.84%），外部报告的 Mem0 在 BEAM-1M&#x2F;10M 为 64.10%&#x2F;48.60%。另外一个诚实的负面观察：在直接上下文设置下，训练过的 Qwen-Planner-Model 略逊于未训练的 Qwen Baseline（如 27B 的 BEAM-100K 76.26 → 72.32，35B 的 LongMemEval 89.40 → 87.80），说明规划训练本身对”把长历史直接塞进上下文”没有帮助，Harness 才是收益来源。
-非移动泛化（§3.4、表 4）。 只比较 Planner Model 与各自基座：35B-A3B 在 7 个 Agent 类基准中提升 6 个，均值 57.74 → 62.31（Toolathlon 29.30→37.15、MCP-Atlas 59.40→68.69、SWE-Multilingual 65.67→71.67）；27B 提升 5 个，均值 67.91 → 69.29（Claw-Eval 82.48→79.58、SWE-Multilingual 76.65→74.89 为下降项）。通用能力三项均小幅下降：35B 的 MMLU-Redux 89.67→89.53、C-Eval 90.45→90.39、IFEval 90.94→89.83（均值 90.35→89.92）；27B 为 88.73→88.67、89.74→89.30、91.68→91.13（90.05→89.70）。作者据此称”能力可外溢且通用能力基本保留”，但下降也是真实的，幅度在 0.06–1.11 点之间（最大为 35B 的 IFEval：90.94 → 89.83），且论文没有报告方差或多种子，无法判断是否显著（此为本报告的推断）。
-定性证据（§3.5、附录 C）。 12 条轨迹展示了论文想强调的行为：记忆与实时状态核对（只补建缺失的广州行程监控、不动已有的深圳监控并排除过期的北京价格阈值，图 8）、先停掉活跃投屏再发起新投屏（图 9）、加载 Skill 后先取得便签持久标识再关机（图 10）、按观察到的透传模式选择分支并遵守顺序约束（图 11）、单位换算工具两次失败后改用计算器算出 154.32 磅再发消息（图 12）、等 WhatsApp 三个下载结果返回后才把文件名与目标目录交给文件管理器子会话（图 13）。这些是说明机制如何落地的案例，不是性能证据。
-代价与仍未解决的问题。 论文没有给出任何训练超参、数据规模、GPU 小时或真机使用比例，因此无法评估这套框架的算力与人力成本（材料不完整）。每个数据发布点都有”人把门”、Harness 修订要经规则检查与版本控制，所以”闭环”目前仍以人工审核为必要环节，作者也明确表示持续自主的共演化尚未被证实（§2.5.4）。隐私与安全（§2.5.3）通篇是”应当”级别的设计建议（如用户级鉴权、最小权限、加密、可删除），当前实现只有服务级认证令牌，”用户级访问约束依赖上游服务”，属于规划而非已验证的实现。此外，共演化实验在开发集上评估、成本对比只算输出 token、通用能力有小幅下降——这些都需要更大范围的独立验证。结论的适用范围是：在移动规划这一任务族与上述评估集上，闭环式的数据&#x2F;训练&#x2F;Harness 协同确实带来增益。
-作者发现真实设备交互昂贵导致移动 Agent 的开发难以规模化、且固定奖励与标准组内归一化会误配能力不同的轨迹组，因此提出 Qwen-Planner-Agent，通过”动作—反馈—验证契约”下的数据飞轮、混合环境在线 RL 与 CARE、以及模型—Harness 交替共演化把执行证据回灌到全流程，实验表明其在 MobilePA-Bench 上以 77.05% 的 Overall 居首、输出成本估算最低、长历史记忆与通用 Agent 基准均有提升，但仍缺少超参与成本披露、依赖人工审核、共演化仅在开发集上验证。
 ]]></content>
       <categories>
         <category>daily paper</category>
@@ -711,33 +381,33 @@ Hugging Face · arXiv 原文 · 官方全文
 作者没有停留在直觉论证上，而是做了量化：附录 H 用 DeepSeek-V3.1 和 Claude-Sonnet-4.6 跑标准 ReAct Agent，在 64K 上下文预算下统计「未完成（上下文耗尽前没给出答案）」的比例——xBench-2510 上 27%–30%，BrowseComp-ZH 的 100 题子集上 31%–34%，BrowseComp 的 100 题子集上高达 59%–65%，此时成功轨迹只剩 7%（DeepSeek）与 14%（Claude）。两个能力不同的骨干模型未完成率却相差不大，说明上下文耗尽来自 ReAct 范式本身，而不是某个模型不够强。
 已有两条修补路线也各有短板（§2.2、附录 D）：多 Agent 系统给不同子任务配不同模型，能解耦但推理成本、部署复杂度、协调开销都上去了；摘要式（summarization）Agent 周期性压缩历史，但摘要通常只是外部辅助模块，不是可学习、可优化的搜索策略的一部分，规划与用证仍然耦合，摘要还可能丢掉有用信息或把误导性噪声留下来。表 D 的四维对比显示：在单策略方法里，此前没有任何一个同时做到「角色解耦」和「工作区重建」。
 作者的核心判断是：瓶颈不在训练算法，而在 Agent workflow；要让摘要成为 Agent 行为的显式组成部分、并让不同认知角色各自获得清晰的优化信号。
-2. 作者如何解决？核心思路。 IterSynth 用同一个共享参数的 LLM扮演两个角色：Planner 只看紧凑状态 $(q, M_t)$，决定「下一个该搜什么」或「给出最终答案」；Synthesizer 读检索回来的证据，把有用的结论合并进全局摘要 $M_{t+1}$。每次迭代结束后，上下文从 $(q, M_{t+1})$ 重新构造，因此无论搜多少轮，每一步的上下文都是有界的；摘要就是搜索的持久状态，而不是事后压缩的附件（§3.1，图 1）。
+2. 作者如何解决？核心思路。 IterSynth 用同一个共享参数的 LLM扮演两个角色：Planner 只看紧凑状态 (q,Mt)(q, M_t)(q,Mt​)，决定「下一个该搜什么」或「给出最终答案」；Synthesizer 读检索回来的证据，把有用的结论合并进全局摘要 Mt+1M_{t+1}Mt+1​。每次迭代结束后，上下文从 (q,Mt+1)(q, M_{t+1})(q,Mt+1​) 重新构造，因此无论搜多少轮，每一步的上下文都是有界的；摘要就是搜索的持久状态，而不是事后压缩的附件（§3.1，图 1）。
 
-原文图 1：IterSynth 流程总览。左侧 Workspace 只有问题与全局摘要 $M_t$；中间 Planner 依据 $M_t$ 选择 search 或 answer，若选 search 则由 Environment 检索，Synthesizer 把检索结果整合成 $M_{t+1}$；每轮上下文都从 $(q, M_{t+1})$ 重建，因而结构上有界。
+原文图 1：IterSynth 流程总览。左侧 Workspace 只有问题与全局摘要 MtM_tMt​；中间 Planner 依据 MtM_tMt​ 选择 search 或 answer，若选 search 则由 Environment 检索，Synthesizer 把检索结果整合成 Mt+1M_{t+1}Mt+1​；每轮上下文都从 (q,Mt+1)(q, M_{t+1})(q,Mt+1​) 重建，因而结构上有界。
 
 原文 §1 未编号结构对比图（HTML 中为 intro-7.png）：(a) 多 Agent 分工——能力解耦但要多套参数；(b) 摘要式——单套参数但能力耦合、摘要为外部工具；(c) IterSynth——单套参数同时做到能力解耦。
-形式化。 论文把流程写成增广 MDP $\langle\mathcal{S},\mathcal{D},\mathcal{E},\mathcal{T},\mathcal{R}\rangle$（§3.1.2）。状态只含问题与当前摘要（式 1）：
-$$s_t&#x3D;(q,M_t).$$
+形式化。 论文把流程写成增广 MDP ⟨S,D,E,T,R⟩\langle\mathcal{S},\mathcal{D},\mathcal{E},\mathcal{T},\mathcal{R}\rangle⟨S,D,E,T,R⟩（§3.1.2）。状态只含问题与当前摘要（式 1）：
+st=(q,Mt).s_t=(q,M_t).st​=(q,Mt​).
 Planner 子步输出思考与动作（式 2）：
-$$d_t^{\mathrm{P}}&#x3D;[\mathrm{Think}_t^{\mathrm{P}},,a_t]\sim\pi_\theta(\cdot\mid s_t,\rho^{\mathrm{P}}),\qquad a_t\in{\textsc{search}(q_t),\textsc{answer}(\hat a)}.$$
-搜了之后环境返回检索结果 $TR_t$，Synthesizer 子步据此产出新摘要（式 3），状态转移到 $s_{t+1}&#x3D;(q,M_{t+1})$（式 4）：
-$$d_t^{\mathrm{S}}&#x3D;[\mathrm{Think}t^{\mathrm{S}},,M{t+1}]\sim\pi_\theta(\cdot\mid s_t,d_t^{\mathrm{P}},TR_t,\rho^{\mathrm{S}}).$$
-角色差异只来自角色专属提示词、信息可见性、动作约束（Synthesizer 只能更新记忆，不能发查询、不能给答案），不引入额外参数。附录 B.1 的算法 1 给出完整循环；训练时最大迭代 $T_{\max}&#x3D;30$，评测放宽到 50（§B.3）。
-第一阶段：SFT 冷启动（§3.2.1、§B.3）。 语料由公开深度搜索数据集（DeepDive、DeepForge、REDSearcher）加自建合成题构成；每题用前沿模型 Qwen3.5-397B-A17B 在真实搜索环境里 rollout 双角色循环，再经过滤（修复格式&#x2F;工具调用错误，剔除幻觉推理步，只保留终答案可验证正确的轨迹），留下约 1 万条轨迹，平均 4.37 轮。每条轨迹拆成逐轮样本，Planner 和 Synthesizer 的每个回答都是独立监督目标，共约 87.4K 条角色条件样本。在 32 张 H20（96 GB）上对 Qwen3-8B 做全参数 SFT（约 24 小时，LR $1\times10^{-5}$，batch 512，4 epoch，上下文 32,768），损失只算角色回答部分，工具返回内容被 mask 掉，避免模型去模仿检索内容。
+dtP=[ThinktP, at]∼πθ(⋅∣st,ρP),at∈{\textscsearch(qt),\textscanswer(a^)}.d_t^{\mathrm{P}}=[\mathrm{Think}_t^{\mathrm{P}},\,a_t]\sim\pi_\theta(\cdot\mid s_t,\rho^{\mathrm{P}}),\qquad a_t\in\{\textsc{search}(q_t),\textsc{answer}(\hat a)\}.dtP​=[ThinktP​,at​]∼πθ​(⋅∣st​,ρP),at​∈{\textscsearch(qt​),\textscanswer(a^)}.
+搜了之后环境返回检索结果 TRtTR_tTRt​，Synthesizer 子步据此产出新摘要（式 3），状态转移到 st+1=(q,Mt+1)s_{t+1}=(q,M_{t+1})st+1​=(q,Mt+1​)（式 4）：
+dtS=[ThinktS, Mt+1]∼πθ(⋅∣st,dtP,TRt,ρS).d_t^{\mathrm{S}}=[\mathrm{Think}_t^{\mathrm{S}},\,M_{t+1}]\sim\pi_\theta(\cdot\mid s_t,d_t^{\mathrm{P}},TR_t,\rho^{\mathrm{S}}).dtS​=[ThinktS​,Mt+1​]∼πθ​(⋅∣st​,dtP​,TRt​,ρS).
+角色差异只来自角色专属提示词、信息可见性、动作约束（Synthesizer 只能更新记忆，不能发查询、不能给答案），不引入额外参数。附录 B.1 的算法 1 给出完整循环；训练时最大迭代 Tmax⁡=30T_{\max}=30Tmax​=30，评测放宽到 50（§B.3）。
+第一阶段：SFT 冷启动（§3.2.1、§B.3）。 语料由公开深度搜索数据集（DeepDive、DeepForge、REDSearcher）加自建合成题构成；每题用前沿模型 Qwen3.5-397B-A17B 在真实搜索环境里 rollout 双角色循环，再经过滤（修复格式&#x2F;工具调用错误，剔除幻觉推理步，只保留终答案可验证正确的轨迹），留下约 1 万条轨迹，平均 4.37 轮。每条轨迹拆成逐轮样本，Planner 和 Synthesizer 的每个回答都是独立监督目标，共约 87.4K 条角色条件样本。在 32 张 H20（96 GB）上对 Qwen3-8B 做全参数 SFT（约 24 小时，LR 1×10−51\times10^{-5}1×10−5，batch 512，4 epoch，上下文 32,768），损失只算角色回答部分，工具返回内容被 mask 掉，避免模型去模仿检索内容。
 第二阶段：RDPO 强化学习（§3.2.2，图 2）。 论文观察到 IterSynth 的轨迹天然由多轮组成，于是不再把整条轨迹当一个大样本，而是把「每轮 × 每个角色」都当成优化单元。这带来两个设计：
 
-原文图 2：RDPO 流程。终局正确性信号 $r_{\text{acc}}$ 全局广播到所有轮次，与每个角色的逐轮 rubric 分组合成复合奖励，再按角色拆成两个奖励池，各自归一化出 advantage 后送入标准策略梯度更新。
+原文图 2：RDPO 流程。终局正确性信号 raccr_{\text{acc}}racc​ 全局广播到所有轮次，与每个角色的逐轮 rubric 分组合成复合奖励，再按角色拆成两个奖励池，各自归一化出 advantage 后送入标准策略梯度更新。
 
-复合奖励（式 5）：终局奖励 $r_{\text{acc},i}\in{0,1}$ 沿整条轨迹均匀广播，缓解稀疏奖励；LLM judge 按角色专属 rubric 给每一轮打中间分：
-$$r_{i,t}^{\rho}&#x3D;r_{\text{acc},i}+\alpha\cdot r_{\text{rubric},i,t}^{\rho},\quad \rho\in{\mathrm{P},\mathrm{S}}.$$
+复合奖励（式 5）：终局奖励 racc,i∈{0,1}r_{\text{acc},i}\in\{0,1\}racc,i​∈{0,1} 沿整条轨迹均匀广播，缓解稀疏奖励；LLM judge 按角色专属 rubric 给每一轮打中间分：
+ri,tρ=racc,i+α⋅rrubric,i,tρ,ρ∈{P,S}.r_{i,t}^{\rho}=r_{\text{acc},i}+\alpha\cdot r_{\text{rubric},i,t}^{\rho},\quad \rho\in\{\mathrm{P},\mathrm{S}\}.ri,tρ​=racc,i​+α⋅rrubric,i,tρ​,ρ∈{P,S}.
 
-角色解耦组优势（式 6、7）：把同一问题下所有 rollout、所有轮次按角色分成两个奖励池 $\mathcal{R}_q^{\rho}$，只在池内做组归一化：
-$$A_{i,t}^{\rho}&#x3D;\frac{r_{i,t}^{\rho}-\mu_q^{\rho}}{\sigma_q^{\rho}}.$$
+角色解耦组优势（式 6、7）：把同一问题下所有 rollout、所有轮次按角色分成两个奖励池 Rqρ\mathcal{R}_q^{\rho}Rqρ​，只在池内做组归一化：
+Ai,tρ=ri,tρ−μqρσqρ.A_{i,t}^{\rho}=\frac{r_{i,t}^{\rho}-\mu_q^{\rho}}{\sigma_q^{\rho}}.Ai,tρ​=σqρ​ri,tρ​−μqρ​​.
 其余部分原样接入标准 GRPO 目标，没有额外算法改动。作者的论据是：Synthesizer 的 rubric 分很密、Planner 的很稀，混在一起归一化会互相污染信用分配。
 
 
 Rubric 怎么来（附录 C）。 不是手写：先用 SFT 策略在留出题上收集 20 组「同题、一对一对错」轨迹，让 Claude-4.6-Sonnet 逐对提炼出能区分成败的准则（Planner、Synthesizer 分开生成，避免混淆），再把 20 份准则合并、去重，每个角色最多保留 5 条并冻结。RL 时由 Gemini-2.5-flash-lite 在每个角色轮次上打分。
-训练数据与工具环境。 RL 题集从 SFT 题目里筛：每题用 SFT 模型 rollout 5 次，只保留「恰好 1–2 次正确」的题（约 1,000 题），瞄准中等难度区间。工具是 SerpAPI 版 Google 搜索（一次可发多条 query，返回前 10 条标题&#x2F;URL&#x2F;摘要）和浏览器工具（Jina Reader 抓 HTML&#x2F;PDF，再由 Qwen3-8B 做「按子问题条件化」的摘要）；RL rollout 用离线缓存检索控制成本，评测时切回真实在线工具，保证报出的数字是真实深搜场景（§4.1、§B.2）。RL 超参：64 张 H20 约 90 小时，LR $1\times10^{-6}$，每题组大小 8，batch 32，温度 1.0，top-p 0.95，KL 系数 0.001，$\alpha&#x3D;0.5$。
+训练数据与工具环境。 RL 题集从 SFT 题目里筛：每题用 SFT 模型 rollout 5 次，只保留「恰好 1–2 次正确」的题（约 1,000 题），瞄准中等难度区间。工具是 SerpAPI 版 Google 搜索（一次可发多条 query，返回前 10 条标题&#x2F;URL&#x2F;摘要）和浏览器工具（Jina Reader 抓 HTML&#x2F;PDF，再由 Qwen3-8B 做「按子问题条件化」的摘要）；RL rollout 用离线缓存检索控制成本，评测时切回真实在线工具，保证报出的数字是真实深搜场景（§4.1、§B.2）。RL 超参：64 张 H20 约 90 小时，LR 1×10−61\times10^{-6}1×10−6，每题组大小 8，batch 32，温度 1.0，top-p 0.95，KL 系数 0.001，α=0.5\alpha=0.5α=0.5。
 3. 解决得怎么样？设置。 五个长程基准：BrowseComp（1,266 题）、BrowseComp-ZH（289 题）、GAIA text-only 验证集（103 题）、Xbench-DeepSearch 的 2505&#x2F;2510 两个 split（各 100 题）。训练数据与基准严格不重叠（§A.4）。
 主结果（表 1）。 IterSynth-8B 平均 50.7：BrowseComp 30.9、BrowseComp-ZH 55.4、GAIA 55.3、Xbench-DS-2505 66.0、Xbench-DS-2510 46.0。
 
@@ -795,7 +465,7 @@ Tongyi-DR-30B
 
 
 比此前最强 ≤8B Agent 平均高 +4.2（50.7 vs 46.5），BrowseComp-ZH 上高 +15.2（55.4 vs 40.2），并且以不到三分之一的参数超过 ReSum-30B、AgentFold-30B-A3B、OpenSeeker-30B-SFT 等 30B 级 Agent。需要如实指出两点：在 BrowseComp（30.9 vs 31.1）和 GAIA（55.3 vs 66.4）上它并没有超过 MiroThinker-v1.0-8B，优势集中在探索密集型任务；另外原文 §4.2 称 Xbench-DS-2510「增益 +5.4」，表 1 里最强 ≤8B 先验值是 34.0、IterSynth 是 46.0（差 +12.0），+5.4 的比较对象原文未说明。还有一个值得注意的细节：表 J 中「不加重采样」的 IterSynth-8B 在三项上分别是 Xb-2510 37.0、BC 25.7、BC-ZH 49.1，而「+Resample」行是 46.0&#x2F;30.9&#x2F;55.4，与表 1 的三项数字完全相同——由此推断（原文未明说）主表成绩包含测试时「判定为未作答则重采样一次」的策略，去掉它成绩会明显下降。
-消融是否支持解释（表 2、表 3、表 E）。 ① 训练配方：SFT 44.1 → 仅 outcome 的 GRPO 48.9 → RDPO 50.7，说明 RL 与 rubric 都有增量；但同用复合奖励、只把混合角色样本一起归一化（w&#x2F;o RD）反而掉到 47.2，比纯 GRPO 还低，支持「按角色分组归一化」是关键而非 rubric 本身。② 角色互换（表 3，平均为 Xb05&#x2F;BCzh&#x2F;GAIA 三项均值 58.9）：把 Synthesizer 换成未训练 Qwen3-8B 平均掉 17.4，把 Planner 换掉掉 41.1，说明收益不是结构空壳，且 Planner 是更难的角色。③ 对照实验（表 E）：同题、同教师模型、同规模数据下 ReAct-SFT 32.6 vs IterSynth-SFT 44.1（+11.5），RL 后 38.1 vs 50.7（+12.6），排除「只是教师轨迹更好」这一混淆。④ 纯提示词版本（表 5.1）：不改参数时 Claude-4.5-Opus 平均比 ReAct 高 +5.5、DeepSeek-V3.1 高 +4.5，BC-ZH 上最多 +10.0。⑤ $\alpha$ 消融（表 G）：0.3&#x2F;0.5&#x2F;0.7 对应 46.6&#x2F;50.7&#x2F;49.0，倒 U 形，说明逐轮信号过强会挤掉终局目标。
+消融是否支持解释（表 2、表 3、表 E）。 ① 训练配方：SFT 44.1 → 仅 outcome 的 GRPO 48.9 → RDPO 50.7，说明 RL 与 rubric 都有增量；但同用复合奖励、只把混合角色样本一起归一化（w&#x2F;o RD）反而掉到 47.2，比纯 GRPO 还低，支持「按角色分组归一化」是关键而非 rubric 本身。② 角色互换（表 3，平均为 Xb05&#x2F;BCzh&#x2F;GAIA 三项均值 58.9）：把 Synthesizer 换成未训练 Qwen3-8B 平均掉 17.4，把 Planner 换掉掉 41.1，说明收益不是结构空壳，且 Planner 是更难的角色。③ 对照实验（表 E）：同题、同教师模型、同规模数据下 ReAct-SFT 32.6 vs IterSynth-SFT 44.1（+11.5），RL 后 38.1 vs 50.7（+12.6），排除「只是教师轨迹更好」这一混淆。④ 纯提示词版本（表 5.1）：不改参数时 Claude-4.5-Opus 平均比 ReAct 高 +5.5、DeepSeek-V3.1 高 +4.5，BC-ZH 上最多 +10.0。⑤ α\alphaα 消融（表 G）：0.3&#x2F;0.5&#x2F;0.7 对应 46.6&#x2F;50.7&#x2F;49.0，倒 U 形，说明逐轮信号过强会挤掉终局目标。
 代价与边界。 显性成本是多了一轮完整 RL（64×H20 约 90 小时）和 rubric judge 的调用：论文估算 judge 总共约 12.8 万次调用、19.2 亿 token、约 192 美元，约合「每提升 1 个点 54.9 美元」（§F.2，数字为该文自估，未含 GPU 开销）；换 4 种 judge 模型时 rubric 均分只差 ±0.09、下游成绩 ±1.0 点内（附录 G）。推理侧共享参数比双模型部署省 13%–15% 墙钟时间，且比 Tongyi-DR-30B 快 1.5–1.6 倍、达到其约 87% 的平均分（附录 F.2）。轨迹统计（附录 F.3）显示平均搜索轮数 7–8（ReAct 12+）、上下文耗尽率 &lt;5%（ReAct 59%）。失败分析（§F.4）给出两类残余错误：GAIA 上摘要把「两个事实之间的关系」漏掉，导致推理断链；BrowseComp 上 Synthesizer 把看似权威但错误的来源写进摘要，之后只找支持性证据，接近确认偏误。此外所有实验只针对 Qwen3-8B 一个底座、单次训练，未有多种子方差报告；测试时重采样带来的增益也说明相当比例的失败是「过早终止」而非能力缺失。
 作者发现 ReAct 式单策略 Agent 同时受角色耦合与上下文累积拖累（64K 预算下 BrowseComp 上过半轨迹因上下文耗尽而未能作答），因此提出 IterSynth——用共享参数的单策略交替扮演 Planner 与 Synthesizer、以持续演化的摘要为搜索状态并在每轮重建上下文，并配套提出 RDPO（终局奖励 + 逐轮 rubric 奖励的复合奖励、按角色分组归一化的优势估计）来优化两个角色，实验表明 IterSynth-8B 在五个长程深搜基准上平均 50.7、超过此前最强 ≤8B Agent 4.2 个点并可对标部分 30B 级系统，纯提示词形式也能提升闭源前沿模型，但其优势在 BrowseComp&#x2F;GAIA 上并不全面、主表成绩疑似包含测试时重采样、摘要仍会丢关系或固化错误证据，训练成本与单底座单种子的泛化性也仍待验证。
 ]]></content>
@@ -804,33 +474,63 @@ Tongyi-DR-30B
       </categories>
   </entry>
   <entry>
-    <title>Coding Agents for Generalized Task and Motion Planning Problems</title>
-    <url>/2026/09/27/2609.30233v1_Coding_Agents_for_Generalized_Task_and_Motion_Planning_Problems/</url>
-    <content><![CDATA[作者：Matteo Merler、Bowen Li、Josh Roy、Yichao Liang、Qianwei Wang、Yixuan Huang、Tom Silver。
-论文：2609.30233v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
-Hugging Face · arXiv 原文 · 官方全文
-分析范围：官方 arXiv v1 HTML 全文，正文 §I–VI（问题设定、方法、实验、相关工作、讨论）及表 I–III、图 1–4 已核对；引用的图 1、2、4 已下载核对。论文未提供实验附录，代码与完整提示词随论文开源（robocode 仓库）。
-1. 作者发现了什么问题？任务与运动规划（TAMP）即使在完全可观测、状态以物体为中心（object-centric）的设定下依然很难：horizon 长、奖励稀疏，离散决策（操作哪个物体、用哪个工具、先做哪个子目标）与连续的几何&#x2F;运动学&#x2F;动力学约束死死耦合——换一个离散选择，剩下的可行运动空间就完全变了（§I、§II-B）。通用化 TAMP（generalized TAMP） 的思路是：同一环境里不同实例之间有规律可循，把规律固化下来就能在新实例上少花力气。此前做法是学习可复用的 sampler、可行性预测器、搜索启发式或状态&#x2F;动作抽象，但每一种都需要大量 TAMP 专用工程（§V-A）。
-作者的问题很直接：既然编码 Agent 在软件工程任务上越来越强，它们能不能把这份「领域工程」自动化——只给任务描述和模拟器访问，让 Agent 自己写一个跨实例通用的程序？这个问题在文献里证据是矛盾的：LLM 在经典规划上的表现持续变好（如用 LLM 生成 Python 启发式），但当 LLM 被要求承担 TAMP 里的几何与物理决策时表现很差，即使把相关几何放进提示词也一样（§I，引 Mendez-Mendez 2026 对 PDDLStream 的系统研究）。所以「写代码的能力」能否迁移到「物理推理」并不显然，两种结果对该领域都有价值（成功意味着可以大幅减少领域工程，失败则给出当前 Agent 的具体能力边界）。
-这里要分清：本文不是提出一个新的规划算法，而是一项系统性实证研究（作者称方法为 AgenticGenPlan）：在 28 个环境上，把「通用化 TAMP」直接当成程序合成问题，检验现成编码 Agent 能走多远，并把交互日志、程序演化过程一起分析清楚。
-2. 作者如何解决？核心思路。 学习方法在合成期拥有任务描述 $d$ 与模拟器访问权（可反复 reset&#x2F;step），在固定预算内自由探索环境、写代码、做实验，最终交付一个程序；评测期程序被冻结，LLM 完全不在场，只在未见过的初始状态分布 $s_0\sim\rho$ 上跑。程序即策略：在每个时间步接收物体中心状态 $s_t$，返回动作 $a_t$；由于程序可有内部状态，等价于以交互历史为输入的策略 $a_t&#x3D;\pi(h_t)$（§II-A、§II-C）。这样「通用化」的收益不来自测试时的模型调用，而来自程序里固化的、跨实例复用的规律。
+    <title>Qwen-Planner-Agent: A Closed-Loop AI-for-AI Framework for Real-World Mobile Planner Agents</title>
+    <url>/2026/09/27/2609.29892v1_Qwen-Planner-Agent_A_Closed-Loop_AI-for-AI_Framework_for_Real-World_Mobile_Planner_Agents/</url>
+    <content><![CDATA[作者：MAI Team, Alibaba Token Hub, Alibaba Group。主要贡献者（§6 按贡献层级分组列出，脚注注明”Equal contribution, Alphabetic order”，arXiv 页面共列 26 位）：Tingyu Qu、Weigao Sun、Yuecheng Liu、Yucheng Zhao、Yi Zhu、Yifeng Ding、Qiyi Wang、Sihan Cao、Pengkun Jiao、Hanlei Xie、Xiongwei Wu、Qichao Wang、Haodong Zhang、Jiajun Liu、Yuhao Wang、Yuqing Xie、Junpeng Zhao、Long Chen、Ming Ma、Sihan Yang、Ziwang Zhao、Yanhao Jia、Liangquan Gong；指导组（Supervisory panel）Feida Zhu、Yiran Zhong、Steven Hoi；另有 13 名合作者（Collaborator）。
+论文：2609.29892v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
+Hugging Face · arXiv 原文 · 官方全文 · 项目页
+分析范围：官方 arXiv v1 HTML 全文，含正文 §1–6、附录 A–C、表 1–4 及正文引用的图 1–13（含 §3.5 的案例图 8–13）。材料不完整之处：论文为技术报告体例，未报告任何训练超参（学习率、批大小、组大小 GGG、训练步数、数据规模、GPU 小时数），也未给出 CARE 阈值 plow/phighp_{\mathrm{low}}/p_{\mathrm{high}}plow​/phigh​ 与权重 λ\lambdaλ 的具体取值；实验一节的设备与算力成本同样缺失。本报告只陈述论文实际给出的信息。
+1. 作者发现了什么问题？背景。 语言模型 Agent 正从”生成内容”走向”执行多步工作流”，这让一个老想法变得可操作：让 AI 不仅是被开发的对象，也参与开发下一代 AI 系统本身（§1，引 Turing 1950 与 Good 1965）。作者选择移动端规划（mobile planning）作为检验场景：用户一句高层目标，需要跨应用协调动作、在状态变化中维持上下文、从失败中恢复并确认结果真的达成。
+已有方法具体哪里不好。 作者把瓶颈归为三点。第一，真实设备交互昂贵且难以并行，直接限制了数据生产与评估的规模（§1，§2.2.1）。第二，已有移动 Agent 工作（AppAgent、Mobile-Agent-E 等）主要在解决”如何操作界面&#x2F;如何做屏幕定位”，已有移动 RL 工作（DigiRL、MobileRL、Mobile-R1、PhoneBuddy 等）主要在解决”如何训练策略”，但数据、训练、运行时支持三者是割裂的：运行时支撑（记忆、技能、工具暴露方式）变化后，模型的训练分布就过时了；反过来模型变强后，原有的运行时规则又不再适用（§2.5、§4.4）。第三，一个更具体的技术判断：固定的奖励设计无法匹配能力不同的轨迹组，而且标准的组内归一化会在成功率饱和后把小到可以忽略的效率差异放大成与”成功与否”同量级的优势信号，诱发过度的轨迹压缩（§2.4.3）。这一条是本文给出的最有技术含量的观察，并在式 (7)–(9) 中有推导。
+核心判断与提问。 作者的问题是：如何把 AI 的能力组织成一个可扩展、由反馈驱动的开发生命周期（§1）。他们给出的答案是闭环 AI-for-AI 框架——用执行证据同时驱动数据生产、模型训练与运行时（Harness）三者的协同改进，并以一个共享的”动作—反馈—验证契约”（action–feedback–verification contract）把三者串起来。
+2. 作者如何解决？
+原文图 2，AI-for-AI 生命周期。三个阶段相互连接：AI for Data 用 AI 辅助出题 + 自动采集与清洗轨迹，并用模型反馈调整下一轮任务与数据配比；AI for Training 在冷启动之后做混合环境在线 RL，CARE 随能力演进调整奖励与优势；AI for Harness 用统一 Harness 管理 Skills、持久 Memory 与执行反馈，AI 辅助诊断又反过来指导模型与 Harness 的修订。虚线橙色箭头表示迭代之间由人工把关的闸门。
+核心思路。 系统由两个可更新的对象组成：规划模型 πθ\pi_\thetaπθ​（Planner Model）和运行时脚手架 Hη\mathcal{H}_\etaHη​（Harness）。形式化上（§2.1.2，式 (1)–(3)），Harness 把请求 xxx、检索到的记忆 mtm_tmt​、加载的技能 Kt\mathcal{K}_tKt​、观测与动作历史拼成上下文 ct=Hη(x,mt,Kt,o≤t,a&lt;t)c_t=\mathcal{H}_{\eta}(x,m_t,\mathcal{K}_t,o_{\leq t},a_{&lt;t})ct​=Hη​(x,mt​,Kt​,o≤t​,a&lt;t​)，策略从中选动作 at∼πθ(⋅∣ct,At)a_t\sim\pi_{\theta}(\cdot\mid c_t,\mathcal{A}_t)at​∼πθ​(⋅∣ct​,At​)；环境按转移与观测分布返回下一步；一个任务专属验证器 V\mathcal{V}V 依据交互历史与后端状态证据 ξt+1\xi_{t+1}ξt+1​ 判定任务是否完成，证据本身不必暴露给策略。关键点是验证器提供的是可执行证据，而不是模型自评——这既是训练奖励的来源，也是后面所有”AI 驱动改进”的判断依据。
+三个阶段的具体做法：
+（i）AI for Data：人把门的 agentic 数据飞轮（§2.3）。 出题 Agent 把目标能力翻译成可执行任务规格，每份规格包含用户目标、可用资源、初始条件、目标能力、完成标准，只规定要达到什么、不规定唯一参考轨迹，因此同一个目标允许多种合法解法。构造时同时考虑场景覆盖（应用域、工具、意图、交互模式）与能力覆盖（信息获取、工具路由、参数落地、多步依赖、状态追踪、恢复、可验证完成）。轨迹采集在混合后端进行，失败与未完成的轨迹同样保留，因为诊断需要知道执行在哪里偏离、是否尝试恢复。数据清洗把”完成验证”和”适合训练”当作两件事：环境验证器管前者，清洗流程管后者（规范化、去重、schema 与证据一致性检查），低置信、冲突、涉安全或证据不足的样本转人工审核。数据集分移动与非移动两组，移动数据是核心（跨应用规划、工具执行、状态追踪、Memory、Skills、子 Agent 协调、恢复、任务完成），非移动数据（通用 Agent 轨迹走 MCP 服务、编码任务、推理与指令遵循）用于保住通用能力。反馈驱动的精修分两层：任务层把已稳定掌握的任务降采样（保留小规模保存集）、把完成不稳定的任务加权为”稳定化数据”、把特定失败模式归入定向修复集；能力层结合留出开发集的 Tool Use&#x2F;Memory&#x2F;Skills&#x2F;Sub-agent 结果与轨迹失败分布，判断是”池子里有合适样本就调采样比”还是”覆盖不足就让出题 Agent 造新题”。
+（ii）AI for Training：能力自适应的 Agent 优化（§2.4）。 先做面向规划的监督冷启动：在清洗后的数据上 SFT，学习任务分解、动作排序、工具使用、状态条件下的重规划与恢复；关键是回合级错误掩码——对轨迹 τi\tau_iτi​，把清洗阶段判定为错误的回合索引集合记为 Ei\mathcal{E}_iEi​，最小化
+LSFT(θ)=−Z−1∑i,j1{j∉Ei}log⁡πθ(yi,j∣hi,j),\mathcal{L}_{\mathrm{SFT}}(\theta)=-Z^{-1}\sum_{i,j}\mathbf{1}\{j\notin\mathcal{E}_{i}\}\log\pi_{\theta}(\boldsymbol{y}_{i,j}\mid h_{i,j}),LSFT​(θ)=−Z−1i,j∑​1{j∈/Ei​}logπθ​(yi,j​∣hi,j​),
+其中 ZZZ 是批内未被掩码的模型生成 token 数（式 (4)）。执行反馈保留在上下文里，而被验证过的恢复回合仍然参与监督——也就是教模型”看到报错后该怎么救”，但不学错误动作本身。冷启动之后是混合环境在线 Agent RL（沙箱、LLM 模拟与少量真机），不依赖人工示范覆盖策略演化后才会出现的新状态。
 
-原文图 1：上排为研究覆盖的 28 个 KinDER&#x2F;PDDLStream 环境；中排对比传统路线（人工编写谓词&#x2F;算子&#x2F;sampler 再交给 planner）与本文路线（Agent 在沙箱里调试出程序，冻结后跨实例复用）；下排为平均性能、成功率随物体数变化、单实例计算时间随物体数变化，橙色为 AgenticGenPlan。
-具体流程（§III-A）。 作者用两个厂商的现成编码 Agent：Claude Code + Opus 5（high），以及 Codex + GPT-5.6 Sol（medium）与 GPT-6 Astra（high）。所有基线也用 Opus 5，保证模型一致。Agent 跑在隔离的 Docker 沙箱里（独立文件系统、无网络），只给 Python + NumPy + SciPy，连环境源码都不给——迫使它生成端到端程序而不是调用现成库。初始提示包含：环境名，任务、观测空间、动作空间、目标的文字描述，以及「物体数量会变化、程序必须支持任意合法数量」和评测时限 $\tau$ 的说明；不提供任何手写谓词、算子、sampler 或技能。为支持交互学习，Agent 拿到一个实现了 reset、step 与渲染辅助函数的客户端，真正的环境服务器在容器外不可见。程序接口固定为一个类：reset 做回合初始化，get_action 计算动作。每次测试前要求 Agent 把程序提交到 git，于是能看到程序的修订历史并回放每次提交的表现。
-另有 + source 设置：把环境源码放进容器（Opus + source、Astra + source 两组）。这一设置给 Agent 的是「完整信息」参照——它可以直接读目标判定、导入逆运动学等辅助实现，也能在合成期直接设置任意状态、在私有模拟器里试动作。注意这只是参照条件，主设置才是论文主张的「除任务描述与模拟器外零工程」场景。
-与什么比较（§III-B）。 三类基线：① TAMP planner：符号搜索 + 采样满足连续约束，谓词、算子、sampler、运动规划技能都用官方实现，每个评测实例重新规划；28 个环境中有 16 个提供 planner（KinDER 13 个 + PDDLStream 3 个，PDDLStream 环境的 planner 就是 PDDLStream 本身）。② LLMGenPlan：用 Opus 5、关闭思考、无工具、无文件系统，但给全环境源码；它不能自己跑实验，只能收到固定管线返回的三类预定义反馈（异常栈、非法动作、某 seed 实例未解出），预算与编码 Agent 相同。③ One-shot：LLMGenPlan 生成的第一个程序，代表没有任何迭代反馈的一次性生成。
-评测协议（§IV-A）。 28 个环境 &#x3D; KinDER 25 个（Kinematic2D、Dynamic2D、Kinematic3D、Dynamic3D 四族，其中 19 个环境有不同物体数的变体，且物体数超出原基准评测范围）+ PDDLStream 3 个域（Packing、Blocked、Rovers）。每个方法每环境跑 5 次独立合成；每次合成预算 $20（模型费用）；每次合成出的程序都在同一批 100 个隐藏实例上评测（评测 seed 随机生成并核验过未在合成期出现过）；单实例超时 60 秒，与 KinDER 原协议一致。7 种合成方法（LLMGenPlan、One-shot、Opus、Sol、Astra、Opus + source、Astra + source）× 28 环境 × 5 次 &#x3D; 980 个程序，共 98,000 个评测回合。
-3. 解决得怎么样？Q1：Agent 能写出通用程序吗？能，而且超过手工 planner（表 I、表 II）。 在有 planner 的 16 个环境上，三种 Agent 配置的平均成功率均高于 planner 的 47%：Astra 95%、Opus 82%（约 1.7 倍于 planner）、Sol 56%；逐环境看，Astra 在 15&#x2F;16 个环境超过 planner，Opus 12 个，Sol 9 个——而 planner 用的是人工写好的谓词、算子、sampler 和技能，Agent 什么都没拿到。按环境族看，Astra 平均为 Kinematic2D 99%、Dynamic2D 97%、Kinematic3D 93%、较难的 Dynamic3D 65%、PDDLStream 近 100%；Opus 依次是 96%、92%、90%、45%、78%。Astra 在 28 个环境里 20 个高于 Opus，其中 11 个环境里「最好的 Opus 程序」其实不差于「最好的 Astra 程序」，差距主要来自稳定性（例：Shelf 上 Opus 的 5 次程序成功率从 0% 到 100%，而 Astra 每次都先测到 8 个方块再改，全部 ≥98%）。Opus 在 22&#x2F;28 个环境高于 Sol（4 个持平），只有 Dynamo 和 Blocked 例外——Blocked 上 Sol 75%、Opus 38%、planner 74%。
-Q2：Agent 发现了什么策略？ 论文展示了一批「未见诸公开解」的策略（图 2），作者认为这是最有说服力的定性证据之一——因为公开文献里没有的解，很难归因于记住了预训练数据。例子：Dynamic2D ScoopPour 中 Opus 程序把工具旋转后从左侧重新抓取，一次能舀起更多球；SweepIntoDrawer 中 Opus + source 程序干脆不用扫帚工具，用夹爪把方块一个个扫进抽屉；其余还有用工具长边推物、只移动两个障碍物、放弃工具用夹爪抓取并倾倒托盘等。
+原文图 4，训练框架。左侧是 SFT 冷启动（回合级错误检测 + 掩码）与在线 Agent RL 的流水（采样 → 环境执行 → 结果验证 → CARE 更新）；左下是三类混合环境（LLM 模拟、沙箱、真机）；右侧展开 CARE：按组成功率选择三种优化目标，并在最后加一步”保质量的优势校准”。
+CARE（Competence-Aware Reward-and-Advantage Engineering） 是这一阶段的核心，只改奖励与优势，不改优化器结构。对每个任务采 GGG 条轨迹，用规则验证器或评分模型给出二元成功指示 si∈{0,1}s_i\in\{0,1\}si​∈{0,1}，组成功率 s‾\overline{s}s 作为”能力信号”（§2.4.3）。它包含三件互相咬合的事：
 
-原文图 2：Agent 发现的意外成功策略，每行一次执行（左到右），标注为该行的非预期行为。这些策略来自主设置与 + source 设置。
-Q3：「agentic」优势在哪里？ 三个可观察的机制：① 自写测试：StickButton 中 Opus 写脚本用不同随机种子反复 reset，专门搜集「棍子贴墙」「按钮很高」的边界实例，和普通实例构成测试集来挑战自己的程序（图 3 左）。② 自建并校准内部模型：Shelf 里一次 Opus 运行凭先验知识写出 Kinova Gen3 的运动学模型，再用夹持的方块当标记物（状态只暴露物体位置、不暴露手的位置），通过多组关节角—方块位置观测拟合出 6 个装配&#x2F;抓取偏移参数，把校准观测上的 RMSE 从 38.9 mm 降到 1.8 mm，然后用这个模型做逆运动学（图 3 右）。③ 持续精化策略：BalanceBeam 里 Sol 把放小方块的目标点向横梁中心收拢，成功率从 6% 升到 64%；Blocked 里 Sol 增加「近处方块抓不动就改用远处无障碍方块」的回退分支，成功率从 15% 升到 56%（新解 41 个实例、没有损失任何原有成功），后续提交到 83%（图 4）。
+能力自适应奖励调度。 同一批训练里允许不同组处在不同”制度”（regime）下：
 
-原文图 4：合成期间的策略精化。Sol 在 Blocked 的一次运行中，加入「备用方块」回退后成功率从 15%（A）提升到 56%（B）；曲线是各次 git 提交版本在隐藏实例上的成功率（按提交顺序）。
-Q4：程序算得快吗？ 在四种配置都至少有一次满分运行的 15 个环境上（表 III，按各自满分运行平均）：主设置 Opus 平均 11.7 ms&#x2F;动作，Astra 平均 1.3 ms&#x2F;动作（约快 9 倍）；+ source 版反而慢得多（Opus 42.5 ms、Astra 50.4 ms），因为很多程序在决策时直接调用环境源码里的 IK&#x2F;碰撞检查&#x2F;运动规划。风格上 Astra 偏向紧凑的闭式控制（少量硬编码关节位姿或解析 IK），Opus 偏在决策时搜索大量预计算候选并带重试&#x2F;回退逻辑。与 planner 比：在有 planner 且有多种物体数的 14 个环境上，Opus 与 Astra 程序平均每实例 2.1 s 与 0.5 s，而 planner 要 29 s；随着物体数增加，planner 越来越慢、成功率下降，Agent 程序则保持较高成功率（图 1 下排）。
-Q5：给源码有帮助吗？ 有——Opus 平均 74%→84%，Astra 86%→95%——但源码本身不够：同样拿到源码、同样 $20 预算的 LLMGenPlan 只有 28%，Opus + source 在 28 个环境中的 27 个更高。源码的价值一半在信息（例如 SortClutteredBlocks 里主设置的 Astra 程序只能靠状态顺序猜方块该进哪个箱，四块能过、二十块全挂；读源码后直接读到目标箱，43%→95%），一半在实现复用（导入 IK、调运动规划与碰撞检查、在私有模拟器里试动作；Packing 中一次 Opus + source 运行发现是夹爪（而非被夹的零件）与架子碰撞，于是改了抓取姿态）。
-代价与未解决的问题（§VI）。 所有结论都建立在完全可观测、物体中心状态、可访问模拟器的假设上，不涉及感知不确定性；评测全部在仿真里，没有真机。模型训练数据未公开，无法完全排除预训练见过基准代码，作者的反驳证据是合成日志显示程序是经过探测、测试与多次修订逐步演化的，且包含公开解里没有的策略。失败仍集中在 Dynamic3D 的「扫&#x2F;倒大量小物体」类任务：Astra 在该族平均只有 65%，比如 Dynamic3D 的 ScoopPour 上各 Agent 都放弃「舀」、改为整体搬托盘，Astra 主设置只有 0.14（+ source 0.42，主设置 Opus 0.09）；ConstrainedCupboard 上 Astra 只有 0.29（Opus + source 0.47）；Sol 整体明显弱于 Opus 与 Astra。
-作者发现通用化 TAMP 的既有方法需要大量 TAMP 专用工程，而 LLM 直接做几何物理决策表现很差，因此提出把「通用化 TAMP」交给现成编码 Agent：只给任务描述、模拟器客户端与固定预算，让 Agent 自己在沙箱里探测环境、写测试、校准物理模型并迭代程序，冻结后在隐藏实例上评测，实验覆盖 28 个环境、980 个程序、98,000 个回合，表明三种 Agent 配置的成功率（56%–95%）全面高于手工 planner（47%，16 个可比环境），单实例计算量比 planner 低约一个数量级，并发现了一批未见诸公开解的操作策略，但仍存在 Dynamic3D 中扫&#x2F;倒类任务大面积失败、依赖完全可观测与仿真、以及无法完全排除预训练数据泄漏等边界。
+Ri=si+{λprogRprog,i,s‾∈[0,plow)进度塑造0,s‾∈[plow,phigh)结果巩固−λeffei,s‾∈[phigh,1]效率精修R_{i}=s_{i}+\begin{cases}\lambda_{\mathrm{prog}}R_{\mathrm{prog},i}, &amp; \overline{s}\in[0,p_{\mathrm{low}}) \quad\text{进度塑造}\\ 0, &amp; \overline{s}\in[p_{\mathrm{low}},p_{\mathrm{high}}) \quad\text{结果巩固}\\ -\lambda_{\mathrm{eff}}e_{i}, &amp; \overline{s}\in[p_{\mathrm{high}},1] \quad\text{效率精修}\end{cases}Ri​=si​+⎩⎨⎧​λprog​Rprog,i​,0,−λeff​ei​,​s∈[0,plow​)进度塑造s∈[plow​,phigh​)结果巩固s∈[phigh​,1]效率精修​
+其中 Rprog,iR_{\mathrm{prog},i}Rprog,i​ 度量被验证的进度，eie_iei​ 是归一化执行开销（式 (5)）。直觉是：还做不成的任务给过程引导，半成不成的任务聚焦把结果做对，已经稳过的任务才开始惩罚啰嗦。注意成功项 sis_isi​ 始终保留，效率项是加性的惩罚而非替代。
+
+AI 辅助的调度配置。 上述制度只决定辅助项，阈值和权重本身可以随训练演进调整。一个有界的 LLM 控制器每 NNN 步策略更新配置一次 ϕ={λprog,λeff,plow,phigh}\boldsymbol{\phi}=\{\lambda_{\mathrm{prog}},\lambda_{\mathrm{eff}},p_{\mathrm{low}},p_{\mathrm{high}}\}ϕ={λprog​,λeff​,plow​,phigh​}，输入是固定提示 P\mathcal{P}P（目标、参数语义、允许范围、输出格式）、近期 on-policy 训练统计 S≤ttrain\mathcal{S}^{\mathrm{train}}_{\leq t}S≤ttrain​ 与留出开发集指标 M≤tval\mathcal{M}^{\mathrm{val}}_{\leq t}M≤tval​（式 (6)）。它只在预先定义的参数空间里选值，不生成奖励函数本身。
+
+保质量的优势校准。 这一步针对的正是 §2.4.3 指出的归一化副作用。在效率精修制度下 Ri=si−λeffeiR_i=s_i-\lambda_{\mathrm{eff}}e_iRi​=si​−λeff​ei​，记 R‾\overline{R}R、e‾\overline{e}e 为组内均值，标准 GRPO 式优势为
+
+
+A^istd=Ri−R‾σR+ϵ=(si−s‾)−λeff(ei−e‾)σR+ϵ,σR2=s‾(1−s‾)+λeff2σe2−2λeffCov⁡(s,e)\widehat{A}_{i}^{\mathrm{std}}=\frac{R_{i}-\overline{R}}{\sigma_{R}+\epsilon}=\frac{(s_{i}-\overline{s})-\lambda_{\mathrm{eff}}(e_{i}-\overline{e})}{\sigma_{R}+\epsilon},\qquad \sigma_{R}^{2}=\overline{s}(1-\overline{s})+\lambda_{\mathrm{eff}}^{2}\sigma_{e}^{2}-2\lambda_{\mathrm{eff}}\operatorname{Cov}(s,e)Aistd​=σR​+ϵRi​−R​=σR​+ϵ(si​−s)−λeff​(ei​−e)​,σR2​=s(1−s)+λeff2​σe2​−2λeff​Cov(s,e)
+（式 (7)）。当一组全部成功（s‾→1\overline{s}\to1s→1，方差与协方差同时归零）时，分子分母里的 λeff\lambda_{\mathrm{eff}}λeff​ 会约掉：
+lim⁡s‾→1A^istd=−λeff(ei−e‾)λeffσe+ϵ≈−ei−e‾σe\lim_{\overline{s}\to 1}\widehat{A}_{i}^{\mathrm{std}}=-\frac{\lambda_{\mathrm{eff}}(e_{i}-\overline{e})}{\lambda_{\mathrm{eff}}\sigma_{e}+\epsilon}\approx-\frac{e_{i}-\overline{e}}{\sigma_{e}}s→1lim​Aistd​=−λeff​σe​+ϵλeff​(ei​−e)​≈−σe​ei​−e​
+（式 (8)）。也就是说，即使把效率权重设成 λeff=0.1\lambda_{\mathrm{eff}}=0.1λeff​=0.1 这样的小值，饱和组里的纯效率差异依然会被拉回近似单位尺度，与”成败混杂”的组的优势同量级——作者的意图（先保成功、再谈效率）被归一化抹平了。作者不用”分量分别归一化再合并”（认为那会改变各分量在原始奖励空间中的有效权重、可能改变轨迹排序），而是给分母加一个由成功率导出的下界：
+σanchor=phigh(1−phigh),A^i=Ri−R‾max⁡(σR,σanchor)+ϵ  (效率精修制度)\sigma_{\mathrm{anchor}}=\sqrt{p_{\mathrm{high}}(1-p_{\mathrm{high}})},\qquad \widehat{A}_{i}=\frac{R_{i}-\overline{R}}{\max(\sigma_{R},\sigma_{\mathrm{anchor}})+\epsilon}\ \ (\text{效率精修制度})σanchor​=phigh​(1−phigh​)​,Ai​=max(σR​,σanchor​)+ϵRi​−R​  (效率精修制度)
+其余制度仍用 σR+ϵ\sigma_R+\epsilonσR​+ϵ（式 (9)）。这样在饱和组里优势尺度退化为 λeffσe/(σanchor+ϵ)\lambda_{\mathrm{eff}}\sigma_{e}/(\sigma_{\mathrm{anchor}}+\epsilon)λeff​σe​/(σanchor​+ϵ)，保留了对 λeff\lambda_{\mathrm{eff}}λeff​ 的依赖，效率差异不再被放大到主导梯度。最终用带裁剪的组相对目标（式 (10)）做更新（GRPO 式、无 critic；引用 Shao et al. 2024 与 Yu et al. 2026）。
+（iii）AI for Harness：模型—Harness 共演化（§2.5）。 Harness 里放的是”不该塞进参数、也不该全塞进 prompt”的东西：Scenario Adapter 把当前实际暴露给模型的工具集映射到对应的 Skill 指导（删掉依赖不可用工具的规则、加上路由与多轮指令，但它不发现新工具也不执行动作）；Persistent Memory Manager 把跨会话信息分层——紧凑用户模型（稳定偏好）、情节记忆（观察与对话证据）、长期记忆（合并后的事实与经验）、前瞻记忆（带激活条件、范围、过期与完成状态的未来意图），生命周期为捕获→验证→索引→检索→固化→修订，每条记忆链接结构化摘要与原始证据（摘要质量与源保真度分开观测，错误的摘要算”入库失败”而非静默替换），新证据推翻旧事实时显式标记 superseded 而不是留下冲突版本；检索融合语义与关键词匹配，并按相关性、时近性、重要性、多样性控制，且按问题结构装配证据（时间类问题要事件排序，跨会话聚合要去重，变化中的事实要显式解析替代关系）。检索到的记忆只是”证据”，不是可执行指令，也不获得调用工具的权限。共演化的形式化是
+J(θ,η)=Ex∼D, τ∼pθ,η(⋅∣x)[Rx(τ)]J(\theta,\eta)=\mathbb{E}_{x\sim\mathcal{D},\ \tau\sim p_{\theta,\eta}(\cdot\mid x)}\left[R_{x}(\tau)\right]J(θ,η)=Ex∼D, τ∼pθ,η​(⋅∣x)​[Rx​(τ)]
+（式 (11)），当前实现用交替更新逼近（式 (12)）：θ(k+1)=UM(θ(k);B(k),η(k))\theta^{(k+1)}=\mathcal{U}_{M}(\theta^{(k)};\mathcal{B}^{(k)},\eta^{(k)})θ(k+1)=UM​(θ(k);B(k),η(k))（在固定 Harness 指令配置下做 RL），随后在留出开发集上用同一配置评估得到反馈 F\mathcal{F}F，再由 LLM 编辑器 UH\mathcal{U}_{H}UH​ 修订执行指令得到 η(k+1)\eta^{(k+1)}η(k+1)。所有模型与 Harness 更新都是离线、版本化、经审查的，服务期参数固定，候选改动不自动上线。作者自己强调：这是”开发路径”的论述，不等于已经实现了持续自主的共演化（§2.5.4）。
+承上启下：这套流程对应了前面的问题。 真机昂贵 → 用沙箱&#x2F;模拟&#x2F;真机三种后端分工，把可并行部分从真机上卸下来；数据、训练、运行时割裂 → 用同一份”动作—反馈—验证”记录贯穿三者，并让 Harness 修订反过来改变后续训练的上下文分布；奖励设计错配 → 用能力自适应调度；归一化抹平权重 → 用成功率锚定的优势校准。
+3. 解决得怎么样？主结果（表 1、图 1）。
+
+原文图 1，(a) MobilePA-Bench Overall（注意纵轴自 60 起）、(b) 四项分项能力对比、(c) Overall 与每千任务输出成本的权衡（成本轴带断裂，刻度分 5–20 与 60–68 两段）。
+在 MobilePA-Bench（1,700+ 可执行任务、200+ 移动工具、13 个查询—任务域）上，Qwen-Planner-Agent 27B 的 Overall 为 77.05%，在被评估的模型与系统中排第一，超过 GPT 6 Astra（76.84%）与 Claude Opus 5（75.71%）；分项为 Tool Use 77.79%（该列最高）、Memory 74.76、Skills 86.25、Sub-agent 59.55。两个尺寸都相对各自基线大幅提升：27B 由 67.22% → 77.05%，35B-A3B 由 54.90% → 69.91%。作为参照，开放权重模型中 Overall 最高的是 GLM 5.3（744B-A40B，73.88%），Qwen 3.8 Max 为 71.77%。注意两点：其一，主表比较的是”完整系统 vs 其他模型&#x2F;系统”，其中 Harness 的贡献是系统性的（见下面的配对消融）；其二，图 1 左侧子图的 Overall 柱状图纵轴从 60 起画，视觉上放大了差距，应以上表数值为准（此为该图的读图提醒，非论文结论）。
+成本（§3.1、图 1 右）。 按每题平均输出 token（含 thinking token）与对应输出单价估算，Qwen-Planner-Agent 为 $2.41 &#x2F; 千任务，对比其他被评估模型的 $3.06–$67.76。作者明确说明该估算只覆盖输出 token 费用，不含输入 token、外部工具调用、设备执行与 Harness 自身的处理开销，因此不能当作端到端成本。
+CARE 消融（§3.2.1、图 6）。
+
+原文图 6，相同训练配置下三条曲线对比。左：训练准确率；右：平均输出 token 数。蓝实线为 Vanilla RL，红实线为完整 CARE，绿虚线为去掉优势校准的 CARE（原文注：曲线为四个训练环境上的平滑均值，阴影为对应的离散范围）。标注的 32.5% 是最终共同记录步数上的输出长度降幅。
+用 27B 基座、相同训练配置比较三条曲线：完整 CARE 与 Vanilla RL 的训练准确率相当，但到最后一个共同记录的步数，**输出 token 少 32.5%**；去掉优势校准后输出更短，但准确率在整段区间明显更低并提前平台化。作者认为这印证了 §2.4.3 的归一化分析——小效率差异获得了不成比例的优势尺度。
+Harness 的配对贡献（§3.2.2）。 固定 checkpoint 只加 Harness：27B 由 71.90% → 77.05%（Tool Use 72.79→77.79，Memory 70.74→74.76，Skills 79.25→86.25，Sub-agent 55.06→59.55）；35B-A3B 由 64.79% → 69.91%，但 Sub-agent 保持 52.81% 不变。这说明主结果里相当一部分提升来自部署期上下文而非参数更新，也说明 Harness 并非对每项能力都有效。
+模型—Harness 共演化（§3.2.3、表 2、图 7）。 用另一个 27B 基座，在 MobilePA-Internal 与 MCPMark 上做多轮交替：MobilePA-Internal 的 Overall 由 Model Only 82.67% → Model+Harness 84.23% → 共演化四轮后 **88.50%**（Tool Use 89.76、Long Context 88.69、Personalized Planning 82.42）；MCPMark 由 38.00% → 42.26% → 三轮后 **46.98%**。两个任务的最终分数都高于”只加 Harness”的 84.23%&#x2F;42.26%，即交替迭代带来了超出单次运行时增强的增益。需要留意：这里的评估集是留出的 evolve&#x2F;开发集，作者自己说明它”用于共演化而非独立最终测试集”（§3.2.3），因此不能与表 1 的主结果混为一谈。
+长历史记忆（§3.3、表 3）。 在 LoCoMo、LongMemEval 与 BEAM 的 100K&#x2F;500K&#x2F;1M&#x2F;10M 四档上，比较四对”同 checkpoint、仅历史访问机制不同”的 Qwen 模型。结论是增益集中在长档：BEAM-500K 均值 42.18% → 68.29%，BEAM-1M 40.41% → 70.27%，BEAM-10M 23.42% → 61.66%；而 LoCoMo 93.90% → 94.12%、LongMemEval 91.65% → 92.24%、BEAM-100K 71.12% → 72.05% 基本持平，个别配对还出现小幅回退。具体到 Qwen-Planner-Model 27B，加 Harness 后 BEAM-500K 42.01→72.20、BEAM-1M 40.12→73.71、BEAM-10M 21.99→67.24。作为参照，直接上下文（不裁剪）的方案在 BEAM-10M 上没有一个超过 25.64%（Claude Opus 5 在 1M 档为 54.84%），外部报告的 Mem0 在 BEAM-1M&#x2F;10M 为 64.10%&#x2F;48.60%。另外一个诚实的负面观察：在直接上下文设置下，训练过的 Qwen-Planner-Model 略逊于未训练的 Qwen Baseline（如 27B 的 BEAM-100K 76.26 → 72.32，35B 的 LongMemEval 89.40 → 87.80），说明规划训练本身对”把长历史直接塞进上下文”没有帮助，Harness 才是收益来源。
+非移动泛化（§3.4、表 4）。 只比较 Planner Model 与各自基座：35B-A3B 在 7 个 Agent 类基准中提升 6 个，均值 57.74 → 62.31（Toolathlon 29.30→37.15、MCP-Atlas 59.40→68.69、SWE-Multilingual 65.67→71.67）；27B 提升 5 个，均值 67.91 → 69.29（Claw-Eval 82.48→79.58、SWE-Multilingual 76.65→74.89 为下降项）。通用能力三项均小幅下降：35B 的 MMLU-Redux 89.67→89.53、C-Eval 90.45→90.39、IFEval 90.94→89.83（均值 90.35→89.92）；27B 为 88.73→88.67、89.74→89.30、91.68→91.13（90.05→89.70）。作者据此称”能力可外溢且通用能力基本保留”，但下降也是真实的，幅度在 0.06–1.11 点之间（最大为 35B 的 IFEval：90.94 → 89.83），且论文没有报告方差或多种子，无法判断是否显著（此为本报告的推断）。
+定性证据（§3.5、附录 C）。 12 条轨迹展示了论文想强调的行为：记忆与实时状态核对（只补建缺失的广州行程监控、不动已有的深圳监控并排除过期的北京价格阈值，图 8）、先停掉活跃投屏再发起新投屏（图 9）、加载 Skill 后先取得便签持久标识再关机（图 10）、按观察到的透传模式选择分支并遵守顺序约束（图 11）、单位换算工具两次失败后改用计算器算出 154.32 磅再发消息（图 12）、等 WhatsApp 三个下载结果返回后才把文件名与目标目录交给文件管理器子会话（图 13）。这些是说明机制如何落地的案例，不是性能证据。
+代价与仍未解决的问题。 论文没有给出任何训练超参、数据规模、GPU 小时或真机使用比例，因此无法评估这套框架的算力与人力成本（材料不完整）。每个数据发布点都有”人把门”、Harness 修订要经规则检查与版本控制，所以”闭环”目前仍以人工审核为必要环节，作者也明确表示持续自主的共演化尚未被证实（§2.5.4）。隐私与安全（§2.5.3）通篇是”应当”级别的设计建议（如用户级鉴权、最小权限、加密、可删除），当前实现只有服务级认证令牌，”用户级访问约束依赖上游服务”，属于规划而非已验证的实现。此外，共演化实验在开发集上评估、成本对比只算输出 token、通用能力有小幅下降——这些都需要更大范围的独立验证。结论的适用范围是：在移动规划这一任务族与上述评估集上，闭环式的数据&#x2F;训练&#x2F;Harness 协同确实带来增益。
+作者发现真实设备交互昂贵导致移动 Agent 的开发难以规模化、且固定奖励与标准组内归一化会误配能力不同的轨迹组，因此提出 Qwen-Planner-Agent，通过”动作—反馈—验证契约”下的数据飞轮、混合环境在线 RL 与 CARE、以及模型—Harness 交替共演化把执行证据回灌到全流程，实验表明其在 MobilePA-Bench 上以 77.05% 的 Overall 居首、输出成本估算最低、长历史记忆与通用 Agent 基准均有提升，但仍缺少超参与成本披露、依赖人工审核、共演化仅在开发集上验证。
 ]]></content>
       <categories>
         <category>daily paper</category>
@@ -1142,6 +842,278 @@ IP addresses associated with each interface
       </tags>
   </entry>
   <entry>
+    <title>Agent-Editing World Model: Rethinking World Modeling for LLM Agents</title>
+    <url>/2026/09/27/2609.28416v1_Agent-Editing_World_Model_Rethinking_World_Modeling_for_LLM_Agents/</url>
+    <content><![CDATA[作者：Shuang Sun、Guoxin Chen、Fanzhe Meng、Jia Deng、Huatong Song、Jinhao Jiang、Wayne Xin Zhao、Hongteng Xu、Ji-Rong Wen（中国人民大学高瓴人工智能学院；Sun 与 Chen 为共同一作）。
+论文：2609.28416v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
+Hugging Face · arXiv 原文 · 官方全文
+分析范围：官方 arXiv v1 HTML 全文，含正文 §1–7 与附录 A（数据与训练）、B（Action Judge 基准）、C（评测协议）、D（案例）、E（提示词模板）；正文方法、表格、公式与报告引用图片均已核对。
+1. 作者发现了什么问题？近两年”语言世界模型”（language world model）的主流做法，是让模型预测动作之后的环境观测：给定任务和历史，模拟工具会返回什么搜索结果、终端输出或测试结果（§1、§6）。作者认为这条路线对任务型 LLM Agent 是错位的。理由有两点（§1、§2.1）：
+
+这些观测本身就是高熵、依赖真实执行的：搜索结果取决于不断变化的网页内容与不透明的排序；终端输出和测试结果取决于文件系统和运行时状态。真实工具已经能提供 grounded feedback，模型再去重构它们既困难，价值也有限；更糟的是模拟可能凭空造出证据（fabricated evidence），误导后续决策。
+真正出问题的地方不在环境，而在 agent 自身的状态。作者通过轨迹分析（§1、§5.1）发现一种反复出现的失败机制——task-state contamination（任务状态污染）：agent 在部分观测下探索未知环境时，会把没有依据的假设当成事实、在出现矛盾反馈后继续沿用过时的计划、或把局部进展误判为任务完成。这些错误一旦写进历史，就会被后续”局部看起来合理”的动作不断放大，即使环境反馈本身是真实、正确的。
+
+论文给出的证据是逐动作的统计与案例：把三个域的 agent 轨迹按决策类型标注后（图 4、§5.1），Search 域有 60.0% 的决策属于 Noisy（无进展、重复、违背约束或方向错误）；Terminal 域的 Exploratory 占比最高（**43.2%**），Noisy 占 25.1%；SWE 域 Critical 占 42.1%、Noisy 占 28.0%。附录 D 的 9 个案例进一步展示了具体形态，例如 Search 里 agent 把”偏好的来源”直接当作出生姓氏的定论、Terminal 里把中间步骤的成功当成已验证的完成（§5.2、附录 D）。
+因此，作者的核心判断是：语言世界模型该预测的不是环境观测，而是”当前推理与动作会如何影响后续任务进展”，并且应当直接干预 agent 的状态，而不是仅提供”批评意见”。
+2. 作者如何解决？核心思路：把 agent 在执行前的状态 sts_tst​（历史 + 当前提议的推理–动作对）作为世界模型的输入端，训练一个模型做两件事——判断这个提议属于 Critical &#x2F; Exploratory &#x2F; Noisy 三类中的哪一类（Action Judge），并为 Noisy 提议从同一历史出发重新生成推理与动作（State Revision）；两者组合成 EditAct：保留有价值的决策、改写有污染的决策、把最终选定的动作放进真实环境执行。图 2 给出整体框架。
+
+原文图 2（正文 §2 前，官方 HTML 图）。左：合成 Action Judge 与 State Revision 数据，经 mid-training 与 SFT 训练 AEWM；右：推理时 EditAct 选择保留或改写提议的推理–动作状态，产出轨迹再用于 AEWM-RFT 拒绝采样微调。
+形式化与关键公式。 记历史 ht=(x,(ri,ai,oi)i=0t−1)h_t=(x,(r_i,a_i,o_i)_{i=0}^{t-1})ht​=(x,(ri​,ai​,oi​)i=0t−1​)，agent 依策略提议 (r^t,a^t)∼πθ(⋅∣ht)(\hat r_t,\hat a_t)\sim\pi_\theta(\cdot\mid h_t)(r^t​,a^t​)∼πθ​(⋅∣ht​)，执行前状态为
+st=ht⊕(r^t,a^t).s_t=h_t\oplus(\hat r_t,\hat a_t).st​=ht​⊕(r^t​,a^t​).
+传统观测预测型世界模型学的是 Mobs(ot∣st)\mathcal{M}_{\mathrm{obs}}(o_t\mid s_t)Mobs​(ot​∣st​)；AEWM 改为在 sts_tst​ 上做编辑（式 1）：
+st→Mobso^t（观测预测）vs.st→MSRs~t=ht⊕(r~t,a~t)（状态编辑，本文）s_t\xrightarrow{\mathcal{M}_{\mathrm{obs}}}\hat o_t\quad\text{（观测预测）}\qquad\text{vs.}\qquad s_t\xrightarrow{\mathcal{M}_{\mathrm{SR}}}\tilde s_t=h_t\oplus(\tilde r_t,\tilde a_t)\quad\text{（状态编辑，本文）}st​Mobs​​o^t​（观测预测）vs.st​MSR​​s~t​=ht​⊕(r~t​,a~t​)（状态编辑，本文）
+即在保留历史 hth_tht​ 不变的前提下，替换当前的推理–动作续写；此后一切都由真实环境执行来获得观测。推理时的选择规则是（式 2）：
+(rt,at)={(r^t,a^t),y^t∈{critical,exploratory},(r~t,a~t),y^t=noisy,ot∼E(⋅∣ht,at),ht+1=ht⊕(rt,at,ot)(r_t,a_t)=
+\begin{cases}
+(\hat r_t,\hat a_t), &amp; \hat y_t\in\{\mathtt{critical},\mathtt{exploratory}\},\\[2pt]
+(\tilde r_t,\tilde a_t), &amp; \hat y_t=\mathtt{noisy},
+\end{cases}\qquad
+o_t\sim\mathcal{E}(\cdot\mid h_t,a_t),\quad h_{t+1}=h_t\oplus(r_t,a_t,o_t)(rt​,at​)={(r^t​,a^t​),(r~t​,a~t​),​y^​t​∈{critical,exploratory},y^​t​=noisy,​ot​∼E(⋅∣ht​,at​),ht+1​=ht​⊕(rt​,at​,ot​)
+State Revision 只在被判为 Noisy 时触发。三类标签的语义（§2.2）：Critical 是”补齐关键证据或必要状态改变、走紧凑解题路径”的决策；Exploratory 是”显著降低不确定性或验证一个合理分支”的决策——显式保留这一类比只留”最优路径”更重要；Noisy 是预期进展很小、或造成重复、切题、违反约束、方向错误的决策。
+训练数据怎么来（§3.1，附录 A）。 全部监督都从已验证成功的真实 agent 轨迹回标得到：
+
+Action Judge 数据：把成功轨迹拆成单个 turn，由强标注模型（DeepSeek-V4-Pro，高推理强度，每个决策独立标注 3 次）回看完整轨迹后，为每个 turn 生成一段只允许使用当前可见信息的前瞻推理 rtAJr_t^{\mathrm{AJ}}rtAJ​ 与动作类型 yty_tyt​；标注一致（三次全同）的进”高置信储备”，多数一致的进 mid-training 池。这里有个有意思的训练哲学：用”事后回看”的标签去监督”事前预测”——训练目标与推理目标相同（预测动作的下游贡献类型），区别只在于标注时证据已经出现。过滤上，先做结构检查（参数格式、工具是否存在、原生工具调用是否残留文本壳），再用语义评分卡（表 4：每维 0–4 分，全维 ≥3 才收，如”前缀可依据性、推理质量、动作具体性、标签–理由一致性”等），最后做多样性配额抽样。
+State Revision 数据：由 Qwen3.5-35B-A3B 当 proposal agent 正常解题；一旦 Action Judge 检查点判某步为 Noisy，就由 revision agent（DeepSeek-V4-Pro）从同一段历史生成新的推理–动作对，并在真实环境中执行；只有当后续轨迹显示这次改写确实带来实质进展时才保留样本（Search 要求最终答案正确，Terminal 要求任务验证通过，DeNovoSWE 要求最终分数 &gt;0.8）。
+两阶段训练（§3.2，表 5–7）：backbone 为 Qwen3.5-35B-A3B，用 verl + Megatron 后端。Mid-training 语料约 52.16B tokens（其中 Action Judge 监督 20.56B、State Revision 监督 25.01B、原始交互轨迹 6.59B），学”交互知识 + 判断&#x2F;改写”的粗能力；SFT 用 120K 条严格筛选样本（60K Action Judge + 60K State Revision，每个域各 40K；Search 的 AJ 标签刻意按 1:1:3 配比）激活并校准两种能力。两阶段学习率均为 1×10−51\times10^{-5}1×10−5，batch 分别 512&#x2F;256，序列上限 262,144&#x2F;131,072（表 7）。
+AEWM-RFT（§3.3）：把 EditAct 干预下产生的经真实反馈验证的轨迹（含 AEWM 的改写）拿来对 agent 做拒绝采样微调，让 agent 把”纠错模式”内化，从而在推理时不需要 AEWM。数据规模为 Search 4,000 条、Terminal 7,095 条、SWE 1,456 条（表 8），训练超参与 Self-RFT 完全一致（表 9），两者唯一差别是 rollout 来源。
+
+关键设计为什么可能有效。 一是同时改写推理和动作：被改写的 reasoning 会随历史进入后续决策，只改动作或只改推理都不足以切断污染（§2.2、§4.5 消融）。二是直接替换续写，而不是给提示让 agent 重新生成：消融显示 EditAct 优于”给 hint 让 agent 自己重写”和”让 agent 重采样”，说明把修正后的状态直接落到历史里比”批评式反馈”更有效（表 3、§4.5）。
+3. 解决得怎么样？Action Judge 能力（§4.2、表 11、附录 B）。 作者自建了 3,000 条决策的跨域基准（Search&#x2F;Terminal&#x2F;SWE 各 1,000；标签构成为 900 Critical、735 Exploratory、1,365 Noisy，表 10），每条只给任务、工具说明、执行前历史和当前提议，隐藏观测、金标与理由。与 5 个前沿模型对比（温度为 1.0，单次判定，不许投票）结果如下：
+
+
+
+模型
+Search macro-F1
+Terminal macro-F1
+SWE macro-F1
+Overall macro-F1
+
+
+
+Gemini-3-Pro
+39.2
+52.0
+42.8
+45.1
+
+
+GLM-5.2
+49.5
+54.0
+54.5
+53.2
+
+
+Qwen3.7-Max
+50.5
+56.1
+57.4
+54.9
+
+
+GPT-5.5
+46.6
+61.3
+54.4
+55.3
+
+
+DeepSeek-V4-Pro（最强基线）
+50.6
+61.6
+64.4
+59.9
+
+
+AEWM
+60.9
+72.1
+77.8
+70.5
+
+
+
+原文图 3（官方 HTML 图，条形图按域分组）。Search、Terminal、SWE 三域的 macro-F1：AEWM（斜纹柱）在每一域都最高；数值与表 11 一致，可见 Search 域整体最难，SWE 域基线间差距最大。
+AEWM 总体 macro-F1 **70.5%**，比最强基线 DeepSeek-V4-Pro 高 10.6 个点；三个域分别高出 10.3&#x2F;10.5&#x2F;13.4 个点。类级表现上 Noisy 最好（F1 81.1），Critical 68.1、Exploratory 62.3（表 12）——即”该拦住的决定拦得住”，而”有价值探索”和”关键步骤”的区分仍更难。
+评测设置（§4.1、附录 C）。 三个域各有一个真实工具环境的 ReAct 脚手架，EditAct 就直接嵌在其中（基于 AweAgent 实现）：Search 用 search_api（You.com 检索）、link_summary_tool（按查询抽取网页证据）与 finish，BrowseComp&#x2F;DeepSearchQA 均限 600 步、256K 上下文；Terminal 用 CalibForge-Eval 的 execute_bash、str_replace_editor、finish（每容器 32 核 &#x2F; 48GiB，单任务限时 10,800 秒）；SWE 用 SearchSWE 的 execute_bash、str_replace_editor、finish（SWE-Bench Pro ≤500 步、Doc2Repo ≤400 步、NL2Repo ≤500 步，表 13）。基线为 ReAct 与两种 Best@3——逐步 Best@3（每步采样 3 个候选、由 verifier 选一个执行）与轨迹级 Best@3（同题跑 3 条轨迹、由 verifier 选最终提交），verifier 均为 DeepSeek-V4-Pro（附录 C.2）。AEWM 推理时温度 1.0，Action Judge 单次最多 8K token、State Revision 最多 32K。
+EditAct 对 agent 的提升（§4.3、表 1）。 六个基准覆盖搜索（BrowseComp 用 accuracy、DeepSearchQA 用 F1）、终端（Terminal-Bench 2.0 任务准确率）与 SWE（SWE-Bench Pro resolved rate、Doc2Repo&#x2F;NL2Repo 测试通过率）；每项跑 3 次取均值。三个 backbone 上 EditAct 均全面领先 ReAct 与两种 Best@3 选择基线：
+
+
+
+Backbone
+ReAct 均值
+Step-level Best@3
+Trajectory-level Best@3
+EditAct
+比最强基线
+
+
+
+Qwen3.5-4B
+28.5
+35.1
+33.7
+41.8
++6.7 点
+
+
+Qwen3.5-9B
+34.5
+38.9
+38.9
+44.1
++5.2 点
+
+
+Qwen3.5-35B-A3B
+42.2
+45.4
+45.6
+48.8
++3.2 点
+
+
+（表 1 六基准平均值；单基准如 35B-A3B 上 Terminal-Bench 2.0 为 48.3 vs 最强基线 44.9，SWE-Bench Pro 43.8 vs 43.5 等）。值得注意的是 9B + EditAct（44.1）超过了 35B-A3B + ReAct（42.2），说明外接一个更会”审题”的世界模型可以部分抵掉 agent 本身的规模差。作者还试了更强的 Qwen3.5-Plus：BrowseComp 从 44.1 提升到 52.7，但 Terminal&#x2F;SWE 提升有限，作者归因于 AEWM 与更强 agent 之间的容量差（§4.3）。
+AEWM-RFT：把纠错能力内化（§4.4、表 2）。 在 Qwen3.5-35B-A3B 上，两种 RFT 用同数据量、同过滤、同超参，只差 rollout 来源；评测时都用纯 ReAct，不带 AEWM：
+
+
+
+方法
+BrowseComp
+Terminal-Bench 2.0
+Doc2Repo
+平均轮数（BC&#x2F;TB2）
+
+
+
+Base agent
+40.9
+37.1
+42.8
+56.2 &#x2F; 83.1
+
+
+Self-RFT
+43.2
+40.8
+46.1
+44.0 &#x2F; 73.6
+
+
+AEWM-RFT
+45.4
+43.4
+48.6
+39.3 &#x2F; 69.2
+
+
+即相对 Self-RFT 再涨 2.2&#x2F;2.6&#x2F;2.5 个点；前两个 benchmark 上平均轮数还下降约 30% 和 16.7%，Doc2Repo 则以更多轮数（78.1→89.8）换来 +2.5。这说明被 AEWM 纠正过的轨迹本身就是可迁移的监督信号。
+消融是否支持作者的解释（§4.5、表 3）。 在固定 35B-A3B 上：随机门控（Random Gate，按 AEWM 在线的 Noisy 率随机触发改写）在三个基准上都不如学习到的 Action Judge（如 BrowseComp 44.1 vs 48.1）；”让 agent 自己重采样”、”把 AEWM 的推理当 hint 交给 agent 重新生成” 也都不如直接替换状态；只改动作（Action-only）或只改推理（Reasoning-only）都不如联合改写；用 agent 自己当世界模型（Self-WM）在 BrowseComp&#x2F;Terminal 上退化（39.3&#x2F;30.7），换成 DeepSeek-V4-Pro 当世界模型仍全线低于 AEWM（47.4&#x2F;45.7&#x2F;46.3 vs 48.1&#x2F;48.3&#x2F;48.9）。训练消融中，mid-training + SFT 的完整配方优于只用 SFT（+0.8&#x2F;+6.4&#x2F;+4.3）和只用 mid-training（+0.3&#x2F;+4.1&#x2F;+1.9）。这些结果支持”要让 learned judge、联合编辑和专门训练的世界模型三者都在”的说法，但消融是按整体替换做的，无法分离各设计元素之间可能的交互。
+
+原文图 4（§5.1，官方 HTML 图）。三个域在离线标注（Annotated）与在线 AEWM 指导（Online）下的 Critical &#x2F; Exploratory &#x2F; Noisy 占比：Search 以 Noisy 为主（在线 64.8%），Terminal 以 Exploratory 为主，SWE 三类较均衡；在线分布与标注分布同构，说明 AEWM 在推理时复用了训练中学到的域间决策差异。
+行为层面的变化（§5.2、图 5、图 4）。 搜索域中，最长”纯搜索”连续段从 16.9 降到 13.2，访问到的不同网页数从 7.7 升到 10.1——与”打开更多来源验证假设”的解释一致；在线 Action Judge 的动作分布与离线标注分布基本一致（图 4），作者据此说明 AEWM 学到的域间差异在在线指导时被复用。
+代价与边界。 论文没有报告整条流水线的美元成本或 GPU 小时；但代价结构是清楚的：造数据要调用多个前沿模型（标注、提议、改写、复核），mid-training 要 52B tokens，推理时每步多一次 Action Judge 调用（≤8K tokens）、触发改写时再生成一次（≤32K tokens），且 RFT 需要大量 EditAct rollout（附录 A.4）。此外：Action Judge 基准由作者自建、标注来自模型（DeepSeek-V4-Pro 三取一致 + GPT-5.6-Sol 复核，附录 B），70.5% 是”自家基准上的自家定制模型”成绩；评测虽跑 3 次但只报均值、未给方差；in-distribution 基准（BrowseComp、Terminal-Bench、Doc2Repo、NL2Repo）与训练分布重叠，只有 DeepSearchQA 与 SWE-Bench Pro 是 OOD；论文也未测量失败模式中”被误判为 Noisy 而被改坏”的比例。
+作者发现观测预测型世界模型对任务型 Agent 价值有限、且 agent 自身会被 task-state contamination 污染，因此提出 AEWM：用 Action Judge 判断决策效应、用 State Revision 从同一历史改写被污染的推理–动作续写，并以 EditAct 在真实环境中执行；实验表明其动作判断 macro-F1（70.5%）超最强前沿基线 10.6 点，三个 backbone、六个基准上平均提升 3.2–6.7 点，AEWM-RFT 还能把纠错能力内化进 agent（比 Self-RFT 高 2.2–2.6 点）；但仍存在标注与训练成本未量化、基准自建且部分与训练同分布、误改率未评估等边界。
+]]></content>
+      <categories>
+        <category>daily paper</category>
+      </categories>
+  </entry>
+  <entry>
+    <title>WanPE: Towards Cinematic Prompt Enhancement for Modern Text-to-Video Generation</title>
+    <url>/2026/09/27/2609.30221v1_WanPE_Towards_Cinematic_Prompt_Enhancement_for_Modern_Text-to-Video_Generation/</url>
+    <content><![CDATA[作者：Yubo Zhu、Yawen Shao、Ziyun Dai、Zixun Fang、Kai Zhu、Siyang Sun、Haolan Xue、Chuxin Wang、Tingyu Weng、Jingming Luo、Chen Shi、Lianghua Huang、Yufeng Ai、Yuzheng Wang、Wenyuan Zhang、Yu Shang、Yuxiang Bao、Zoubin Bi、Jie Xiao、Jinbo Xing、Jiaxing Zhao、Chongyang Zhong、Hengjian Chen、Chenwei Xie、Akide Liu、Zhehan Kan、Yu Liu、Wei Zhai、Sheng Zhong、Wei Tong。
+论文：2609.30221v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
+Hugging Face · arXiv 原文 · 官方全文
+分析范围：官方 arXiv v1 全文，正文 §1–§5 与附录 A–D 均已读取；表 1–3 及附录表 4–6 的数值逐项核对。v1 为目前唯一版本（2026-09-24 提交），无更新版本。
+1. 作者发现了什么问题？现代文生视频（T2V）系统由两部分紧耦合而成：把用户输入变成文本条件的 prompt enhancer 和把条件渲染成视频的 video generator。Wan3.0、Seedance 2.5 这类生成器已能输出最长 30 秒、运镜与叙事都连贯的视频，且还能继续吃更长的上下文。作者据此提出一个判断：文本控制已经抵达”电影导演”层面，增强器的职责不再是给请求补描述性细节，而是规划动作、镜头、灯光、对白、声音如何在多镜头、整段时长上连贯展开（§1）。论文标题中的 “cinematic prompt enhancement” 就指这件事。
+已有的提示增强方法（多步 LLM 精修、监督&#x2F;偏好优化、推理期自我精修等，§4）几乎都建立在正向扩写（forward expansion）上：从用户请求出发，把事情写得更丰富。作者指出两个具体缺陷：
+
+训练—推理分布错配。 下游生成器是对着 video-grounded captions（真实视频反推的字幕式标注）训练的，而正向增强器的输出来自一个”合成改写分布”。两者的差距不只是语言风格：当增强目标升级为连贯的电影化规划时，正向扩写必须在想象中同时决定多次快速交互如何随镜头运动、灯光、音频一起演进——而真实拍摄的动作场面本来就包含表演、编排、摄影、剪辑、灯光、声音的协同。图 1 右侧用 t-SNE 佐证：WanPE 的输出与 video-grounded captions 高度重合，正向增强的输出明显偏离，存在 distribution gap。
+语义保持升级为全局一致性要求。 用户指定的主体、动作、台词、镜头指令、事件顺序必须被传播到每个相关镜头，并保持绑定关系和时序关系；新引入的细节还要与原始请求和已完成的前文规划兼容。规划一长，就会出现遗漏、篡改、绑定到错误主体或错误镜头、前后矛盾（§1）。
+
+两者的共同根源是监督来源：正向改写只能经由”模型想象”产生目标，而真实视频是”已实现的电影化结构”。因此作者的核心判断是：把监督构造方向反过来——先有真实视频的电影化字幕，再反推用户请求。
+需要区分的是：分布错配与长程语义保持是作者提出的问题诊断（图 1 的 t-SNE 是支持性证据，不是因果实验）；”反向构造优于正向改写”是后续实验（§3.2）的结论，不是先验设定。
+2. 作者如何解决？一句话概括：把提示增强重新定义为电影化规划（cinematic planning），用一个训练式增强器 πθ\pi_\thetaπθ​ 输出跨镜头、跨时间的”视频蓝图”，训练分两步——先用 video-grounded reverse SFT 学习生成器条件分布里的电影化结构，再用 SC-GRPO（Semantic-Consistency GRPO）以九维语义一致性奖励保证规划全程不丢用户要求。整个方法只训练增强器，视频生成器 Wan3.0 保持冻结。
+
+原文图 1（官方 HTML 版 intro.png）。左：早期模型只需要可选扩写（如 Wan2.2），WanPE 面向能处理长上下文、复杂指令的现代生成器，直接产出分镜级规划（shot plan）。右：t-SNE 显示 WanPE 输出对齐 video-grounded captions，正向增强存在分布间隙——这是问题诊断的可视化证据。
+问题形式化（§2.1）。 设增强器为 πθ、生成器为 Gφ，链路为 x∼p_u，y∼πθ(·|x)，v̂∼Gφ(·|y)（公式 1）。理想目标是”生成器条件分布中语义合法的那一部分”：
+p∗(y∣x)=pvg(y) I ⁣[y∈Ysem(x)]Z(x)(3),θ∗=arg⁡min⁡θEx∼pu[DKL(p∗(⋅∣x) ∥ πθ(⋅∣x))](4)p^{*}(y\mid x)=\frac{p_{\mathrm{vg}}(y)\,\mathbb{I}\!\left[y\in\mathcal{Y}_{\mathrm{sem}}(x)\right]}{Z(x)}\qquad(3),\qquad \theta^{*}=\arg\min_{\theta}\mathbb{E}_{x\sim p_{\mathrm{u}}}\left[D_{\mathrm{KL}}\left(p^{*}(\cdot\mid x)\,\|\,\pi_{\theta}(\cdot\mid x)\right)\right]\qquad(4)p∗(y∣x)=Z(x)pvg​(y)I[y∈Ysem​(x)]​(3),θ∗=argθmin​Ex∼pu​​[DKL​(p∗(⋅∣x)∥πθ​(⋅∣x))](4)
+其中 Ysem(x)\mathcal{Y}_{\mathrm{sem}}(x)Ysem​(x) 是由用户请求里全部语义&#x2F;指令约束 C(x)\mathcal{C}(x)C(x) 定义的合法输出集合（公式 2），pvgp_{\mathrm{vg}}pvg​ 是视频字幕分布。这给出两个难点：(i) 跨镜头的电影化联合组织要匹配 pvgp_{\mathrm{vg}}pvg​；(ii) 长程语义保真。两个训练阶段恰好对应这两点。
+
+原文图 2（官方 HTML 版 pipeline.png）。左：video-grounded reverse SFT——真实视频经 captioner 得到电影化条件 y，再由 LLM 反推用户请求 x；右：SC-GRPO——覆盖广的普通请求与困难样本混合，加强版增强器输出经九维语义一致性奖励转成组相对优势做策略更新。
+阶段一：Video-grounded reverse SFT（§2.2，图 2 左）。 数据侧先收集约 1.05M 条公开或授权的真实视频片段（切成 ≤30 秒，经过技术有效性、画质、运动质量多阶段过滤，覆盖十个内容维度、同时保留镜头级片段和多镜头序列，附录 A）。对每个片段 viv_ivi​，用多模态视频 captioner fcapf_{\mathrm{cap}}fcap​ 生成层级化电影化目标
+yi=fcap(vi;si)(5)y_i=f_{\mathrm{cap}}(v_i;s_i)\qquad(5)yi​=fcap​(vi​;si​)(5)
+yiy_iyi​ 含视频级摘要和带时间戳的镜头级描述；每个镜头写明构图、主体、动作、灯光、运镜、转场、对白、音乐、音效及其时间演进，且按内容类别使用不同 caption 方案（附录 B.2），并做结构完整性、时间戳有效性、与源视频一致性的质量检查（附录 B.3）。然后反推用户请求：直接”摘要 y”只会得到压缩版字幕，因此改用 gpt-5.4 few-shot——从一个 2K 条人工撰写请求池中按类别抽 5 个示例，生成
+xi=fLM(yi;Ei)(6)x_i=f_{\mathrm{LM}}(y_i;\mathcal{E}_i)\qquad(6)xi​=fLM​(yi​;Ei​)(6)
+构造提示要求 xix_ixi​ 只包含 yiy_iyi​ 支持的要求，从而保证 yi∈Ysem(xi)y_i\in\mathcal{Y}_{\mathrm{sem}}(x_i)yi​∈Ysem​(xi​)。最后在 (xi,yi)(x_i,y_i)(xi​,yi​) 上做标准监督微调：
+LSFT(θ)=−1N∑i=1Nlog⁡πθ(yi∣xi)(7)\mathcal{L}_{\mathrm{SFT}}(\theta)=-\frac{1}{N}\sum_{i=1}^{N}\log\pi_{\theta}(y_i\mid x_i)\qquad(7)LSFT​(θ)=−N1​i=1∑N​logπθ​(yi​∣xi​)(7)
+这一步直接对应问题 (i)：学习目标分布是”真实视频的标注”，而不是模型自己扩写的产物。
+阶段二：SC-GRPO（§2.3，图 2 右）。 对应的难点是长程语义保真。训练数据约 15K 条提示词：人工撰写，用 Wan3.0 生成视频后由标注员挑出”视频未充分实现请求”的困难样本，与多样的人工提示混合。奖励是一个文本级语义一致性分数 rsem(x,y)∈[0,100]r_{\mathrm{sem}}(x,y)\in[0,100]rsem​(x,y)∈[0,100]，由 Qwen3.7-Max 担任评估器，覆盖九个维度：style、subjects、actions、dialogue、sound、camera、lighting、spatial relations、scene。评估器检查遗漏、弱化、篡改与矛盾，检查主体—属性、说话人—台词绑定错误、动作与镜头顺序错误、跨镜头冲突；同义改写和兼容扩展算通过，偏差按严重程度扣分。优化用 GRPO：对每个 xxx 采样 GGG 个条件，组内标准化奖励得到优势 A^g\hat{A}_gA^g​，最大化
+JSC-GRPO(θ)=E ⁣[1G∑g=1G1Tg∑t=1Tg(min⁡ ⁣{ρg,tA^g,clip⁡(ρg,t,1−ϵ,1+ϵ)A^g}−βKg,t)](8)\mathcal{J}_{\mathrm{SC\text{-}GRPO}}(\theta)=\mathbb{E}\!\left[\frac{1}{G}\sum_{g=1}^{G}\frac{1}{T_{g}}\sum_{t=1}^{T_{g}}\left(\min\!\left\{\rho_{g,t}\hat{A}_{g},\operatorname{clip}(\rho_{g,t},1-\epsilon,1+\epsilon)\hat{A}_{g}\right\}-\beta\mathcal{K}_{g,t}\right)\right]\qquad(8)JSC-GRPO​(θ)=E​G1​g=1∑G​Tg​1​t=1∑Tg​​(min{ρg,t​A^g​,clip(ρg,t​,1−ϵ,1+ϵ)A^g​}−βKg,t​)​(8)
+其中 ρg,t\rho_{g,t}ρg,t​ 是当前&#x2F;旧策略比率，Kg,t\mathcal{K}_{g,t}Kg,t​ 是相对 SFT 参考模型的 KL 惩罚，初始策略即 SFT 模型。这个设计值得注意：奖励不看视频、只看”条件 y 是否忠实承载了请求 x”，是一种代理奖励——论文用表 3(ii) 说明它与下游视频偏好正相关（见下节），但没有单独实验证明”语义分数变高”必然带来”视频变好”。
+评测集 WanPEval（§2.4）。 249 条人工撰写请求，覆盖 5–30 秒、三种粒度（intent &#x2F; scene &#x2F; shot 级）、七个内容类别与两种画幅（附录 C）。文本级直接用 rsemr_{\mathrm{sem}}rsem​ 打分；视频级采用盲测成对偏好（仿 Artificial Analysis Video Arena）：60 位编剧、导演、摄影等影视从业专家，四选一（A 好、B 好、都好、都差），据此计算下界 SlowerS_{\mathrm{lower}}Slower​、上界 SupperS_{\mathrm{upper}}Supper​ 与 S=(Nwin+0.5Nbg)/NS=(N_{\mathrm{win}}+0.5N_{\mathrm{bg}})/NS=(Nwin​+0.5Nbg​)/N，并拟合 Bradley–Terry 强度 bkb_kbk​ 得到 BTk=100 σ(bk)\mathrm{BT}^k=100\,\sigma(b_k)BTk=100σ(bk​)。摘要所述”约 11K 次盲测比较”即来自该协议。
+训练配置。 增强器实例化四个规模：Qwen3.5-4B、9B、35B-A3B、397B-A17B，分别记为 WanPE-4B&#x2F;9B&#x2F;35B&#x2F;397B；实验用 512 张 GPU（§3 设置）。管道里的 captioner、GPT-5.4、Qwen3.7-Max 评估器都是现成模型，论文没有提出新的视频生成器或新的 RL 算法，贡献集中在监督构造方向与奖励设计。
+3. 解决得怎么样？主实验在 WanPEval 上做。除无增强基线（原始请求直接给 Wan3.0）外，对比 Seedance 2.5&#x2F;2.0、Kling 3.0、HappyHorse 1.1、MiniMax-H3、LTX-2.5；时间划分按各系统最大支持时长：Seedance 2.5 参与 30 秒子集，其余都评 5–15 秒子集（§3.1）。
+
+原文图 3（官方 HTML 版 cinepeval_evaluation.svg 转 PNG）。左：按生成时长（5&#x2F;10&#x2F;15 秒）与请求粒度（intent&#x2F;scene&#x2F;shot）的 S 分数，横线标出 [Slower,Supper][S_{\mathrm{lower}},S_{\mathrm{upper}}][Slower​,Supper​] 区间；右：七个内容类别的雷达图，读数为 WanPE-397B 的类别 S 分数。可以直观看到增强收益随时长增大、397B 在大多数类别接近或超过商业系统。完整数值见附录 D.2 的 Table 5 与 Table 6（该节正文引用写作 “Tables D.2 and D.2”，原文如此；渲染出的表号是 5、6）。
+表 1（5–15 秒，S&#x2F;BT）核心数值：
+
+
+
+方法（商业系统为端到端 API，其余下游均为 Wan3.0）
+5 秒 S
+10 秒 S
+15 秒 S
+Overall S
+Overall BT
+
+
+
+Seedance 2.0
+46.20
+41.40
+44.31
+43.42
+54.70
+
+
+MiniMax-H3
+29.09
+36.46
+38.30
+36.40
+49.27
+
+
+原始请求（无增强）
+46.08
+33.63
+30.59
+33.80
+49.59
+
+
++WanPE-397B
+56.74
+49.91
+49.43
+50.61
+61.85
+
+
+WanPE-397B 在每个时长上 S 与 BT 都是第一，overall S 50.61 比 Seedance 2.0 高 7.19 点，实现了摘要中”5–15 秒领先所有被评估商业系统”的表述。相对原始请求的提升随生成时长增大：5&#x2F;10&#x2F;15 秒分别为 +10.66、+16.28、+18.84 点（§3.1；逐项区间见附录 D.2 的 Table 5）；按粒度看 intent&#x2F;scene&#x2F;shot 级分别达 52.44&#x2F;49.26&#x2F;49.32，比无增强高 18.55&#x2F;16.97&#x2F;13.45 点。30 秒子集（表 2 Exp1）：WanPE-397B S 60.24，与 Seedance 2.5 的 59.76 基本打平（动画 81.25、语音 73.68 领先，动作类 50.00 落后对方 68.18），而原始请求只有 9.38（+50.86）——增强对长视频几乎从”不可用”到”可用”。
+监督方向的消融（§3.2，表 2 Exp2） 支撑了方法的核心设计：在同一个 Wan3.0 下游、同一套 249 条请求上，WanPE-397B-SFT 的 overall S 为 49.86，比精心迭代 27 版的 “Forward Rewriting” 基线（39.49）高 10.37 点，比用同样数据做”正向目标 SFT”（35.17）高 14.69 点，且七个内容类别全部第一。也就是说，差异主要来自监督目标的来源（真实视频字幕 vs 模型改写），不是提示词写得好不好。一个值得注意的细节是：表 3(i) 里 Forward Rewriting 的文本语义一致性其实有 90.7 分（接近 WanPE-397B 的 97.6），但它的视频偏好只有 39.49——这支持作者”问题主要出在条件分布错配”的解释，不过论文没有做把”语义保真”与”分布对齐”两个因素分离的直接实验，该因果链条仍属推断。
+SC-GRPO 消融（§3.4，表 3、图 4）：图 4 显示四个规模训练奖励都显著上升；WanPEval 上文本语义一致性提升 18.6–23.3 点（397B-SFT 75.5 → 97.6，完美输出比例 29.7% → 85.5%，失败率 36.9% → 2.8%）；更重要的是下游视频偏好从 42.70 升到 49.69（表 3(ii)），七个类别全涨——说明”文本级语义奖励”这一代理确实与视频质量同向。注意：训练奖励用 Qwen3.7-Max，表 3 的一致性评估用 gemini-3.1-pro-preview，两个数字口径不同。
+跨生成器迁移（§3.3，表 2 Exp3）：用 GPT-5.4 把 WanPE 输出转成目标系统的条件格式后，在 LTX-2.5-Base 上 35.56 vs 原生增强器 21.11（+14.45），MiniMax-H3-Base 上 41.09 vs 原生 35.92（+5.17）。说明学到的电影化组织不绑定单一生成器格式，但这一环节引入了对外部模型（GPT-5.4）格式转换的依赖。
+代价与边界。 训练侧要处理 1.05M 视频的字幕化与质检、构造约 15K RL 样本、跨 4B–397B 四个规模在 512 卡上训练；推理侧 397B 增强器本身的成本未在论文中给出。评测只有 249 条请求、约 11K 次成对比较，且 30 秒只做到”与 Seedance 2.5 竞争”而非超越；论文没有报告美元&#x2F;GPU 小时成本，也没有讨论对 LLM judge 过优化（reward hacking）的风险——15K 提示词加一个固定 judge，长期 RL 的奖励饱和行为值得后续关注。此外 SSS 分数把 “both good” 记 0.5 权重，与 BT 分数口径不同，跨表比较要谨慎。
+综上，作者发现正向扩写让增强器的输出分布偏离生成器的条件分布、且长程规划难以保信用户要求，因此提出 WanPE：用真实视频反推请求做 SFT，再用九维语义一致性奖励做 SC-GRPO，训练 4B–397B 的电影化规划增强器。实验表明它在 5–15 秒领先所有被评估商业系统、比原始请求最高提升 18.84 点（30 秒 +50.86 点），反向构造显著优于正向改写、SC-GRPO 同时提升文本语义与下游视频偏好，并能通过格式适配迁移到其它生成器；但提升仍依赖大规模数据与算力、评测规模有限、30 秒仅追平 Seedance 2.5，且”分布对齐”与”语义保真”各自的因果贡献尚未分离验证。
+]]></content>
+      <categories>
+        <category>daily paper</category>
+      </categories>
+  </entry>
+  <entry>
     <title>数据结构复习</title>
     <url>//2023/11/15/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%A4%8D%E4%B9%A0/</url>
     <content><![CDATA[Chapter 1 绪论1. 基本概念1.数据 被计算机加工处理的对象。2.数据元素（记录、表目） 数据的基本单位，是数据集合中的一个个体。一个数据元素可由若干个数据项组成3.数据对象 是性质相同的数据元素的集合，是数据的一个子集。4.数据结构 具有结构的数据元素的集合。它包括数据元素的逻辑结构、存储结构和相适应的运算。
@@ -1168,9 +1140,9 @@ IP addresses associated with each interface
 评价算法优劣的基本标准:正确性 可读性 健壮性 高效性
 算法效率的度量: 时间复杂度 空间复杂度
 算法的描述选择描述工具的原则不依赖于具体计算机与具体程序设计语言的一种形式化语言，可用于描述或表达算法思想。本课程采用 C 语言特点 它描述的算法自然易懂，具有较好的可移植性。
-算法效率的度量1）时间复杂度算法的消耗时间：算法中每条语句执行时间之和。时间复杂度：算法中各语句的频度之和T(n)。频度—语句的执行次数；n—问题的规模，一般为数据的输入量渐近时间复杂度：当问题的规模n趋于无穷大时，T(n)的数量级(阶)。记为T(n)&#x3D;O( f(n) )。O的严格含义— 存在正的常数c和n0，使得当n$\ge$n0时, 0 $\le$ T(n) $\le$ c*f(n)实际中，将渐近时间复杂度简称为时间复杂度，用以描述算法的时间特性。
+算法效率的度量1）时间复杂度算法的消耗时间：算法中每条语句执行时间之和。时间复杂度：算法中各语句的频度之和T(n)。频度—语句的执行次数；n—问题的规模，一般为数据的输入量渐近时间复杂度：当问题的规模n趋于无穷大时，T(n)的数量级(阶)。记为T(n)&#x3D;O( f(n) )。O的严格含义— 存在正的常数c和n0，使得当n≥\ge≥n0时, 0 ≤\le≤ T(n) ≤\le≤ c*f(n)实际中，将渐近时间复杂度简称为时间复杂度，用以描述算法的时间特性。
 2）空间复杂度算法的存储空间: 输入数据所占空间, 程序本身所占空间, 辅助变量所占空间空间复杂度S(n)&#x3D;O(f(n))表示随着问题规模 n 的增大，算法运行所需存储量的增长率与 f(n) 的增长率相同。存储密度d&#x3D;数据本身存储量&#x2F;实际所占存储量
-Chapter 2 线性表线性表定义形式定义由n (n $\neq$ 0) 个数据元素组成的有序序列。Linear_list &#x3D; (D, S)其中：D&#x3D;{ai | ai $\in$D0 , i&#x3D;0,1,$\dots$ , n-1 n $\ge$ 0}R&#x3D;{N} N&#x3D;{&lt;ai-1 , ai&gt;| ai-1 , ai $\in$D0 , i&#x3D;1,2,$\dots$ , n-1 } D0为某个数据对象或者简记为：(a0, a1, …, ai , …an-1 ) n $\ge$ 0（n为表长。 当n&#x3D;0，称为空表）
+Chapter 2 线性表线性表定义形式定义由n (n ≠\neq= 0) 个数据元素组成的有序序列。Linear_list &#x3D; (D, S)其中：D&#x3D;{ai | ai ∈\in∈D0 , i&#x3D;0,1,…\dots… , n-1 n ≥\ge≥ 0}R&#x3D;{N} N&#x3D;{&lt;ai-1 , ai&gt;| ai-1 , ai ∈\in∈D0 , i&#x3D;1,2,…\dots… , n-1 } D0为某个数据对象或者简记为：(a0, a1, …, ai , …an-1 ) n ≥\ge≥ 0（n为表长。 当n&#x3D;0，称为空表）
 线性表的特点在数据元素的非空有限集合
 
 1,数据元素间是线性关系，数据元素在表中的位置只取决于其序号2.存在唯一的一个被称作“第一个”的数据元素和唯一的一个被称作“最后一个”的数据元素3.除第一个外，每个数据元素均只有一个前驱；除最后一个外，每个数据元素均只有一个后继
@@ -1336,7 +1308,7 @@ typedef  struct     {       datatype data[MAXSIZE];      /*数据的存储区*/ 
 
 Chapter 5 树与二叉树树的结构和基本操作树是一类重要的非线性数据结构，是以分支关系定义的层次结构。
 
-树的定义树是由n(n $\ge$ 0)个结点组成的有限集合T，非空树满足：1)有一个称之为根(root)的结点。2)除根以外的其余结点被分成m(0 $\le$ m&lt;n)个互不相交的集合T1,T2 ,$\cdots$,Tm,其中每一个集合本身又是一棵树，且称为根的子树。
+树的定义树是由n(n ≥\ge≥ 0)个结点组成的有限集合T，非空树满足：1)有一个称之为根(root)的结点。2)除根以外的其余结点被分成m(0 ≤\le≤ m&lt;n)个互不相交的集合T1,T2 ,⋯\cdots⋯,Tm,其中每一个集合本身又是一棵树，且称为根的子树。
 树的特点除根结点外，每个结点都仅有一个前趋(父)结点
 
 基本概念
@@ -1355,17 +1327,17 @@ Chapter 5 树与二叉树树的结构和基本操作树是一类重要的非线�
 有序树 树中各结点的子树从左至右是有次序的，不能互换。否则，称为无序树。
 路径长度 从树中某结点Ni出发，能够“自上而下地”通过树中结点到达结点Nj，则称Ni到Nj存在一条路径，路径长度等于这两个结点之间的分支数。
 树的路径长度 从根到每个结点的路径长度之和。
-森林 是m(m $\ge$ 0)棵互不相交的树的集合。
+森林 是m(m ≥\ge≥ 0)棵互不相交的树的集合。
 
 树的基本操作1)初始化操作 initiate(T)2)求根函数 root(T) &#x2F; root(x)3)求双亲函数 parent(T,x)4)求孩子结点函数 child(T,x,i)5)求右兄弟函数 right_sibling(T,x)6)建树函数 crt_tree(x,F)7)插入子树操作 ins_child(y,i,x)8)删除子树操作 del_child(x,i)9)遍历操作 traverse(T)10)清除结构操作 clear(T)
-二叉树的定义与性质二叉树的概念二叉树的定义二叉树是n(n $\ge$ 0)个结点的有限集合，它或为空树(n&#x3D;0)，或由一个根结点和两棵互不相交的左子树和右子树的二叉树组成。
+二叉树的定义与性质二叉树的概念二叉树的定义二叉树是n(n ≥\ge≥ 0)个结点的有限集合，它或为空树(n&#x3D;0)，或由一个根结点和两棵互不相交的左子树和右子树的二叉树组成。
 二叉树的特点
 定义是递归
-的0$\le$结点的度$\le$ 2
+的0≤\le≤结点的度≤\le≤ 2
 是有序树
 
 两种特殊的二叉树   - 满二叉树   每一层上的结点数都是最大结点数。   - 完全二叉树   只有最下面两层结点的度可小于2，而最下一层的叶结点集中在左边若干位置上。
-二叉树的性质性质1 二叉树的第i层上至多有2i-1(i $\ge$ 1)个结点。性质2 深度为k的二叉树至多有2k-1个结点(k $\ge$ 1)。性质3 对任何一棵二叉树T，如果其终端结点数为n0，度为2的结点数为n2 ，则n0 &#x3D; ${n}^{2}$ +1;性质4 具有n个结点的完全二叉树的深度为$\lfloor \log_{2}{n} \rfloor$+1。性质5 一棵具有n个结点的完全二叉树(又称顺序二叉树)，对其结点按层从上至下(每层从左至右)进行1至n的编号，则对任一结点i(1in)有：(1)若i&gt;1，则i的双亲是$\lfloor i&#x2F;2 \rfloor$；若i&#x3D;1，则i是根，无双亲。(2)若2$\le$i$\le$n，则i的左孩子是2i；否则， i无左孩子。(3)若2i+1$\le$n，则i的右孩子是2i+1；否则， i无右孩子。
+二叉树的性质性质1 二叉树的第i层上至多有2i-1(i ≥\ge≥ 1)个结点。性质2 深度为k的二叉树至多有2k-1个结点(k ≥\ge≥ 1)。性质3 对任何一棵二叉树T，如果其终端结点数为n0，度为2的结点数为n2 ，则n0 &#x3D; n2{n}^{2}n2 +1;性质4 具有n个结点的完全二叉树的深度为⌊log⁡2n⌋\lfloor \log_{2}{n} \rfloor⌊log2​n⌋+1。性质5 一棵具有n个结点的完全二叉树(又称顺序二叉树)，对其结点按层从上至下(每层从左至右)进行1至n的编号，则对任一结点i(1in)有：(1)若i&gt;1，则i的双亲是⌊i/2⌋\lfloor i/2 \rfloor⌊i/2⌋；若i&#x3D;1，则i是根，无双亲。(2)若2≤\le≤i≤\le≤n，则i的左孩子是2i；否则， i无左孩子。(3)若2i+1≤\le≤n，则i的右孩子是2i+1；否则， i无右孩子。
 顺序存储结构完全二叉树：按完全二叉树编号存放三元组：存储结点数据和左、右孩子在向量中的序号双亲：存储结点数据和其父结点的序号
 二叉链表的类型定义typedef struct btnode{  btnode *lchild,rchild;  elemtp  data;} BiTNode,*BiTree;
 
@@ -1454,10 +1426,10 @@ DeleteR(bt，parent)：算法略。
 
 Chapter6 图图的基本概念非线性结构，数据元素之间呈多对多的关系。
 
-图的定义Graph&#x3D;(V,E)V：顶点(数据元素)的有穷非空集合。E：边的有穷集合。图的相关术语顶点 数据元素所构成的结点。无向图 边的顶点偶对是无序的。(vi, vj)和(vj, vi)代表同一条边(i $\ge$ j)。有向图 边的顶点偶对是有序的。有向边&lt; vi, vj &gt;也称为弧。vi是弧尾&#x2F;初始点； vj是弧头&#x2F;终端点。(无向)完全图 每个顶点与其余顶点都有边的无向图。顶点数为n时，边数e&#x3D;n(n-1)&#x2F;2有向完全图 每个顶点与其余顶点都有弧的有向图。顶点数为n时，弧数e&#x3D;n(n-1)思考：一无向图的顶点个数为n，则该图最多有（  n(n-1)&#x2F;2  ）条边。稀疏图 有很少边或弧的图。稠密图 有较多边或弧的图。权 图中的边或弧具有一定的大小的概念。网 边&#x2F;弧带权的图。邻接 有边&#x2F;弧相连的两个顶点之间的关系。存在(vi, vj)，则称vi和vj互为邻接点；存在&lt;vi, vj&gt;，则称vi邻接到vj， vj邻接于vi关联(依附) 边&#x2F;弧与顶点之间的关系。存在(vi, vj)&#x2F; &lt;vi, vj&gt;， 则称该边&#x2F;弧关联于vi和vj子图 对于图G&#x3D;(V,E)和G’&#x3D;(V’,E’)，如果V’V，E’ E，且E’关联的顶点都在V’中，则称G’是G的子图。生成子图 由图的全部顶点和部分边组成的子图称为原图的生成子图。顶点的度   与该顶点相关联的边的数目，记为D(v)。入度ID(v)：有向图中，以该顶点为弧头的弧数目。出度OD(v)：有向图中，以该顶点为弧尾的弧数目。顶点数n、边数e和度数之间的关系:$e&#x3D;\frac{1}{2} \sum_{i&#x3D;1}^{n} D\left ( vi \right )$思考：在一个无向图中，所有顶点的度数之和等于所有边数2倍，在一个有向图中，所有顶点的入度之和等于所有顶点出度之和的1倍。在有n个顶点的有向图中，每个顶点的度最大可达2(n-1)。路径   接续的边构成的顶点序列。路径长度   路径上边或弧的数目&#x2F;权值之和。回路(环)   第一个顶点和最后一个顶点相同的路径。简单路径   除路径起点和终点可以相同外，其余顶点均不相同的路径。简单回路(简单环)   除路径起点和终点相同外，其余项点均不相同的路径。n个顶点的无向完全图中,两个顶点之间简单路径数目为多少？1 + A(n-2,1) + A(n-2,2) + … + A(n-2,n-2)其中A(m,n)是m取n的排列数。连通图   无向图中，任何一对顶点间都存在路径。连通分量   无向图中的极大连通子图。思考：n个顶点组成的连通无向图，其边的个数至少为n-1。思考：一个有n个结点的无向图，最少有（ 1 ）个连通分量，最多有（n）个连通分量。若G是一个非连通无向图，共有28条边，则该图至少有_9_个顶点。生成树   包含图中全部顶点的极小连通子图有向树   图中恰有一个顶点入度为0，其余顶点入度均为1。生成森林   有向图中，包含所有顶点的若干棵有向树构成的子图。
+图的定义Graph&#x3D;(V,E)V：顶点(数据元素)的有穷非空集合。E：边的有穷集合。图的相关术语顶点 数据元素所构成的结点。无向图 边的顶点偶对是无序的。(vi, vj)和(vj, vi)代表同一条边(i ≥\ge≥ j)。有向图 边的顶点偶对是有序的。有向边&lt; vi, vj &gt;也称为弧。vi是弧尾&#x2F;初始点； vj是弧头&#x2F;终端点。(无向)完全图 每个顶点与其余顶点都有边的无向图。顶点数为n时，边数e&#x3D;n(n-1)&#x2F;2有向完全图 每个顶点与其余顶点都有弧的有向图。顶点数为n时，弧数e&#x3D;n(n-1)思考：一无向图的顶点个数为n，则该图最多有（  n(n-1)&#x2F;2  ）条边。稀疏图 有很少边或弧的图。稠密图 有较多边或弧的图。权 图中的边或弧具有一定的大小的概念。网 边&#x2F;弧带权的图。邻接 有边&#x2F;弧相连的两个顶点之间的关系。存在(vi, vj)，则称vi和vj互为邻接点；存在&lt;vi, vj&gt;，则称vi邻接到vj， vj邻接于vi关联(依附) 边&#x2F;弧与顶点之间的关系。存在(vi, vj)&#x2F; &lt;vi, vj&gt;， 则称该边&#x2F;弧关联于vi和vj子图 对于图G&#x3D;(V,E)和G’&#x3D;(V’,E’)，如果V’V，E’ E，且E’关联的顶点都在V’中，则称G’是G的子图。生成子图 由图的全部顶点和部分边组成的子图称为原图的生成子图。顶点的度   与该顶点相关联的边的数目，记为D(v)。入度ID(v)：有向图中，以该顶点为弧头的弧数目。出度OD(v)：有向图中，以该顶点为弧尾的弧数目。顶点数n、边数e和度数之间的关系:e=12∑i=1nD(vi)e=\frac{1}{2} \sum_{i=1}^{n} D\left ( vi \right )e=21​∑i=1n​D(vi)思考：在一个无向图中，所有顶点的度数之和等于所有边数2倍，在一个有向图中，所有顶点的入度之和等于所有顶点出度之和的1倍。在有n个顶点的有向图中，每个顶点的度最大可达2(n-1)。路径   接续的边构成的顶点序列。路径长度   路径上边或弧的数目&#x2F;权值之和。回路(环)   第一个顶点和最后一个顶点相同的路径。简单路径   除路径起点和终点可以相同外，其余顶点均不相同的路径。简单回路(简单环)   除路径起点和终点相同外，其余项点均不相同的路径。n个顶点的无向完全图中,两个顶点之间简单路径数目为多少？1 + A(n-2,1) + A(n-2,2) + … + A(n-2,n-2)其中A(m,n)是m取n的排列数。连通图   无向图中，任何一对顶点间都存在路径。连通分量   无向图中的极大连通子图。思考：n个顶点组成的连通无向图，其边的个数至少为n-1。思考：一个有n个结点的无向图，最少有（ 1 ）个连通分量，最多有（n）个连通分量。若G是一个非连通无向图，共有28条边，则该图至少有_9_个顶点。生成树   包含图中全部顶点的极小连通子图有向树   图中恰有一个顶点入度为0，其余顶点入度均为1。生成森林   有向图中，包含所有顶点的若干棵有向树构成的子图。
 图的存储结构数组+邻接矩阵&#x2F;加权邻接矩阵(顺序存储方式)无权值的有向图的邻接矩阵 设有向图具有 n 个顶点，则用 n 行 n 列的布尔矩阵 A 表示该有向图;并且 A[i,j]  &#x3D;  1 , 如果i 至 j 有一条有向边；A[i,j] &#x3D; 0如果 i 至 j 没有一条有向边。 注意： 顶点i出度: i行之和。顶点i入度: i列之和。
 无权值的无向图的邻接矩阵设无向图具有 n 个顶点，则用 n 行 n 列的布尔矩阵 A 表示该无向图；并且 A[i,j]  &#x3D;  1 , 如果i 至 j 有一条无向边；A[I,j] &#x3D; 0如果 i 至 j 没有一条无向边。i结点的度: i行或i列之和。必然为对称矩阵，可压缩为上三角矩阵或下三角矩阵。思考：n个顶点的连通图用邻接矩阵表示时,该矩阵至少有2(n-1)个非零元素。n个顶点的强连通图用邻接矩阵表示时,该矩阵至少有n个非零元素
-有向图的加权邻接矩阵设有向图具有 n 个顶点，则用 n 行 n 列的矩阵 A 表示该有向图;并且 A[i,j]  &#x3D;  a , 如果i 至 j 有一条有向边且它的权值为a。A[i,j] &#x3D; ∞,0 或其它标志；如果 i 至 j 没有一条有向边。优点：判断任意两点之间是否有边方便，仅耗费 O(1) 时间。缺点：即使 &lt;&lt; $n^{2}$ 条边，也需内存 $n^{2}$ &#x2F;2 单元，太多; 仅读入数据耗费  O( $n^{2}$ )  时间，太长。
+有向图的加权邻接矩阵设有向图具有 n 个顶点，则用 n 行 n 列的矩阵 A 表示该有向图;并且 A[i,j]  &#x3D;  a , 如果i 至 j 有一条有向边且它的权值为a。A[i,j] &#x3D; ∞,0 或其它标志；如果 i 至 j 没有一条有向边。优点：判断任意两点之间是否有边方便，仅耗费 O(1) 时间。缺点：即使 &lt;&lt; n2n^{2}n2 条边，也需内存 n2n^{2}n2 &#x2F;2 单元，太多; 仅读入数据耗费  O( n2n^{2}n2 )  时间，太长。
 邻接表顺序存储+链式存储
 
 设有向图或无向图具有 n 个顶点，则用 顶点表、边表表示该有向图或无向图。顶点表：用数组的形式存放所有的顶点。边表（出边表）：从某个顶点出发的边组成的单链表。优点：内存消耗 ＝  顶点数 ＋ 边数。缺点：确定 i –&gt; j 是否有边，最坏需耗费 O(n) 时间。无向图同一条边表示两次边表空间浪费一倍。有向图中寻找进入某结点的边，非常困难。顶点表中的结点的表示： 用数组
@@ -1506,7 +1478,7 @@ for (vi=1;vi&lt;=n;vi++) if (!visited[vi]) Traver(g,vi);
 如果该顶点还有下一个邻接点，则转(3);否则，转(2)
 void BFSTraverse(MGraph G){	int i, j;	Queue Q;	for(i = 0; i&lt;G,numVertexes; i++){		visited[i] = FALSE;	}	InitQueue(&amp;Q);	//初始化一辅助用的队列	for(i=0; i&lt;G.numVertexes; i++){		//若是未访问过就处理		if(!visited[i]){			vivited[i] = TRUE;	//设置当前访问过			visit(i);	//访问顶点			EnQueue(&amp;Q, i);	//将此顶点入队列			//若当前队列不为空			while(!QueueEmpty(Q)){				DeQueue(&amp;Q, &amp;i);	//顶点i出队列				//FirstNeighbor(G,v):求图G中顶点v的第一个邻接点，若有则返回顶点号，否则返回-1。				//NextNeighbor(G,v,w):假设图G中顶点w是顶点v的一个邻接点，返回除w外顶点v				for(j=FirstNeighbor(G, i); j&gt;=0; j=NextNeighbor(G, i, j)){					//检验i的所有邻接点					if(!visited[j]){						visit(j);	//访问顶点j						visited[j] = TRUE;	//访问标记						EnQueue(Q, j);	//顶点j入队列					}				}			}		}	}}
 
-算法时间复杂度分析主要操作：查找每个顶点的所有邻接点邻接矩阵 O($n^{2}$ )邻接表 无向图 O(n+2e) 有向图 O(n+e)
+算法时间复杂度分析主要操作：查找每个顶点的所有邻接点邻接矩阵 O(n2n^{2}n2 )邻接表 无向图 O(n+2e) 有向图 O(n+e)
 
 已知一无向图G&#x3D;（V，E），其中V&#x3D;{a,b,c,d,e } E&#x3D;{(a,b),(a,d),(a,c),(d,c),(b,e)}现用某一种图遍历方法从顶点a开始遍历图，得到的序列为abecd，则采用的是______遍历方法。
 
@@ -1529,12 +1501,12 @@ void find_cycle() //判断是否有回路，有则输出邻接矩阵。visited�
 
 最小生成树由一个网络（带权图）生成的各边的权数总和最小的生成树称为最小生成树，记为MST。
 
-MST性质：设N&#x3D;(V,{E})是一个连通的带权图，U是V的真子集，若边(u,v)[u ${\in }$ U,v${\in }$V-U]是E中所有一个端点在U内，一个端点不在U内的边中权值最小的一条边(轻边)，则一定存在G的一棵生成树包括此边。
+MST性质：设N&#x3D;(V,{E})是一个连通的带权图，U是V的真子集，若边(u,v)[u ∈{\in }∈ U,v∈{\in }∈V-U]是E中所有一个端点在U内，一个端点不在U内的边中权值最小的一条边(轻边)，则一定存在G的一棵生成树包括此边。
 
 证明：假定存在一棵不包括边  ( u, v ) 在内的最小代价生成树，设其为 T。将边( u, v )添加到树 T ，则形成一条包含  ( u, v ) 的回路。因此，必定存在另一条边  ( u‘ ，v‘  ) ，且 u’ 属于 U , v ‘   属于 V - U。删去边 ( u‘   ，v‘  ) ，得到另一棵生成树 T ‘  ; 因为边 ( u, v ) 的代价小于边  ( u‘   ，v‘  ) 的代价，所以新的生成树T ‘将是代价最小的树。和原假设矛盾。   注：新的生成树T‘是树的理由：连通且无回路。
 
 普里姆（Prim）算法Prim算法构造最小生成树的过程如下图所示。初始时从图中任取一顶点(如顶点加入树T，此时树中只含有一个顶点，之后选择一个与当前T中顶点集合距离最近的顶点，并将该顶点和相应的边加入T，每次操作后T中的顶点数和边数都增1。以此类推，直至图中所有的顶点都并入T，得到的T就是最小生成树。此时T中必然有n-1条边。通俗点说就是：从一个顶点出发，在保证不形成回路的前提下，每找到并添加一条最短的边，就把当前形成的连通分量当做一个整体或者一个点看待，然后重复“找最短的边并添加”的操作。
-算法步骤1)初始化closedge[v](v&#x3D;1..n) O(n)2)重复n-1次以下操作：2.1)在closedge[v](v&#x3D;1..n)中选择最小且非0的 lowcost，记录其v值(设为k)和相应的vex； O( ${n}^{2}$ )2.2)输出该边(vex,k)； O(n)2.3)顶点k并入U集：closedge[k].lowcost&#x3D;0； O(n)2.4)调整候选边集closedge[v](v&#x3D;1..n)： O( ${n}^{2}$ )若gn[k,v] &lt; closedge[v].lowcost，则更改closedge[v]：vex&#x3D;k, lowcost&#x3D;gn[k,v] O( ${n}^{2}$ )算法特点 适用于稠密图
+算法步骤1)初始化closedge[v](v&#x3D;1..n) O(n)2)重复n-1次以下操作：2.1)在closedge[v](v&#x3D;1..n)中选择最小且非0的 lowcost，记录其v值(设为k)和相应的vex； O( n2{n}^{2}n2 )2.2)输出该边(vex,k)； O(n)2.3)顶点k并入U集：closedge[k].lowcost&#x3D;0； O(n)2.4)调整候选边集closedge[v](v&#x3D;1..n)： O( n2{n}^{2}n2 )若gn[k,v] &lt; closedge[v].lowcost，则更改closedge[v]：vex&#x3D;k, lowcost&#x3D;gn[k,v] O( n2{n}^{2}n2 )算法特点 适用于稠密图
 /*Prim算法生成最小生成树*/void MiniSpanTree_Prim(G){	int min, i, j, k;	int adjvex[MAXVEX];	//保存相关顶点下标	int lowcost[MAXVEX];	//保存相关顶点间边的权值	lowcost[0] = 0;	//初始化第一个权值为0，即v0加入生成树	//lowcost的值为0，在这里就是此下标的顶点已经加入生成树	adjvex[0] = 0;	//初始化第一个顶点下标为0	for(i=1; i&lt;G.numVertexes; i++){		lowcost[i] = G.arc[0][i];	//将v0顶点与之组成边的权值存入数组		adjvex[i] = 0;	//初始化都为v0的下标	}	for(i=1; i&lt;G.numVertexes; i++){		min = INFINITY;	//初始化最下权值为∞，通常设置一个不可能的很大的数字		j = 1; k = 0;		//循环全部顶点		while(j &lt; G.numVertexes){			//如果权值不为0且权值小于min			if(lowcost[j] != 0 &amp;&amp; lowcost[j] &lt; min){				min = lowcost[j];	//则让当前权值成为最小值				k = j;	//将当前最小值的下标存入k			}			j++;		}		print("(%d, %d)", adjvex[k], k);	//打印当前顶点边中权值的最小边		for(j=1; j&lt;G.numvertexes; j++){			//若下标为k顶点各边权值小于此前这些顶点未被加入生成树权值			if(lowcost[j] != 0 &amp;&amp; G.arc[k][j] &lt; lowcost[j]){				lowcost[j] = G.arc[k][j];	//将较小权值存入lowcost				adjvex[j] = k;	//将下标为k的顶点存入adjvex			}		}	}}
 
 克鲁斯卡尔（Kruskal）算法与Prim算法从顶点开始扩展最小生成树不同，Kruskal 算法是一种按权值的递增次序选择合适的边来构造最小生成树的方法。
@@ -1550,7 +1522,7 @@ Kruskal算法构造最小生成树的过程如下图所示。初始时为只有n
 于是Kruskal算法代码如下，左侧数字为行号。其中MAXEDGE为边数量的极大值，此处大于等于15即可，MAXVEX为顶点个数最大值，此处大于等于9即可。
 /*Kruskar算法生成最小生成树*/void MiniSpanTree_Kruskal(MGraph G){	int i, n, m;	Edge edges[MAXEDGE];	//定义边集数组	int parent[MAXVEX];	//定义一数组用来判断边与边是否形成环路	/*此处省略将邻接矩阵G转化为边集数组edges并按照权由小到大排序的代码*/	for(i=0; i&lt;G.numVertexes; i++){		parent[i] = 0;	//初始化数组为0	}	for(i=0; i&lt;G.numVertexes; i++){		n = Find(parent, edges[i].begin);		m = Find(parent, edge[i],end);		/*假如n与m不等，说明此边没有与现有生成树形成环路*/		if(n != m){		/*将此边的结尾顶点放入下标为起点的parent中		表示此顶点已经在生成树集合中*/		parent[n] = m;		printf("(%d, %d, %d)", edges[i].begin, 						edges[i].end, edges[i].weight);		}	}}/*查找连线顶点的尾部下标*/int Find(int *parent, int f){	while(parent[f] &gt; 0){		f = parent[f];	}	return f;}
 
-Dijkstra算法Dijkstra算法用于构建单源点的最短路径—，即图中某个点到任何其他点的距离都是最短的。例如，构建地图应用时查找自己的坐标离某个地标的最短距离。可以用于有向图，但是不能存在负权值。我们以上图为例，通俗点说，这个迪杰斯特拉(Dijkstra) 算法，它并不是一下子求出了$v_{0}$到$v_{8}$ 的最短路径，而是一步步求出它们之间顶点的最短路径，过程中都是基于已经求出的最短路径的基础上，求得更远顶点的最短路径，最终得到你要的结果。Dijkstra算法设置一个集合S记录已求得的最短路径的顶点。在构造的过程中还设置了个辅助数组:dist[]：记录从源点$v_{0}$到其他各顶点当前的最短路径长度，它的初态为：若从$v_{0}$ ​到$v_{i}$​;有弧，则dist[i]为弧上的权值；否则置dist[i]为∞ 。
+Dijkstra算法Dijkstra算法用于构建单源点的最短路径—，即图中某个点到任何其他点的距离都是最短的。例如，构建地图应用时查找自己的坐标离某个地标的最短距离。可以用于有向图，但是不能存在负权值。我们以上图为例，通俗点说，这个迪杰斯特拉(Dijkstra) 算法，它并不是一下子求出了v0v_{0}v0​到v8v_{8}v8​ 的最短路径，而是一步步求出它们之间顶点的最短路径，过程中都是基于已经求出的最短路径的基础上，求得更远顶点的最短路径，最终得到你要的结果。Dijkstra算法设置一个集合S记录已求得的最短路径的顶点。在构造的过程中还设置了个辅助数组:dist[]：记录从源点v0v_{0}v0​到其他各顶点当前的最短路径长度，它的初态为：若从v0v_{0}v0​ ​到viv_{i}vi​​;有弧，则dist[i]为弧上的权值；否则置dist[i]为∞ 。
 Floyd 算法基本思想：弗洛伊德算法定义了两个二维矩阵：
 矩阵D记录顶点间的最小路径例如D[0][3]&#x3D; 10，说明顶点0 到 3 的最短路径为10；矩阵P记录顶点间最小路径中的中转点例如P[0][3]&#x3D; 1 说明，0 到 3的最短路径轨迹为：0 -&gt; 1 -&gt; 3。它通过3重循环，k为中转点，v为起点，w为终点，循环比较D[v][w] 和 D[v][k] + D[k][w] 最小值，如果D[v][k] + D[k][w] 为更小值，则把D[v][k] + D[k][w] 覆盖保存在D[v][w]中。
 #include &lt;stdio.h&gt;#include &lt;stdlib.h&gt;#define MAXN 10 #define INF = 1000typedef struct struct_graph{    char vexs[MAXN];    int vexnum;//顶点数     int edgnum;//边数     int matirx[MAXN][MAXN];//邻接矩阵 } Graph;int pathmatirx[MAXN][MAXN];//记录对应点的最小路径的前驱点，例如p(1,3) = 2 说明顶点1到顶点3的最小路径要经过2 int shortPath[MAXN][MAXN];//记录顶点间的最小路径值void short_path_floyd(Graph G, int P[MAXN][MAXN], int D[MAXN][MAXN]){    int v, w, k;    //初始化floyd算法的两个矩阵     for(v = 0; v &lt; G.vexnum; v++){        for(w = 0; w &lt; G.vexnum; w++){            D[v][w] = G.matirx[v][w];            P[v][w] = w;        }    }    //这里是弗洛伊德算法的核心部分     //k为中间点     for(k = 0; k &lt; G.vexnum; k++){        //v为起点         for(v = 0 ; v &lt; G.vexnum; v++){            //w为终点             for(w =0; w &lt; G.vexnum; w++){                if(D[v][w] &gt; (D[v][k] + D[k][w])){                    D[v][w] = D[v][k] + D[k][w];//更新最小路径                     P[v][w] = P[v][k];//更新最小路径中间顶点                 }            }        }    }    printf("\n初始化的D矩阵\n");    for(v = 0; v &lt; G.vexnum; v++){        for(w = 0; w &lt; G.vexnum; w++){            printf("%d ", D[v][w]);        }        printf("\n");    }    printf("\n初始化的P矩阵\n");    for(v = 0; v &lt; G.vexnum; v++){        for(w = 0; w &lt; G.vexnum; w++){            printf("%d", P[v][w]);        }        printf("\n");    }    v = 0;    w = 3;    //求 0 到 3的最小路径    printf("\n%d -&gt; %d 的最小路径为：%d\n", v, w, D[v][w]);    k = P[v][w];    printf("path: %d", v);//打印起点    while(k != w){        printf("-&gt; %d", k);//打印中间点        k = P[k][w];     }    printf("-&gt; %d\n", w);}int main(){    int v, w;    Graph G;    printf("请输入顶点数:\n");    scanf("%d", &amp;G.vexnum);    printf("请输入初始矩阵值：\n");    for(v = 0; v &lt; G.vexnum; v++){        for(w = 0; w &lt; G.vexnum; w++){            scanf("%d", &amp;G.matirx[v][w]);        }    }    printf("\n输入的矩阵值：\n");    for(v = 0; v &lt; G.vexnum; v++){        for(w = 0; w &lt; G.vexnum; w++){            printf("%d ", G.matirx[v][w]);        }        printf("\n");    }    short_path_floyd(G, pathmatirx, shortPath);}
@@ -1581,5 +1553,38 @@ bool TopologicalSort(Graph G){	InitStack(S);	//初始化栈，存储入度为0�
       <tags>
         <tag>数据结构</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>Coding Agents for Generalized Task and Motion Planning Problems</title>
+    <url>/2026/09/27/2609.30233v1_Coding_Agents_for_Generalized_Task_and_Motion_Planning_Problems/</url>
+    <content><![CDATA[作者：Matteo Merler、Bowen Li、Josh Roy、Yichao Liang、Qianwei Wang、Yixuan Huang、Tom Silver。
+论文：2609.30233v1；Hugging Face 来源批次：2026-09-25；精读归档日期：2026-09-27（Asia&#x2F;Shanghai）。
+Hugging Face · arXiv 原文 · 官方全文
+分析范围：官方 arXiv v1 HTML 全文，正文 §I–VI（问题设定、方法、实验、相关工作、讨论）及表 I–III、图 1–4 已核对；引用的图 1、2、4 已下载核对。论文未提供实验附录，代码与完整提示词随论文开源（robocode 仓库）。
+1. 作者发现了什么问题？任务与运动规划（TAMP）即使在完全可观测、状态以物体为中心（object-centric）的设定下依然很难：horizon 长、奖励稀疏，离散决策（操作哪个物体、用哪个工具、先做哪个子目标）与连续的几何&#x2F;运动学&#x2F;动力学约束死死耦合——换一个离散选择，剩下的可行运动空间就完全变了（§I、§II-B）。通用化 TAMP（generalized TAMP） 的思路是：同一环境里不同实例之间有规律可循，把规律固化下来就能在新实例上少花力气。此前做法是学习可复用的 sampler、可行性预测器、搜索启发式或状态&#x2F;动作抽象，但每一种都需要大量 TAMP 专用工程（§V-A）。
+作者的问题很直接：既然编码 Agent 在软件工程任务上越来越强，它们能不能把这份「领域工程」自动化——只给任务描述和模拟器访问，让 Agent 自己写一个跨实例通用的程序？这个问题在文献里证据是矛盾的：LLM 在经典规划上的表现持续变好（如用 LLM 生成 Python 启发式），但当 LLM 被要求承担 TAMP 里的几何与物理决策时表现很差，即使把相关几何放进提示词也一样（§I，引 Mendez-Mendez 2026 对 PDDLStream 的系统研究）。所以「写代码的能力」能否迁移到「物理推理」并不显然，两种结果对该领域都有价值（成功意味着可以大幅减少领域工程，失败则给出当前 Agent 的具体能力边界）。
+这里要分清：本文不是提出一个新的规划算法，而是一项系统性实证研究（作者称方法为 AgenticGenPlan）：在 28 个环境上，把「通用化 TAMP」直接当成程序合成问题，检验现成编码 Agent 能走多远，并把交互日志、程序演化过程一起分析清楚。
+2. 作者如何解决？核心思路。 学习方法在合成期拥有任务描述 ddd 与模拟器访问权（可反复 reset&#x2F;step），在固定预算内自由探索环境、写代码、做实验，最终交付一个程序；评测期程序被冻结，LLM 完全不在场，只在未见过的初始状态分布 s0∼ρs_0\sim\rhos0​∼ρ 上跑。程序即策略：在每个时间步接收物体中心状态 sts_tst​，返回动作 ata_tat​；由于程序可有内部状态，等价于以交互历史为输入的策略 at=π(ht)a_t=\pi(h_t)at​=π(ht​)（§II-A、§II-C）。这样「通用化」的收益不来自测试时的模型调用，而来自程序里固化的、跨实例复用的规律。
+
+原文图 1：上排为研究覆盖的 28 个 KinDER&#x2F;PDDLStream 环境；中排对比传统路线（人工编写谓词&#x2F;算子&#x2F;sampler 再交给 planner）与本文路线（Agent 在沙箱里调试出程序，冻结后跨实例复用）；下排为平均性能、成功率随物体数变化、单实例计算时间随物体数变化，橙色为 AgenticGenPlan。
+具体流程（§III-A）。 作者用两个厂商的现成编码 Agent：Claude Code + Opus 5（high），以及 Codex + GPT-5.6 Sol（medium）与 GPT-6 Astra（high）。所有基线也用 Opus 5，保证模型一致。Agent 跑在隔离的 Docker 沙箱里（独立文件系统、无网络），只给 Python + NumPy + SciPy，连环境源码都不给——迫使它生成端到端程序而不是调用现成库。初始提示包含：环境名，任务、观测空间、动作空间、目标的文字描述，以及「物体数量会变化、程序必须支持任意合法数量」和评测时限 τ\tauτ 的说明；不提供任何手写谓词、算子、sampler 或技能。为支持交互学习，Agent 拿到一个实现了 reset、step 与渲染辅助函数的客户端，真正的环境服务器在容器外不可见。程序接口固定为一个类：reset 做回合初始化，get_action 计算动作。每次测试前要求 Agent 把程序提交到 git，于是能看到程序的修订历史并回放每次提交的表现。
+另有 + source 设置：把环境源码放进容器（Opus + source、Astra + source 两组）。这一设置给 Agent 的是「完整信息」参照——它可以直接读目标判定、导入逆运动学等辅助实现，也能在合成期直接设置任意状态、在私有模拟器里试动作。注意这只是参照条件，主设置才是论文主张的「除任务描述与模拟器外零工程」场景。
+与什么比较（§III-B）。 三类基线：① TAMP planner：符号搜索 + 采样满足连续约束，谓词、算子、sampler、运动规划技能都用官方实现，每个评测实例重新规划；28 个环境中有 16 个提供 planner（KinDER 13 个 + PDDLStream 3 个，PDDLStream 环境的 planner 就是 PDDLStream 本身）。② LLMGenPlan：用 Opus 5、关闭思考、无工具、无文件系统，但给全环境源码；它不能自己跑实验，只能收到固定管线返回的三类预定义反馈（异常栈、非法动作、某 seed 实例未解出），预算与编码 Agent 相同。③ One-shot：LLMGenPlan 生成的第一个程序，代表没有任何迭代反馈的一次性生成。
+评测协议（§IV-A）。 28 个环境 &#x3D; KinDER 25 个（Kinematic2D、Dynamic2D、Kinematic3D、Dynamic3D 四族，其中 19 个环境有不同物体数的变体，且物体数超出原基准评测范围）+ PDDLStream 3 个域（Packing、Blocked、Rovers）。每个方法每环境跑 5 次独立合成；每次合成预算 $20（模型费用）；每次合成出的程序都在同一批 100 个隐藏实例上评测（评测 seed 随机生成并核验过未在合成期出现过）；单实例超时 60 秒，与 KinDER 原协议一致。7 种合成方法（LLMGenPlan、One-shot、Opus、Sol、Astra、Opus + source、Astra + source）× 28 环境 × 5 次 &#x3D; 980 个程序，共 98,000 个评测回合。
+3. 解决得怎么样？Q1：Agent 能写出通用程序吗？能，而且超过手工 planner（表 I、表 II）。 在有 planner 的 16 个环境上，三种 Agent 配置的平均成功率均高于 planner 的 47%：Astra 95%、Opus 82%（约 1.7 倍于 planner）、Sol 56%；逐环境看，Astra 在 15&#x2F;16 个环境超过 planner，Opus 12 个，Sol 9 个——而 planner 用的是人工写好的谓词、算子、sampler 和技能，Agent 什么都没拿到。按环境族看，Astra 平均为 Kinematic2D 99%、Dynamic2D 97%、Kinematic3D 93%、较难的 Dynamic3D 65%、PDDLStream 近 100%；Opus 依次是 96%、92%、90%、45%、78%。Astra 在 28 个环境里 20 个高于 Opus，其中 11 个环境里「最好的 Opus 程序」其实不差于「最好的 Astra 程序」，差距主要来自稳定性（例：Shelf 上 Opus 的 5 次程序成功率从 0% 到 100%，而 Astra 每次都先测到 8 个方块再改，全部 ≥98%）。Opus 在 22&#x2F;28 个环境高于 Sol（4 个持平），只有 Dynamo 和 Blocked 例外——Blocked 上 Sol 75%、Opus 38%、planner 74%。
+Q2：Agent 发现了什么策略？ 论文展示了一批「未见诸公开解」的策略（图 2），作者认为这是最有说服力的定性证据之一——因为公开文献里没有的解，很难归因于记住了预训练数据。例子：Dynamic2D ScoopPour 中 Opus 程序把工具旋转后从左侧重新抓取，一次能舀起更多球；SweepIntoDrawer 中 Opus + source 程序干脆不用扫帚工具，用夹爪把方块一个个扫进抽屉；其余还有用工具长边推物、只移动两个障碍物、放弃工具用夹爪抓取并倾倒托盘等。
+
+原文图 2：Agent 发现的意外成功策略，每行一次执行（左到右），标注为该行的非预期行为。这些策略来自主设置与 + source 设置。
+Q3：「agentic」优势在哪里？ 三个可观察的机制：① 自写测试：StickButton 中 Opus 写脚本用不同随机种子反复 reset，专门搜集「棍子贴墙」「按钮很高」的边界实例，和普通实例构成测试集来挑战自己的程序（图 3 左）。② 自建并校准内部模型：Shelf 里一次 Opus 运行凭先验知识写出 Kinova Gen3 的运动学模型，再用夹持的方块当标记物（状态只暴露物体位置、不暴露手的位置），通过多组关节角—方块位置观测拟合出 6 个装配&#x2F;抓取偏移参数，把校准观测上的 RMSE 从 38.9 mm 降到 1.8 mm，然后用这个模型做逆运动学（图 3 右）。③ 持续精化策略：BalanceBeam 里 Sol 把放小方块的目标点向横梁中心收拢，成功率从 6% 升到 64%；Blocked 里 Sol 增加「近处方块抓不动就改用远处无障碍方块」的回退分支，成功率从 15% 升到 56%（新解 41 个实例、没有损失任何原有成功），后续提交到 83%（图 4）。
+
+原文图 4：合成期间的策略精化。Sol 在 Blocked 的一次运行中，加入「备用方块」回退后成功率从 15%（A）提升到 56%（B）；曲线是各次 git 提交版本在隐藏实例上的成功率（按提交顺序）。
+Q4：程序算得快吗？ 在四种配置都至少有一次满分运行的 15 个环境上（表 III，按各自满分运行平均）：主设置 Opus 平均 11.7 ms&#x2F;动作，Astra 平均 1.3 ms&#x2F;动作（约快 9 倍）；+ source 版反而慢得多（Opus 42.5 ms、Astra 50.4 ms），因为很多程序在决策时直接调用环境源码里的 IK&#x2F;碰撞检查&#x2F;运动规划。风格上 Astra 偏向紧凑的闭式控制（少量硬编码关节位姿或解析 IK），Opus 偏在决策时搜索大量预计算候选并带重试&#x2F;回退逻辑。与 planner 比：在有 planner 且有多种物体数的 14 个环境上，Opus 与 Astra 程序平均每实例 2.1 s 与 0.5 s，而 planner 要 29 s；随着物体数增加，planner 越来越慢、成功率下降，Agent 程序则保持较高成功率（图 1 下排）。
+Q5：给源码有帮助吗？ 有——Opus 平均 74%→84%，Astra 86%→95%——但源码本身不够：同样拿到源码、同样 $20 预算的 LLMGenPlan 只有 28%，Opus + source 在 28 个环境中的 27 个更高。源码的价值一半在信息（例如 SortClutteredBlocks 里主设置的 Astra 程序只能靠状态顺序猜方块该进哪个箱，四块能过、二十块全挂；读源码后直接读到目标箱，43%→95%），一半在实现复用（导入 IK、调运动规划与碰撞检查、在私有模拟器里试动作；Packing 中一次 Opus + source 运行发现是夹爪（而非被夹的零件）与架子碰撞，于是改了抓取姿态）。
+代价与未解决的问题（§VI）。 所有结论都建立在完全可观测、物体中心状态、可访问模拟器的假设上，不涉及感知不确定性；评测全部在仿真里，没有真机。模型训练数据未公开，无法完全排除预训练见过基准代码，作者的反驳证据是合成日志显示程序是经过探测、测试与多次修订逐步演化的，且包含公开解里没有的策略。失败仍集中在 Dynamic3D 的「扫&#x2F;倒大量小物体」类任务：Astra 在该族平均只有 65%，比如 Dynamic3D 的 ScoopPour 上各 Agent 都放弃「舀」、改为整体搬托盘，Astra 主设置只有 0.14（+ source 0.42，主设置 Opus 0.09）；ConstrainedCupboard 上 Astra 只有 0.29（Opus + source 0.47）；Sol 整体明显弱于 Opus 与 Astra。
+作者发现通用化 TAMP 的既有方法需要大量 TAMP 专用工程，而 LLM 直接做几何物理决策表现很差，因此提出把「通用化 TAMP」交给现成编码 Agent：只给任务描述、模拟器客户端与固定预算，让 Agent 自己在沙箱里探测环境、写测试、校准物理模型并迭代程序，冻结后在隐藏实例上评测，实验覆盖 28 个环境、980 个程序、98,000 个回合，表明三种 Agent 配置的成功率（56%–95%）全面高于手工 planner（47%，16 个可比环境），单实例计算量比 planner 低约一个数量级，并发现了一批未见诸公开解的操作策略，但仍存在 Dynamic3D 中扫&#x2F;倒类任务大面积失败、依赖完全可观测与仿真、以及无法完全排除预训练数据泄漏等边界。
+]]></content>
+      <categories>
+        <category>daily paper</category>
+      </categories>
   </entry>
 </search>
