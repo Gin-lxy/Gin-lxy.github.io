@@ -103,5 +103,30 @@ if PUBLIC.join("index.html").file?
   end
 end
 
+# Math rendering contract: LaTeX in daily-paper reports is rendered to KaTeX HTML at build time.
+DAILY_PAPER_ROUTE = "2026/09/27/2609.29845v1_Your_Transformer_Can_Hold_Two_Thoughts_at_Once_Evidence_of_Linear_Superposition_in_LLMs/index.html"
+Dir.glob(PUBLIC.join("**", "*.html").to_s).sort.each do |page|
+  relative = Pathname.new(page).relative_path_from(PUBLIC).to_s.force_encoding(Encoding::UTF_8)
+  contents = File.binread(page).force_encoding(Encoding::UTF_8)
+  errors << "leaked math placeholder in #{relative}" if contents.include?("qxmath")
+  next unless contents.include?('class="katex')
+  errors << "katex formula error in #{relative}" if contents.include?("katex-error")
+  next unless relative.start_with?("2026/")
+  body = article_body(contents)
+  errors << "missing article body in #{relative}" unless body
+  errors << "unrendered display math in #{relative}" if body && body.include?("$$")
+end
+known_page = PUBLIC.join(DAILY_PAPER_ROUTE)
+if known_page.file?
+  contents = File.binread(known_page).force_encoding(Encoding::UTF_8)
+  errors << "expected KaTeX-rendered math in #{DAILY_PAPER_ROUTE}" unless contents.include?('class="katex"')
+  errors << "expected source TeX preserved in #{DAILY_PAPER_ROUTE}" unless contents.include?('\mathcal{R}_{\mathcal{D}}')
+  errors << "expected local KaTeX stylesheet link in #{DAILY_PAPER_ROUTE}" unless contents.include?('href="/css/katex/katex.min.css"')
+else
+  errors << "missing route: #{DAILY_PAPER_ROUTE}"
+end
+errors << "missing route: css/katex/katex.min.css" unless PUBLIC.join("css/katex/katex.min.css").file?
+errors << "missing KaTeX font: css/katex/fonts/KaTeX_Main-Regular.woff2" unless PUBLIC.join("css/katex/fonts/KaTeX_Main-Regular.woff2").file?
+
 abort errors.uniq.join("\n") unless errors.empty?
 puts "Generated-site contract passed."
