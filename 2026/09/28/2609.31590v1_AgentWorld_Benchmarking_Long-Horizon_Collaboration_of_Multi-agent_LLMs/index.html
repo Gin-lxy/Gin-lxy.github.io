@@ -1,0 +1,1053 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/09/28/2609.31590v1_agentworld_benchmarking_long-horizon_collaboration_of_multi-agent_llms/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AgentWorld: Benchmarking Long-Horizon Collaboration of Multi-agent LLMs">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/09/28/2609.31590v1_AgentWorld_Benchmarking_Long-Horizon_Collaboration_of_Multi-agent_LLMs/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-09-28T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-09-28T04:16:49.057Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>AgentWorld: Benchmarking Long-Horizon Collaboration of Multi-agent LLMs | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"mac","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">3</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">3</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">20</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">AgentWorld: Benchmarking Long-Horizon Collaboration of Multi-agent LLMs</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv3</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-09-28 12:00</span>
+        <span class="mobile">2026-09-28 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-09-28 12:16:49</span>
+            <span class="mobile">2026-09-28 12:16:49</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Raphael Shu、Yusen Zhang、Young Min Cho、Jin Mo Yang、Yuan Yuan、Wenliang Zheng、Sharath Chandra Guntuku、Lyle Ungar、Zhou Yu、Rui Zhang。</p>
+<p>论文：2609.31590v1；Hugging Face 来源批次：2026-09-28；精读归档日期：2026-09-28（Asia&#x2F;Shanghai）。</p>
+<p><a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2609.31590" >Hugging Face<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> · <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2609.31590v1" >arXiv 原文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> · <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2609.31590v1" >官方全文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>分析范围：通读 arXiv v1 官方 HTML 全文，包括正文 §1–§5 与附录 A–G（任务定义示例与 verifier 脚本、标注平台、augmented 任务说明、agent system&#x2F;user prompt、CCE 的形式化定义&#x2F;反向追踪算法&#x2F;判定 prompt、6 条示例轨迹），核对了 Table 1–6 与 Figure 1–12 的图注及全部主结果数值。版本为 arXiv v1（2026-09-25 提交）。论文未报告的信息（如 CCE 判定的实际调用量与费用、标注耗时）在文内明确标注为未报告。</p>
+<h2 id="1-作者发现了什么问题？"><a href="#1-作者发现了什么问题？" class="headerlink" title="1. 作者发现了什么问题？"></a>1. 作者发现了什么问题？</h2><p><strong>背景。</strong> LLM Agent 正从单轮推理走向自主工具使用与多步执行，许多真实任务（软件开发、科研、复杂运营）需要多个各有所长的 Agent 朝一个共同目标协调行动，即 multi-agent collaboration (MAC)。作者认为，要理解当前模型的强项与短板，必须有一套能把”协作能力”单独测出来的评测（§1）。</p>
+<p><strong>已有 benchmark 具体哪里不好。</strong> 作者在 §1 和 §2 把已有工作的问题归为三点，并在 Table 1 中逐项对比：</p>
+<ol>
+<li><strong>任务视界太短。</strong> 多数已有 benchmark 的任务只有 10 步左右（Table 1 中已有工作普遍在 20 步以内），不足以考察”持续协调”——多轮之后计划是否走样、状态是否同步，都测不出来。</li>
+<li><strong>把底层操作控制与协作混在一起。</strong> Minecraft 类环境要求 Agent 做精确的 3D 导航、放方块、管背包，这些操作能力会显著影响得分，稀释了”协作”本身对分数的贡献；而在 Overcooked、狼人杀这类接口干净的环境里，世界又太简单，撑不起多样、长程的协作任务（§3.1）。</li>
+<li><strong>大规模社会模拟测的不是任务。</strong> Project Sid、Agent Society 一类系统关注涌现的社会行为，而不是有明确目标、可用程序化 verifier 判定的具体任务（§1、§2）。</li>
+</ol>
+<p>Table 1 还指出，已有平台大多<strong>不同时具备</strong>黑盒交互（Agent 看不到彼此内部状态）与非对称角色（各 Agent 技能、装备、目标不同），而作者认为这两点恰恰是真实协作的前提。</p>
+<p><strong>一个被忽略的度量问题。</strong> 即使任务本身设计得当，用 task success rate (SR) 单一指标也测不出协作质量：一个任务可能”一个 Agent 把活全干完、其他人闲着”却依然算成功（§3.5）。为此已有工作引入 LLM-as-judge 整体打分（如”给协作打 1–5 分”），但作者指出这类主观评分会随 judge 模型版本更新而漂移，无法复现（§3.5、§4.3）。</p>
+<p><strong>核心判断。</strong> 作者认为问题的根源是评测环境没有把”协作难度”与”操作难度、任务提示充分性”分离开，以及缺少客观的协作度量。因此他们选定”中间地带”（§3.1）的设计目标：世界要复杂到能支撑多样的长程协作场景，同时用高层 API 把低层操作抽象掉，让分数主要反映联合规划与协调决策；再配一个只用 LLM 做<strong>二元因果判断</strong>的图结构指标，把”多少动作真正推动了成功”量出来（§1、§3.5）。</p>
+<p><strong>本文的新观察</strong>（来自其自建基准上的实验，详见第 3 节），在论文摘要与 §5 中概括为：最强模型也只有 52.0% 成功率、CCE 仅 0.320（不到 1&#x2F;3 的动作有因果贡献）、沟通数量与成功率不相关、以及沟通失败可归为六类模式。这些是作者通过本文基准<strong>新测出来的经验事实</strong>，而不是他们预先持有的假设。</p>
+<h2 id="2-作者如何解决？"><a href="#2-作者如何解决？" class="headerlink" title="2. 作者如何解决？"></a>2. 作者如何解决？</h2><p><strong>核心思路。</strong> 论文的产出不是新模型，而是一套<strong>评测基准 + 度量指标</strong>（training-free，全文不涉及任何模型训练）：选一个足够复杂、自带经济与技能系统的 MMORPG 世界（Kaetram 引擎，§3.1）；在其上盖一层高层 API，把寻路、战斗、采集等操作压缩成单次函数调用，使 Agent 的决策预算花在”做什么、和谁协调”上；用回合制、黑盒、非对称角色的协议强制 Agent 只能通过自然语言聊天来协调；再让人工标注出”单 Agent 不可能完成”的任务（§3.2–§3.3）；最后用任务自带的 Python verifier 给出硬性成功判定，用基于因果动作图的 CCE 给出协作质量（§3.5）。这样，前面的三个问题分别对应：长视界任务（25–55 轮）解决”协调测不深”，API 抽象解决”操作稀释协作”，CCE 解决”SR 测不出协作质量”。</p>
+<p>下面按一次评测实际运行的过程展开。</p>
+<p><strong>（i）沙盒世界与高层 API 抽象。</strong> 世界基于开源 MMORPG 引擎 Kaetram：1056×768 的 2D 地图、9 种 biome、380+ 物品、144 种怪物（1 级到 250+）、70+ NPC、跨 8 种技能（lumberjacking、mining、fishing、foraging、crafting、smithing、fletching、cooking）共 1,531 个可采集资源点；模拟器可支撑最多 1,000 个并发 Agent（§1、§3.1、Table 1）。关键设计是自建的抽象层，暴露 <strong>13 个高层 API 工具</strong>，例如 <code>move</code>、<code>attack</code>、<code>harvest</code>、<code>craft</code>、<code>transfer</code>、<code>chat</code>：一次 <code>attack_entity</code> 调用在内部完成”寻路到目标 → 发起攻击 → 打完 → 拾取战利品”的全过程，<code>harvest_resource</code> 同理完成”走到资源点 → 采集 → 收进背包”（§3.1）。每个回合 Agent 还会收到 (1) 附近地块、实体与自身状态的结构化文本观测，以及 (2) 任务特定文档（相关配方、怪物属性、资源位置），后者正是消融实验中影响最大的组件（见第 3 节）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-28/2609.31590_fig1.png"
+                      alt="AgentWorld 总览"
+                ></p>
+<p><em>原文图 2，AgentWorld 总览。左侧是带多种 biome 与资源的 MMORPG 沙盒世界（Game Environment）；中间是黑盒多智能体交互（Blackbox Multi-Agent Interaction）：各 Agent 独立决策，只能看到自身状态、附近实体与聊天消息，协作只能靠 chat 与 trade 这类显式动作；右侧列出 13 个工具中 10 个代表性高层 API（move_character、attack_entity、craft_item、equip_item、sleep、chat、harvest_resource、transfer_items、enter_portal、complete）。该图说明本文”以复杂世界 + 高层抽象 + 黑盒通信”三件套来隔离协作能力的整体设计。</em></p>
+<p><strong>（ii）回合制编排与黑盒协议。</strong> Kaetram 原本是实时游戏，作者把它改成<strong>回合制</strong>以保证可复现：每一轮中所有 Agent 按固定顺序依次收到新观测、选择恰好一个 API 工具调用、等待动作结算后再轮到下一个（round-robin，§3.1）。这一协议由环境固定实现（流程控制），模型只决定”调哪个工具、传什么参数、发什么消息”。所有实验都采用 blackbox 设置：Agent 拿不到其它 Agent 的内部状态、观测或动作历史，协调只能依赖经由环境转发的显式 chat 消息（§3.1）。所有被测模型共用同一套 system&#x2F;user prompt 与工具定义（附录 E；system prompt 要求”每次响应必须且只能调用一个工具”，并附带当前观测与聊天历史；user prompt 用 Jinja2 模板注入任务名、目标、次要目标、相关游戏知识、队伍成员名单）。</p>
+<p><strong>（iii）任务设计。</strong> 每个任务由五要素构成（§3.2）：需要多 Agent 协作的主目标（如”为巫师制作魔法法杖”）；带<strong>非对称角色</strong>（不同技能、装备、库存、出生点）的 Agent 配置；限定交互轮数的轮数预算；任务特定文档；以及判定的 Python 函数。设计硬约束是”任何单 Agent 都不可能凭一己之力完成”。举几个论文中的真实任务：Task 67（Resource Caravan）要求 8 个 Agent 横跨三种 biome——队长指挥森林里的两支伐木队、山区的矿工，以及接收两路材料打造镐子的工匠；跨度为 Task 1（3 Agent 制作链）、Task 80（10 Agent 节日准备、并行烹饪与锻造）到 Task 100（16 Agent 全图大陆勘察）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-28/2609.31590_fig2.png"
+                      alt="Task 86 任务定义示例"
+                ></p>
+<p><em>原文图 3（Task 86: Forge Vanguard 的任务定义示例）。目标为”挖 10 铁矿、8 煤，熔炼 6 铁锭，锻造 2 把重剑和 1 把斧”；10 个 Agent 按 mine → smelt → craft 流水线分工：3 名 miner 采矿采煤、1 名 smelter 炼铁锭、2 名 smith 打剑、3 名 support 与 1 名 coordinator 做支援与协调，每人有独立的技能等级、装备、初始库存与出生坐标。该图说明”非对称角色 + 资源依赖链”如何把多 Agent 协作变成硬性需求。</em></p>
+<p><strong>（iv）标注与质量控制。</strong> 5 名人类标注员按预设类别分布出题：定义互补角色、设定主目标与中间检查点、编写检查终局游戏状态的 Python verifier（可选检查轨迹）、为每个 Agent 整理任务相关文档（§3.3）。每道题都要用两个 LLM 做 pilot 试跑，把失败分为 system&#x2F;task&#x2F;agent 三类错误，反复修订直到只剩 agent 错误才收录；轮数预算（25–55 轮）也是从 pilot 中”成功完成需要多少轮”校准出来的（§3.3）。附录 C 介绍了配套的网页标注平台（Figure 6）：点击世界地图选出生点、8 项技能的滑杆、133 个物品的可搜索浏览器、带角色预览的装备配置。除 100 道人工题外，作者还用 Claude Opus 4.5 生成 100 道 augmented 变体（改目标数量、出生点、初始物品），并做了人工抽检（§3.4、附录 D，见第 3 节）。</p>
+<p><strong>（v）度量：SR &#x2F; PSR &#x2F; CCE。</strong> SR 由每题的 Python verifier 检查终局状态（如背包物品数、击杀数、存活情况）判定，全部检查点满足才算成功；PSR 是各检查点达成比例的跨任务平均，成功任务按 100% 计（§3.5）。而本文的核心新指标 <strong>CCE（Causal Collaboration Effectiveness）</strong> 想回答”多少动作真正有用”：把一次任务轨迹里所有 Agent 的所有动作（工具调用与 chat 消息各算一个动作）建成<strong>因果动作图</strong>（Causal Action Graph，DAG，边 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi><mo>→</mo><mi>y</mi></mrow><annotation encoding="application/x-tex">x \to y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span></span></span> 表示”动作 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span> 是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span></span></span> 的因果前提”，因果只能从前面的轮流向后面的轮次），先从轨迹与结果中找出直接完成目标的<strong>成功动作</strong> <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">S</mi></mrow><annotation encoding="application/x-tex">\mathcal{S}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.075em;">S</span></span></span></span>，再以类 BFS 的方式逐轮回扫，让 LLM 判断”这一轮里哪些动作因果上促成了已经确定的贡献动作”，累积出贡献集合 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">C</mi></mrow><annotation encoding="application/x-tex">\mathcal{C}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span></span></span></span>（§3.5、附录 F）：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="script">C</mi><mo>=</mo><mi mathvariant="script">S</mi><mo>∪</mo><mrow><mi mathvariant="normal">a</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">s</mi></mrow><mo stretchy="false">(</mo><mi mathvariant="script">S</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="2em"/><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">C</mi><mi mathvariant="normal">E</mi></mrow><mo>=</mo><mfrac><mrow><mi mathvariant="normal">∣</mi><mi mathvariant="script">C</mi><mi mathvariant="normal">∣</mi></mrow><mrow><mi mathvariant="normal">∣</mi><mi mathvariant="script">T</mi><mi mathvariant="normal">∣</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">\mathcal{C}=\mathcal{S}\cup\mathrm{ancestors}(\mathcal{S}),\qquad \mathrm{CCE}=\frac{|\mathcal{C}|}{|\mathcal{T}|}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∪</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">ancestors</span></span><span class="mopen">(</span><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm">CCE</span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.363em;vertical-align:-0.936em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">∣</span><span class="mord mathcal" style="margin-right:0.2542em;">T</span><span class="mord">∣</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">∣</span><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="mord">∣</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">T</mi></mrow><annotation encoding="application/x-tex">\mathcal{T}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.2542em;">T</span></span></span></span> 是全部动作集合；任务完全失败时定义 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext>CCE</mtext><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\text{CCE}=0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord text"><span class="mord">CCE</span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>。另有逐 Agent 的 PAC 指标：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mrow><mi mathvariant="normal">P</mi><mi mathvariant="normal">A</mi><mi mathvariant="normal">C</mi></mrow><mi>i</mi></msub><mo>=</mo><mfrac><mrow><mi mathvariant="normal">∣</mi><mi mathvariant="script">C</mi><mo>∩</mo><msub><mi mathvariant="script">T</mi><mi>i</mi></msub><mi mathvariant="normal">∣</mi></mrow><mrow><mi mathvariant="normal">∣</mi><msub><mi mathvariant="script">T</mi><mi>i</mi></msub><mi mathvariant="normal">∣</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">\mathrm{PAC}_i=\frac{|\mathcal{C}\cap\mathcal{T}_i|}{|\mathcal{T}_i|}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord"><span class="mord mathrm">PAC</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.363em;vertical-align:-0.936em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">∣</span><span class="mord"><span class="mord mathcal" style="margin-right:0.2542em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.2542em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">∣</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">∣</span><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∩</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.2542em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.2542em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">∣</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span>
+<p>用来暴露”高 CCE 其实由少数 Agent 撑起”的伪协作（§F.1.4）。反向追踪的具体算法见 §F.2：识别成功动作 → 初始化 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">C</mi><mo>←</mo><mi mathvariant="script">S</mi></mrow><annotation encoding="application/x-tex">\mathcal{C}\leftarrow\mathcal{S}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">←</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.075em;">S</span></span></span></span> → 对前沿中的每个动作 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span></span></span>，对时间上不晚于它的每个 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span> 询问 LLM”<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span> 是否因果上促成 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span></span></span>”，是则加边并把 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span> 入集；为把 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><mi mathvariant="normal">∣</mi><mi mathvariant="script">T</mi><msup><mi mathvariant="normal">∣</mi><mn>2</mn></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(|\mathcal{T}|^2)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0641em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="mopen">(</span><span class="mord">∣</span><span class="mord mathcal" style="margin-right:0.2542em;">T</span><span class="mord"><span class="mord">∣</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span> 的配对查询降下来，作者用三类优化：按资源类型&#x2F;位置&#x2F;通信通道做相关性剪枝、把多条因果查询批进一次 LLM 调用、以及时间窗限制（§F.2）。判定用的是两个提示词（附录 F.3，GPT-4.1、温度 0）：第一步只挑”最后直接完成目标的动作”，第二步逐轮问”哪些动作因果上 enable 了已知贡献动作”。</p>
+<p><strong>为什么这样设计可能有效——以 Task 01 为例（教学简化）。</strong> 图 5 展示了 CCE 在 Task 01（三人合作魔法法杖）上的计算：Lumberjack 在第 2 轮把 logs 转给 Woodworker、第 4 轮转给 Wizard，Woodworker 用 logs 做 stick 再转给 Wizard，Wizard 最后 craft 出 staff 完成目标。在由 27 个动作组成的轨迹里，只有 12 个位于通向成功动作的因果路径上（含跨 Agent 的紫色因果边），其余为”sleep”之类的无效动作，于是 CCE &#x3D; 12&#x2F;27 &#x3D; 44.4%（§3.5、Figure 5）。这个例子的意义在于：CCE 只看”某动作是否为后续贡献动作提供了资源&#x2F;位置&#x2F;信息”，判据客观、二元，因此比”给协作整体打 1–5 分”更可复现；且作者采用宽松纳入策略（稍有帮助就算贡献），使 CCE 更应被读作真实有效动作比例的<strong>上界</strong>（§4.3、§F.1.2）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-28/2609.31590_fig4.svg"
+                      alt="CCE 在 Task 01 上的计算示意"
+                ></p>
+<p><em>原文图 5（Task 01 上的 CCE 示意）。横轴为回合 R1–R6，三行分别是 Lumberjack、Woodworker、Wizard；彩色实心节点是位于因果路径上的贡献动作，灰色虚线节点不贡献，紫色箭头是跨 Agent 的因果边（如 R2、R4 的 logs 传递，以及 sticks 由 Woodworker 转给 Wizard）；该任务 CCE &#x3D; 12&#x2F;27 &#x3D; 44.4%。该图说明 CCE 如何把”协作”具体化为可追踪的跨 Agent 因果链。</em></p>
+<h2 id="3-解决得怎么样？"><a href="#3-解决得怎么样？" class="headerlink" title="3. 解决得怎么样？"></a>3. 解决得怎么样？</h2><p><strong>实验条件。</strong> 四个前沿模型——Gemini 3 Flash、Claude Haiku 4.5、GPT-5 Mini、DeepSeek R1-70B——在 100 道人工主任务与 100 道 augmented 变体上评测；所有模型使用完全相同的 system prompt、user prompt 模板与 API 工具定义，黑盒协议，报告 SR、PSR、CCE（§4.1）。Table 2 另附两个补充模型（Muse-Glimmer-30B、Gemma 4 26B A4B†），其说明指出它们使用 100 题 augmented v1 split 评测、Gemma 的结果为暂定值。</p>
+<p><strong>主结果（Table 2）。</strong> 主集上 Gemini 3 Flash 以 52.0% SR 领先，其后是 Claude Haiku 4.5（45.0%）、GPT-5 Mini（36.0%）、DeepSeek R1-70B（20.0%）；PSR 普遍高于 SR（43.5%–71.5%），CCE 从 0.125（DeepSeek）到 0.320（Gemini）。行为差异显著：Gemini 平均轮数最少（26.4），DeepSeek 发消息最少（7.5 条），GPT-5 Mini 动作最多（131.3 次）、消息最多（44.1 条）。augmented 集上全线下跌（Gemini 52→24%、Claude 45→26%、GPT-5 36→21%、DeepSeek 20→10%）。</p>
+<p><strong>作者据此提炼的三个发现（§4.2–§4.3、§5）。</strong> 其一，<strong>沟通多不等于协作好</strong>：聊天最多的 GPT-5 Mini（44.1 条）只排第三，且它在失败任务上把 26% 的动作花在聊天上；沟通最少、且平均拖到第 5 轮才发第一条消息的 DeepSeek 垫底（其它模型第 1–2 轮就开口），像是错过了早期协调窗口；Gemini 沟通中等（11.0 条）却成绩最好——作者推断存在”够用即可、别挤占行动”的最优沟通区间。其二，<strong>绝大多数动作是无效功</strong>：即便最好的 Gemini 也只有不到 1&#x2F;3 的动作在因果路径上（CCE 0.320），DeepSeek 近 88% 的动作被浪费；不过条件在<strong>成功任务</strong>上看，Claude 的每任务效率最高（0.653，Gemini 0.609，GPT-5 0.571），即”Claude 成功时浪费更少”（§4.3）。其三，<strong>难度按类别分化</strong>：按 Figure 4(d) 的跨模型平均通过率，survival 最易（67–100%），coordination（平均 12%）与 construction（平均 20%）最难，反映紧耦合的多 Agent 同步与博弈式协商最难做（§3.4；§4.2 给出的分模型区间一致，如 coordination 0–50%）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-09-28/2609.31590_fig3.svg"
+                      alt="数据集统计"
+                ></p>
+<p><em>原文图 4（Dataset Statistics）。(a) 主集与 augmented 集的任务类别分布：Combat 28、Crafting 22、Gathering 14、Trading 13、Exploration 10、Others 7、Survival 6（每个类别主集与变体集数量相同，正文称共 8 类、coordination 与 construction 最少）；(b) 每个任务的 Agent 数（众数为 3，长尾到 20）；(c) 任务轮数上限（25 到 55）；(d) 四个模型在各类别上的平均成功率。该图说明基准的规模与难度分布。</em></p>
+<p><strong>基线、消融与稳健性是否支撑作者的解释（§4.4）。</strong> Table 3 的基线以 Gemini 3 Flash 为底模：随机动作 5.7% SR，单 Agent（把所有角色和物品塞给一个 Agent）28.6%，完全禁言 22.9%，而”给一份人类写好的共享计划但不许沟通”反而降到 17.6%——比不许沟通还差，作者的解释是：不能随执行修正的计划会在假设失效时卡死，说明<strong>计划的价值依附于执行中修订它的能力</strong>；oracle communication（一个 Agent 能看到所有消息来统筹）把成绩从 52.0% 提到 60.0%，证明沟通质量确实是瓶颈之一，但<strong>即便有 oracle 沟通仍有 40% 失败</strong>，说明长程规划与资源分配本身内生的难度不可忽视（§4.4）。设计组件消融（Table 4，35 题子集）显示每个设计都起作用：完整配置 54.3%，去掉非对称角色 45.7%，轮数上限从 50 砍到 10 只剩 37.1%，随机化出生点影响最小（51.4%），而拿掉任务文档掉到 29.4%——作者解读为文档与长视界是”承重墙”：缺了它们，瓶颈会从协作转移到信息搜集与时间压力上，这与基准”隔离协作能力”的设计目标一致（§4.4）。三次重复（温度 0.7，种子 42&#x2F;819&#x2F;314）在主测试的子集上 SR 都是 54.3%（样本标准差 0.0），轮数标准差 2.07、聊天数标准差 0.18；作者自己声明：这一三次、单模型的分析不足以证明跨模型的稳定性或模型间差异的统计显著性（§4.4）——这一点值得注意，说明模型间的排名差异没有被论文做显著性检验。</p>
+<p><strong>CCE 这个度量本身可信吗（§4.3、附录 A）。</strong> 这是本文少数”用证据解释机制”而非仅报分数的地方，作者给了三条证据：(1) 与人类一致性——在 11 道任务、两个模型轨迹中抽样 84 个动作级判断，人类标注与 GPT-4.1 judge 的原始一致率 82%（69&#x2F;84），Cohen’s <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>κ</mi><mo>=</mo><mn>0.64</mn></mrow><annotation encoding="application/x-tex">\kappa = 0.64</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">κ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.64</span></span></span></span>（”substantial”），而两个 judge 模型之间的一致性也才 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>κ</mi><mo>=</mo><mn>0.66</mn></mrow><annotation encoding="application/x-tex">\kappa=0.66</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">κ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.66</span></span></span></span>（7,298 个判断，84% 原始一致）——即”人—机分歧”与”机—机分歧”同量级，说明二元因果判断是<strong>well-posed</strong> 的，不是某个模型的artifact；(2) 换 judge 稳健——用 GPT-4.1、Claude Sonnet 4、Llama-4 Maverick 三个不同家族的 judge 重算 CCE，四个被测模型的<strong>排序完全不变</strong>，绝对值漂移不超过约 0.05（Table 6）；(3) CCE 与 SR 的关系——整体排名大体跟随 SR（因为失败任务 CCE 记 0），但条件在成功任务上能看到 SR 之外的差别（如 Claude 效率反超）——作者据此认为 CCE “adds nuance”（§4.3）。沟通失败的分析（§4.5、Table 5）把 Gemini 轨迹中 61 条错误信息分为六类，最多的是”Stale &amp; Redundant”（37.7%，引用已完成的任务、重复已知状态），其次是角色指认错误（16.4%）与事实错误（14.8%），作者推测根因是<strong>对其他 Agent 状态的理解或预测不准</strong>。</p>
+<p><strong>代价与未解决的问题。</strong> 成本方面：本文无训练开销（纯评测），主要代价是 (a) 人工：5 名标注员出题、每题的 verifier 脚本与文档、双 LLM pilot 校验、augmented 变体的人工抽检；(b) 评测时每题都要跑 CCE 的 LLM 判定的多次调用（附录 F.2 虽给出剪枝&#x2F;批处理&#x2F;时间窗三项优化，但论文未报告判定的实际调用量或费用，属未报告信息）；(c) 更强的模型未必更”高效”——高 SR 与高动作数并存（GPT-5 Mini 主集 131.3 个动作）。未解决的问题包括：oracle 沟通下仍 40% 失败、27% 的任务所有模型都解不出、最好的模型 CCE 也仅 0.320（§5）；CCE 在失败任务上定义为 0，使总体 CCE 混合了成功率与效率，作者用”条件于成功任务”的补充分析部分缓解；宽松的纳入政策使 CCE 只是<strong>上界</strong>估计；augmented 任务由 LLM 生成、仅抽 10% 人工验证（附录 D 报告抽检中 100% 保持协作需求&#x2F;目标语义&#x2F;角色非对称，90% 难度适当）；此外结论只覆盖 4 个（+2 个补充）前沿模型在黑盒协议下的表现，<strong>不能直接外推到训练过的 Agent 系统或其它环境</strong>——论文未做此类实验。</p>
+<p><strong>总评。</strong> “结果显示有效”与”证据解释机制”需要分开看：基线&#x2F;消融显示基准确实能区分单 Agent、无沟通等设置（Table 3、4），这说明评测设计达到了”逼出协作”的目的；CCE 的可复现性主张有人类一致性与三 judge 实验的直接支持，属于<strong>证据支持机制</strong>；而”文档与长视界承重””沟通多不等于好”更接近作者的合理解读，消融与相关性分析支持但不充分证明其因果机制。</p>
+<p><strong>收尾。</strong> 作者发现已有多 Agent 评测普遍视界短、把低层操作与协作混为一谈、且用单一成功率甚至主观打分度量协作，因此提出 AgentWorld：以 MMORPG 沙盒 + 13 个高层 API 抽象操作、以回合制黑盒协议强制自然语言协调、以人工标注的 3–20 Agent 非对称长程任务构成基准，并用因果动作图指标 CCE 量化”多少动作真正有贡献”；实验表明即使最强的 Gemini 3 Flash 也只有 52.0% 成功率、CCE 0.320，沟通数量与成功率不相关，主要失败模式是状态过时与角色混乱，且 oracle 沟通下仍有 40% 失败——说明长程多 Agent 协作在当下仍是基础模型的一个系统性缺口，而该基准对更难 augmented 变体、LLM judge 判定成本与跨模型显著性检验的覆盖仍有边界。</p>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> AgentWorld: Benchmarking Long-Horizon Collaboration of Multi-agent LLMs</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-09-28 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-09-28 12:16:49
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/09/28/2609.31590v1_AgentWorld_Benchmarking_Long-Horizon_Collaboration_of_Multi-agent_LLMs/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/09/28/2609.31394v1_InternW0-Delta_A_World_Action_Model_Bridging_Predictive_Dynamics_and_Actions_with_20K_Hours_of_Open_Data/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">InternW0-Δ: A World Action Model Bridging Predictive Dynamics and Actions with 20K+ Hours of Open Data</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/09/28/2609.31620v1_FuseReg_Regularizing_Layer_Fusion_Mitigates_the_Reconstruction-Generation_Gap_in_Representation_Autoencoders/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">FuseReg: Regularizing Layer Fusion Mitigates the Reconstruction-Generation Gap in Representation Autoencoders</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">AgentWorld: Benchmarking Long-Horizon Collaboration of Multi-agent LLMs</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E4%BD%9C%E8%80%85%E5%8F%91%E7%8E%B0%E4%BA%86%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 作者发现了什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">2. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">3. 解决得怎么样？</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 20 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
