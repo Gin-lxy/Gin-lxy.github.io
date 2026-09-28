@@ -6,6 +6,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, wri
 import { dirname, join, resolve, sep } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createHash } from 'node:crypto';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const POSTS_DIR = join(ROOT, 'source', '_posts');
@@ -16,10 +17,10 @@ const CATEGORY = 'daily paper';
 const DATE_DIR = /^\d{4}-\d{2}-\d{2}$/;
 
 function usage() {
-  console.log(`用法: node tools/sync_dailypapers_to_blog.js [--wiki DIR] [--master DIR] [--publish] [--dry-run] [--limit N] [--since YYYY-MM-DD]`);
+  console.log(`用法: node tools/sync_dailypapers_to_blog.js [--wiki DIR] [--master DIR] [--publish] [--dry-run] [--limit N] [--since YYYY-MM-DD] [--skip-spec-check]`);
 }
 
-const args = { wiki: DEFAULT_WIKI, master: DEFAULT_MASTER, publish: false, dryRun: false, limit: Infinity, since: null };
+const args = { wiki: DEFAULT_WIKI, master: DEFAULT_MASTER, publish: false, dryRun: false, limit: Infinity, since: null, skipSpecCheck: false };
 for (let i = 2; i < process.argv.length; i += 1) {
   const arg = process.argv[i];
   if (arg === '--wiki') args.wiki = resolve(process.argv[++i]);
@@ -28,6 +29,7 @@ for (let i = 2; i < process.argv.length; i += 1) {
   else if (arg === '--dry-run') args.dryRun = true;
   else if (arg === '--limit') args.limit = Number.parseInt(process.argv[++i], 10);
   else if (arg === '--since') args.since = process.argv[++i];
+  else if (arg === '--skip-spec-check') args.skipSpecCheck = true;
   else if (arg === '--help' || arg === '-h') { usage(); process.exit(0); }
   else { usage(); process.exit(2); }
 }
@@ -63,16 +65,48 @@ const skipped = [];
 const errors = [];
 let remaining = 0;
 
+function listReports(dateDir) {
+  return readdirSync(dateDir)
+    .filter((name) => name.endsWith('.md') && name !== 'index.md' && !name.includes('合集'))
+    .sort();
+}
+
 const dateDirs = readdirSync(args.wiki)
   .filter((name) => DATE_DIR.test(name) && statSync(join(args.wiki, name)).isDirectory())
   .sort()
   .filter((name) => !args.since || name >= args.since);
 
+// 规范指纹门禁：报告必须由最新规范生成，否则拒绝同步（daily-paper-prompt.md §〇）
+if (!args.skipSpecCheck) {
+  const specFile = join(args.wiki, 'daily-paper-prompt.md');
+  if (!existsSync(specFile)) {
+    console.error(`拒绝同步：找不到规范文件 ${specFile}（确认无误且用户同意时可加 --skip-spec-check）`);
+    process.exit(8);
+  }
+  const specHash = createHash('sha256').update(readFileSync(specFile)).digest('hex').slice(0, 16);
+  for (const date of dateDirs) {
+    const dateDir = join(args.wiki, date);
+    const hasPending = listReports(dateDir).some((name) => !existsSync(join(POSTS_DIR, `${name.slice(0, -3)}.md`)));
+    if (!hasPending) continue;
+    const indexFile = join(dateDir, 'index.md');
+    const recorded = existsSync(indexFile)
+      ? readFileSync(indexFile, 'utf8').match(/规范版本指纹[^\n]*?sha256:([0-9a-fA-F]{16,64})/)?.[1].toLowerCase().slice(0, 16)
+      : null;
+    if (!recorded) {
+      console.error(`拒绝同步 ${date}：index.md 缺少"规范版本指纹"行——报告可能不是按最新规范生成的。请重读 daily-paper-prompt.md 并按"运行前置规则"记录指纹后重试（用户明确同意时可加 --skip-spec-check）。`);
+      process.exit(8);
+    }
+    if (recorded !== specHash) {
+      console.error(`拒绝同步 ${date}：规范指纹不匹配（index.md 记录 sha256:${recorded}，当前规范文件 sha256:${specHash}）——报告可能使用了过期规范，或规范在报告生成后被修改。请核对后重新生成（用户明确同意时可加 --skip-spec-check）。`);
+      process.exit(8);
+    }
+    console.log(`规范指纹校验通过：${date} sha256:${specHash}`);
+  }
+}
+
 for (const date of dateDirs) {
   const dateDir = join(args.wiki, date);
-  const reports = readdirSync(dateDir)
-    .filter((name) => name.endsWith('.md') && name !== 'index.md' && !name.includes('合集'))
-    .sort();
+  const reports = listReports(dateDir);
   let wroteThisDate = false;
 
   for (const name of reports) {
