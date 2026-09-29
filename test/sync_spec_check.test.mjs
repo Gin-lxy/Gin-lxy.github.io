@@ -11,7 +11,7 @@ const TOOL = fileURLToPath(new URL('../tools/sync_dailypapers_to_blog.mjs', impo
 const DATE = '2026-09-28';
 const REPORT_STEM = '0000.00000v1_sync_gate_fixture';
 const SPEC = '# 测试用规范\n\n正文。\n';
-const REPORT = '# 测试报告\n\n正文。\n';
+const REPORT = '# 测试报告\n\n标签：测试、夹具。\n\n正文。\n';
 
 function fixture(t, indexContent) {
   const wiki = mkdtempSync(join(tmpdir(), 'sync-spec-check-'));

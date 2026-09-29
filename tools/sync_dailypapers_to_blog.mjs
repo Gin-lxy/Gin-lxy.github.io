@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // 把 dailypaper 精读报告同步为博客文章（source/_posts），可用 --publish 构建并上线。
 // 幂等：已存在的文章跳过，不覆盖；可安全重复运行。
+// 报告头部缺少「标签:」行或为空时拒绝整批同步（退出码 9），需重新审读论文摘要补写后重跑。
 
 import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
@@ -60,9 +61,26 @@ function rewriteImages(body, date) {
     .replace(/(src=["'])(?:\.\/)?images\//g, `$1${prefix}`);
 }
 
+// 标签行位于报告头部（第一个 ## 小节之前）。返回 null 表示缺行，空数组表示行为空。
+function parseTags(content) {
+  for (const line of content.split('\n')) {
+    if (/^##\s/.test(line) || /^---\s*$/.test(line)) break;
+    const match = line.match(/^标签\s*[:：]\s*(.*)$/);
+    if (match) {
+      return [...new Set(match[1]
+        .replace(/[。．]\s*$/, '')
+        .split(/[、,，;；]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean))];
+    }
+  }
+  return null;
+}
+
 const newPosts = [];
 const skipped = [];
 const errors = [];
+const tagErrors = [];
 let remaining = 0;
 
 function listReports(dateDir) {
@@ -125,19 +143,26 @@ for (const date of dateDirs) {
       errors.push(`${date}/${name}: 含 Obsidian 嵌入 ![[，verifier 会拒绝，需先改为标准 Markdown`);
       continue;
     }
+    const tags = parseTags(content);
+    if (!tags || tags.length === 0) {
+      tagErrors.push(`${date}/${name}: ${tags ? '标签行为空' : '缺少标签行'}——需重新审读论文摘要补写「标签:」行后重跑`);
+      continue;
+    }
     const { title, body } = splitTitle(content, stem);
     const post = [
       '---',
       `title: ${JSON.stringify(title)}`,
       `date: ${date} 12:00:00`,
       `categories: ["${CATEGORY}"]`,
-      'tags: []',
+      `tags: ${JSON.stringify(tags)}`,
       '---',
       '',
       rewriteImages(body, date),
     ].join('\n');
     if (!args.dryRun) {
       writeFileSync(dest, post, 'utf8');
+    } else {
+      console.log(`  [dry-run] ${date}/${name} 标签: ${tags.join('、')}`);
     }
     newPosts.push({ date, source: `${date}/${name}`, dest });
     wroteThisDate = true;
@@ -155,6 +180,11 @@ const dates = [...new Set(newPosts.map((p) => p.date))].sort();
 console.log(`${args.dryRun ? '[dry-run] ' : ''}新增 ${newPosts.length} 篇，跳过已存在 ${skipped.length} 篇，待续(超过 limit) ${remaining} 篇，格式问题 ${errors.length} 篇`);
 if (dates.length) console.log(`涉及日期: ${dates.join(', ')}`);
 for (const e of errors) console.log(`  跳过: ${e}`);
+if (tagErrors.length) {
+  console.error('以下报告存在标签问题（需重新审读论文摘要，按规范补写「标签:」行后重跑）：');
+  for (const e of tagErrors) console.error(`  ${e}`);
+  process.exit(9);
+}
 if (args.dryRun) process.exit(errors.length ? 3 : 0);
 
 if (errors.length) {
