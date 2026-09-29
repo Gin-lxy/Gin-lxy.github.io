@@ -94,6 +94,7 @@ if PUBLIC.join("index.html").file?
   errors << "expected Redefine 2.9.0 metadata" unless index.include?('"version":"2.9.0"')
   errors << "expected site Open Graph description" unless index.include?('property="og:description" content="GIn&#39;s notebook"')
   errors << "expected avatar favicon link" unless index.include?('href="/images/favicon.png"')
+  errors << "expected code block override stylesheet link" unless index.include?('href="/css/codeblock.css"')
   theme_json = index[/window\.theme\s*=\s*(\{[^\n]*\});/, 1]
   if theme_json
     theme = JSON.parse(theme_json)
@@ -102,6 +103,7 @@ if PUBLIC.join("index.html").file?
     errors << "expected empty effective social links" unless social.fetch("links") == []
     errors << "expected empty effective social QR codes" unless social.fetch("qrs") == []
     errors << "expected disabled visitor counter" unless theme.fetch("global").fetch("website_counter").fetch("enable") == false
+    errors << "expected simple code block style" unless theme.fetch("articles").fetch("code_block").fetch("style") == "simple"
   else
     errors << "missing generated theme config"
   end
@@ -131,6 +133,12 @@ else
 end
 errors << "missing route: css/katex/katex.min.css" unless PUBLIC.join("css/katex/katex.min.css").file?
 errors << "missing KaTeX font: css/katex/fonts/KaTeX_Main-Regular.woff2" unless PUBLIC.join("css/katex/fonts/KaTeX_Main-Regular.woff2").file?
+codeblock_css = PUBLIC.join("css/codeblock.css")
+errors << "missing route: css/codeblock.css" unless codeblock_css.file?
+if codeblock_css.file?
+  css = File.binread(codeblock_css).force_encoding(Encoding::UTF_8)
+  errors << "expected code label hidden in css/codeblock.css" unless css.include?(".code-container::before") && css.include?("content: none")
+end
 
 abort errors.uniq.join("\n") unless errors.empty?
 puts "Generated-site contract passed."
