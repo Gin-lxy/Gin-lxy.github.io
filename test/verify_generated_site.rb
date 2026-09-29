@@ -9,17 +9,21 @@ PUBLIC = ROOT.join("public")
 EXPECTED_ROUTES = [
   "index.html", "404.html", "archives/index.html",
   "categories/index.html", "tags/index.html", "about/index.html",
-  "categories/课内/index.html", "categories/漫谈/index.html", "categories/daily-paper/index.html",
-  "tags/数据结构/index.html", "tags/计算机网络/index.html", "tags/随笔/index.html",
+  "categories/本科/index.html", "categories/漫谈/index.html", "categories/daily-paper/index.html", "categories/笔记/index.html",
+  "tags/数据结构/index.html", "tags/计算机网络/index.html", "tags/随笔/index.html", "tags/强化学习/index.html", "tags/LLM/index.html",
   "search.xml",
   "2023/11/15/2023秋-关于当下和未来/index.html",
   "2023/11/15/数据结构复习/index.html",
-  "2024/03/16/大二下EBU5213 Internet protocols and networks/index.html"
+  "2024/03/16/大二下EBU5213 Internet protocols and networks/index.html",
+  "2026/09/01/agentic-rl-infra-conversation-notes/index.html",
+  "2026/09/29/rl-algorithms-ppo-dpo-grpo-gspo-credit-assignment/index.html"
 ].freeze
 EXPECTED_TEXT = {
   "2023/11/15/2023秋-关于当下和未来/index.html" => "题记:秋季已完,我仍未得救",
   "2023/11/15/数据结构复习/index.html" => "单链表",
-  "2024/03/16/大二下EBU5213 Internet protocols and networks/index.html" => "计算机网络和因特网"
+  "2024/03/16/大二下EBU5213 Internet protocols and networks/index.html" => "计算机网络和因特网",
+  "2026/09/01/agentic-rl-infra-conversation-notes/index.html" => "有效训练收益",
+  "2026/09/29/rl-algorithms-ppo-dpo-grpo-gspo-credit-assignment/index.html" => "细粒度信用分配"
 }.freeze
 EXPECTED_TITLES = {
   "index.html" => "GIn",

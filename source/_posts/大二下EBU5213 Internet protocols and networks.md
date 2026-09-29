@@ -3,7 +3,7 @@ title: "EBU5213 Internet protocols and networks"
 date: 2024-03-16 18:56:00
 permalink: "2024/03/16/大二下EBU5213 Internet protocols and networks/"
 tags: ["计算机网络"]
-categories: ["课内"]
+categories: ["本科"]
 ---
 
 # 第一章 计算机网络和因特网
