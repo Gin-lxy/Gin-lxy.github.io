@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/01/2609.40111v1_agent_error_dataset_scaling_50_000_error-diagnosis_pairs_for_failure_analysis_and_error-aware_post-training/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Agent Error Dataset: Scaling 50,000 Error–Diagnosis Pairs for Failure Analysis and Error-Aware Post-Training">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/01/2609.40111v1_Agent_Error_Dataset_Scaling_50_000_Error-Diagnosis_Pairs_for_Failure_Analysis_and_Error-Aware_Post-Training/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-01T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-01T06:13:50.612Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="LLM Agent">
+<meta property="article:tag" content="后训练">
+<meta property="article:tag" content="失败分析">
+<meta property="article:tag" content="数据集构建">
+<meta property="article:tag" content="错误诊断">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Agent Error Dataset: Scaling 50,000 Error–Diagnosis Pairs for Failure Analysis and Error-Aware Post-Training | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">125</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">42</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Agent Error Dataset: Scaling 50,000 Error–Diagnosis Pairs for Failure Analysis and Error-Aware Post-Training</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-01 12:00</span>
+        <span class="mobile">2026-10-01 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-01 14:13:50</span>
+            <span class="mobile">2026-10-01 14:13:50</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%90%8E%E8%AE%AD%E7%BB%83/">后训练</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-Agent/">LLM Agent</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%A4%B1%E8%B4%A5%E5%88%86%E6%9E%90/">失败分析</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E9%94%99%E8%AF%AF%E8%AF%8A%E6%96%AD/">错误诊断</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA/">数据集构建</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者:Kunlun Zhu、Xuyan Ye、Yibo Li、Cheng Qian、Beibin Li、Heng Ji（通讯作者，<a class="link"   href="mailto:&#104;&#x65;&#110;&#103;&#x40;&#x61;&#112;&#x6f;&#100;&#x65;&#120;&#x2e;&#99;&#111;&#109;" >&#104;&#x65;&#110;&#103;&#x40;&#x61;&#112;&#x6f;&#100;&#x65;&#120;&#x2e;&#99;&#111;&#109;<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>，共 6 人）；署名机构为 Apodex（arXiv HTML&#x2F;PDF 首页只给出这一单一机构，未逐作者标注所属；致谢中提到 Mr. Tianqiao Chen 的支持）。</p>
+<p>论文:2609.40111v1；Hugging Face 来源批次:2026-10-01；精读归档日期:2026-10-01（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face:<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2609.40111" >https://huggingface.co/papers/2609.40111<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文:<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2609.40111v1" >https://arxiv.org/abs/2609.40111v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>分析范围:已读取 arXiv abs 页（核对实际版本号为 v1，2026-09-30 提交）与 arXiv HTML 全文：Abstract、§1–§6、References、附录 A–X（含 B 数据集分析、C 计数与证据分级、D 构造&#x2F;replay 契约、E 构造审计与标注质量、F 案例、G 分类学验证、H–I 结果表与训练协议、J–Q 敏感性分析与训练&#x2F;评测协议、S 监督对比、T 数据 schema、W 人工审核、X 补充实验细节）；Table 1–3、7–9、11–19、25–35、39–40、43–52 已逐表核对。HTML 版中 Figure 1&#x2F;3&#x2F;4&#x2F;5&#x2F;6 的图片文件缺失（页尾有 LaTeXML 构建报错提示），配图改从官方 PDF（73 页）渲染：fig1＝论文 Figure 2（PDF p. 3，AET 总览，与 HTML 内嵌 overview.png 交叉核对）；fig2＝论文 Figure 1（PDF p. 1，三面板主结果）；fig3＝论文 Figure 5（PDF p. 7）；fig4＝论文 Figure 6（PDF p. 9）。未逐格核对的表：Table 4–6、10、20–24、36–38、41–42、45–46。未独立运行官方代码，也未访问项目页 agenterrordata.apodex.com（论文称接收后开源，当前无法验证）。因 HTML 与 PDF 排版不同，全文统一按章节与图表编号定位，不标注 PDF 页码（配图除外）。</p>
+<p>标签:LLM Agent、失败分析、错误诊断、数据集构建、后训练。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文指出失败 rollout 中除了奖励还包含”改哪一步、换成什么动作”的监督信号，据此构建了 AED——一个包含 50,228 个 error–diagnosis 对（33 个环境、19 个 harness 家族、23 个策略模型）的自然失败数据集，并用五阶段 AET 流水线把失败转成”诊断 &#x2F; 恢复 &#x2F; 偏好”三类训练视图，其中可在同 checkpoint 上重放的部分带原始动作对照实验。核心证据是：修正提案在 3,062 对匹配 replay 上把 verifier 通过率从 18.4% 提到 51.1%（+32.7 pp），full-diagnosis SFT 把 Qwen3-8B 与内部教师标签的 exact-step 一致率从 47.2% 提到 63.6%（优于最强 prompting 基线 54.7%）。但主要结论必须加边界：63.6% 衡量的是与论文自建教师标签的一致率（该冻结版本被论文自己审计出多处缺陷），公开基准迁移大多为负，actor 修复训练只在 WebShop-lite 上显著为正、在 TextQuest 与真实环境上明显退化，且大多为单种子实验。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>背景与任务</strong>。LLM agent 通过 harness 连接工具与持久状态，在软件、网页等交互任务中工作（§1）。agent 后训练领域已用 reward 过滤轨迹做 SFT（AgentTuning）、把策略优化扩展到多轮环境反馈（RAGEN、AgentRL），但作者强调：outcome reward 本身不指明”该改哪一步决策、应换成什么动作”，而失败轨迹保留了观测、动作与环境响应，可以转化为”定位错误 + 解释原因 + 给出替代动作”的监督（§1）。</p>
+<p><strong>现有做法与不足</strong>。作者在 related work 中把已有工作分为失败归因（MAST 的失败模式分类、Who&amp;When 的责任 agent&#x2F;步骤定位、AgenTracer 的定位模型训练、AEGIS 的注入式验证）与恢复（AgentDebug、AgentDebugX）两条线，并给出 Table 1 的九项资源对比：已有资源要么只做标注（无执行修正证据、无对照），要么环境&#x2F;harness&#x2F;模型覆盖窄，或学习目标不是训练一个”会修复动作”的 acting policy（§2，Table 1）。</p>
+<p><strong>作者的问题判断</strong>。”需要一份更广的资源，把自然失败与解释、修正提案和执行证据连接起来，并同时支持诊断与动作两类训练”（§1）。论文指出跨资源研究困难的根源：执行设置、标注目标、修正证据的定义各不相同（§2）。需要注意：（审稿人判断）这是一个”资源缺口”型问题陈述，作者没有给出测量数据来量化该缺口（例如多少研究因资源不统一而受阻），Table 1 的对比即其全部证据；该问题判断的合理性主要来自相关工作总结本身。</p>
+<p><strong>核心假设</strong>。若把失败经验构造为（失败轨迹 → 有引用支撑的诊断与修正提案 → 可选的同 checkpoint 对照 replay → 目标专属训练视图）的流水线，则（i）修正提案可被执行验证，（ii）诊断本身可作为监督信号训练 debugger，（iii）修正行为可作为监督信号训练 actor（§1，§3.2，Figure 2）。三条假设在 §5 中被分别检验，且论文对每条的结论强弱不同（见 §4）。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p><strong>一段话概括</strong>：AED 的实质增量是”规模化 + 结构化 + 对照试验化”三项工程与实验设计的组合——把 33 个环境、19 个 harness、23 个策略模型的自然失败收集成带完整溯源与多次诊断的集合；用 AET 五阶段流水线为每条失败建立”诊断—引用—取证—（可选）重放”的证据链；并在可重放的子集上执行”修正动作 vs 同 checkpoint 原动作重试”的配对对照，把”修正是否真的有用”从相关性升级为干预证据；最后为诊断、恢复、偏好构造相互独立的训练视图。方法学上它没有提出新的模型或训练目标（诊断引擎直接调用已有的 AgentDebug&#x2F;AgentDebugX API，训练都是标准 SFT&#x2F;DPO），创新集中在数据资源与构建-验证流程。</p>
+<p><strong>创新点 1：带对照 replay 的修正有效性证据</strong>。机制：对每条失败，把修正提案与”同一 checkpoint 重放原动作”作对照，两者共享 policy、harness、预算、verifier 与温度调度（§3.2 阶段 4；Appendix D.1）。与最接近工作（AgentDebug 用修正反馈恢复、AgenTracer 做归因训练）的不同：AgentDebug 不保留同 checkpoint 对照，AgenTracer 的 replay 仅用于构造（Table 1 的 Ctrl. 列：AED 标记为部分支持，AgentDebug 为无）。证据：3,062 对配对中，修正胜出 1,454 对、失败 66 对；B.2 的 discordant 分析显示若不做对照，会把 1,564 次”修正成功”全记为收益，而其中 470 次（30.1%）原动作重试也成功（§5.1，Figure 1a，Appendix B.2）。移除该设计的后果论文报告得很清楚：匹配大小过滤后”更严格 admission 不带来学习收益”（§5.1、Appendix X），说明对照 replay 的价值主要体现在分析而非训练增益。</p>
+<p><strong>创新点 2：AET 五阶段流水线与证据分级</strong>。机制：Collect（仅自然失败，基础设施&#x2F;grader 故障单独隔离）→ Diagnose（自由文本诊断，非固定分类法；保留初版提案与修订历史）→ Ground（引用必须在学生可见 trace 中可解析，双判官语义审查）→ Replay（可选，E0&#x2F;E1&#x2F;E2 证据分级：E2 要求每组 ≥2 次试验且治疗组全过、对照组全败）→ Build views（诊断&#x2F;恢复&#x2F;偏好视图各有独立准入规则）（§3.2，Appendix C.1、D.1、D.2）。差异：把”证据强度”显式分级并可只凭存储结果重算，区别于只存单一标注的已有数据集。证据：逐条留痕（接受与拒绝的提案都保留），但（审稿人判断）流水线的核心推理组件是外部系统，论文未做”移除该组件”的消融——G1b 的 X vs J 对比里两个构造法都没有超过 base（Appendix I.9），这是对该流水线训练价值的直接反证。</p>
+<p><strong>创新点 3：面向不同目标的训练视图拆分</strong>。机制：诊断视图（compact 只含 attribution；full 含 7 字段）、预防式恢复（pre-error 历史 → 通过分支的动作）、后错式恢复（历史+错误动作（masked）→ 修正，可带反思）、动作 DPO（同一状态下两个已执行的可比动作）（§4，Appendix Q.3、T.2）。差异：已有资源不同时提供”诊断”与”actor 修复”两种监督（Table 1 的 Train 列仅 AED 标 D, A）。证据：诊断侧有内部一致率提升（§5.2），actor 侧只有环境依赖的混合结果（§5.3）；反思（reflection）相对纯动作监督无检测到的增益，DPO 试点无恢复收益（§5.3，Appendix I.15）。也就是说该设计里只有”诊断视图”拿到了正面训练证据，”后错恢复视图”的增量收益未被证明。</p>
+<p><strong>创新点 4（需降级看待）</strong>：50,228 对的规模与多样性本身。这属于已有组件（失败收集、诊断、replay）的规模化整合，而非新研究思想；且论文标题的 50,000 是经过筛选后计数的 error–diagnosis 对，不等于独立失败次数（38,278 个 source-trace blob、9,961 个 source task，pairs&#x2F;blob&#x3D;1.31；Appendix B.1 明确”blob 身份不构成独立执行的计数”）。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉</strong>：一次失败 rollout 相当于一次”已经跑过路径的搜索”——把它变成监督的关键动作是：指出哪一步是可避免的决策错误（而非失败暴露的步骤）、给出理由与证据、并用一次受控重放检验”换个动作会不会成功”。AET 就是把这套人工调试逻辑流水线化，并为不同下游目标导出不同”输入-目标”对。</p>
+<p><strong>运行流程（按实际 pipeline 展开）</strong>：</p>
+<ol>
+<li><strong>输入</strong>：环境适配器提供的任务、指令、工具与成功 verifier；策略模型在 harness 中的完整 action–observation 轨迹、终端结果（§3.1，Appendix D.1 阶段 1）。失败是自然产生的，不注入（Table 1：AED 项 Errors&#x3D;nat.）。</li>
+<li><strong>Collect</strong>：保存 policy&#x2F;harness&#x2F;environment 身份、动作、观测与结果；服务故障、harness 故障、grader 异常保留存档但排除在 agent-error 目标外；工具报错后任务成功的运行被排除（Table 附录 D.1 失败边界表）。</li>
+<li><strong>Diagnose</strong>：通过 AgentDebugX 的 Python attribution API 产生 blamed step、责任 agent&#x2F;组件、带 trace 引用的解释与替代动作；记录 privileged 参考信息与 learner 输入分离；保留全部尝试并区分”初版提案”与”重试后选中”提案；多个 debugger 可复用同一失败（§3.2，Appendix D）。</li>
+<li><strong>Ground</strong>：引用必须在导出的学生输入中逐字解析（截断标记不算证据）、检查工具与信息可用性（修复只能用动作前可得的信息），双判官全部接受才通过；机械检查 + 语义判官 + 12 项 rubric v5（含泄漏&#x2F;秘密、输入保真等）（Appendix D.1、E.6）。</li>
+<li><strong>Replay（可选）</strong>：从恢复或重建的 checkpoint 起两个新执行——一个替代修正动作、一个重复原动作；匹配 policy&#x2F;harness&#x2F;预算&#x2F;verifier&#x2F;温度（首个样本 T&#x3D;0.2、后续 0.8；源 rollout 是 0.7），两个臂共享调度（Appendix D）。状态恢复分三类记录：原生 harness 完整恢复（871 对）、替代 ReAct harness（1,846 对，因 smolagents&#x2F;Pydantic AI&#x2F;AutoGen&#x2F;LangGraph&#x2F;多 agent 等不被 replay runner 支持）、多 agent 状态部分恢复（345 对）（Appendix H.1，Table 14）。MCPMark 因两次重放判决不一致被排除出 verified-repair；GAIA&#x2F;WideSearch 无法确定性重放，只保留诊断（Appendix O.4，Table 37）。</li>
+<li><strong>Build views（训练）</strong>：仅目标 assistant token 计 loss（式 1：诊断用 per-example mean <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">ℓ</mi><mi>i</mi></msub><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo><mo>=</mo><mo>−</mo><msub><mo>∑</mo><mi>k</mi></msub><msub><mi>m</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mi>log</mi><mo>⁡</mo><msub><mi>π</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><msub><mi>y</mi><mrow><mi>i</mi><mi>k</mi></mrow></msub><mo>∣</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator="true">,</mo><msub><mi>y</mi><mrow><mi>i</mi><mo separator="true">,</mo><mo>&lt;</mo><mi>k</mi></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\ell_i(\theta)=-\sum_k m_{ik}\log \pi_\theta(y_{ik}\mid x_i, y_{i,&lt;k})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord">ℓ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0497em;vertical-align:-0.2997em;"></span><span class="mord">−</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1864em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">ik</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">ik</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mpunct mtight">,</span><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，actor 用跨 rank 的 token mean）（§4，Eq. 1）。诊断视图输入&#x3D;失败 trace，输出&#x3D;attribution（compact）或 7 字段（full）；恢复视图把 pre-error 历史（+后错变体中被 mask 的错误动作与反馈）映射到通过分支的动作；偏好对要求同状态、已执行且结果有正反差。训练用 Qwen3-8B 全参 SFT（BF16、AdamW、lr <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">10^{-5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span>、cosine、3% warmup、梯度裁剪 1.0；诊断 batch 12、2 epochs；actor batch 16、2 epochs）（Appendix I.2，Table 18）。</li>
+<li><strong>输出</strong>：带证据等级的记录（失败轨迹 + 诊断 + 修正 + replay 分支）、三类训练视图（诊断&#x2F;恢复&#x2F;偏好）以及可重算的 E0&#x2F;E1&#x2F;E2 分级（Appendix C.1、D.2）。</li>
+</ol>
+<p><strong>哪些由模型决定、哪些由固定流程控制</strong>：诊断、解释、修正提案由 LLM debugger 生成（模型决定）；引用解析、admission rubric、replay 调度、loss mask、split 划分由固定流程控制。判定”decisive step”的标准是”最早的有支持的、且修正后可避免失败的错误”——rubric 要求排除已于之后恢复的错误与纯粹症状（Appendix E.6 第 2 条）。</p>
+<p><img src="/images/dailypaper/2026-10-01/2609.40111_fig1.png" alt="论文 Figure 2（本报告图 1，images/2609.40111_fig1.png）：AET 数据构造与训练视图总览。左列&quot;1 High-quality data construction&quot;给出四个竖排步骤：Collect natural failures（只收自然失败）→ Grounded diagnosis（定位 blamed step 并给出修复）→ Controlled replay（可选、同 checkpoint 对照重放）→ Evidence-graded record（把执行 trace、诊断与修复、replay 通过/失败、来源全部落盘），底部四个属性标签 Auditable/Reusable/Real-world/High-quality 是作者对记录的定位宣称。中列&quot;2 Large scale, broad coverage&quot;顶部三个数字为 50,228 error–diagnosis pairs / 9,961 source tasks / 3,062 matched replay pairs（图中注明 replay 属&quot;separate experiment&quot;）；中央四象限圆环是覆盖维度：33 environments（Task diversity）、19 harness families（Agent system diversity）、23 policy models（Policy diversity）、2,604 analyzed trajectories（Failure mode diversity，历史标签子集）；底部注明&quot;每个环境、harness、模型至少 10 个 source task&quot;才有资格计入覆盖统计。右列&quot;3 Strong training value&quot;列出三类被监督的目标能力（Locate/Explain/Cite/Repair）与构建示例（Diagnosis SFT&quot;工具返回了认证错误，因为……&quot;；Recovery SFT&quot;一个可能的修复是……我们用……验证&quot;；Step DPO&quot;在动作 A 与 B 之间，A 更好，因为……&quot;），并给出两块结果板：Diagnosis training（micro exact-step agreement 47.19%→63.56%，+16.37 pp，943 cases·3 seeds）与 Construction-time replay（first-proposal +32.7 pp：18.4%→51.1%；selected-proposal +45.3 pp：13.7%→59.1%；各 n=3,062）。这张图是理解 AED 定位的入口：左列说明&quot;数据怎么来&quot;，中列说明&quot;覆盖有多宽&quot;，右列说明&quot;数据拿来干什么&quot;——但三个数字分属三个不同总体（集合规模 / 训练子集 / replay 试验），论文在 §3.3 特别强调它们不可互相换算或相加。"></p>
+<p><strong>与直接使用的现有组件的关系</strong>（区分论文提出 vs 沿用）：诊断引擎沿用 AgentDebug&#x2F;AgentDebugX（§3.2、Appendix D）；harness（OpenHands、π agent、ReAct、AutoGen 等）与基准（ALFWorld、BFCL、SWE-bench 等）都是现成的；论文新增的是环境适配器、证据检查、verifier 对照 replay、训练视图与准入规则（Appendix D）。</p>
+<p><strong>教学简化示例</strong>（非论文实验）：把一条失败轨迹想成”考试错题”。普通 outcome reward 只告诉你”这题错了（0 分）”；AED 的做法是让一位”讲评老师”（debugger）圈出”你是在第 2 步算错了符号”，写清”为什么这么判”（引用你的草稿原文），提出”如果改成 X 会怎样”，然后真的把 X 代回去重算一次（replay），并且同时把原解法原样重算一次（对照）——只有”改 X 成功、原解失败”才记为修正有效的证据。这个例子只是帮助理解流程，论文中的判定远比它严格（要求引用可解析、双判官通过、对照同 checkpoint 等）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><ul>
+<li><strong>数据与测试台</strong>：内部冻结诊断集（frozen v14）4,319 行 &#x2F; 2,309 source task &#x2F; 15 环境（train 3,157 行、dev 219、holdout 943）（Table 7，Table 12）；配对 replay 队列 3,062 次尝试 &#x2F; 1,284 source task；actor 实验用 6 个开发环境（Text-to-SQL、ALFWorld-lite、TextQuest、WebShop-lite、GridWorld、Warehouse）；真实环境仅在 ALFWorld &#x2F; ScienceWorld 上补测 preventive 臂（§5.3，Appendix X.6）。公开基准：Who&amp;When（184 例：HC 58 + AG 126）、AgentErrorBench（200 例）、TrajErrBench（486 例）（§5.2，Appendix I.1、X.5）。</li>
+<li><strong>可训练模型</strong>：仅 Qwen3-8B（全参 SFT；DPO 用 LoRA，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>16</mn></mrow><annotation encoding="application/x-tex">r=16</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">16</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>=</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">\beta=0.1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.1</span></span></span></span>、lr <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">10^{-5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span>、3 seeds）（§5，Appendix I.2、I.15）。诊断的”教师标签”来自多模型共识（GPT-5-mini、Claude Haiku 4.5、Gemini 3.6 Flash 投票，Gemini 3.6 Flash 记录为 arbiter）（Appendix S）。</li>
+<li><strong>prompted 参照</strong>：Claude Opus 5、Claude Sonnet 5、Gemini 3.8 Flash、GPT-6 Astra、GPT-5.6 Sol 等（同一 943 例、同一解码设置、temp 0（提供方支持时）、8,192 token 预算）（Appendix I.3，X.1a）。</li>
+<li><strong>指标</strong>：exact-step agreement（micro &#x2F; family-macro）、unit+step 联合、verifier pass rate、初始状态任务成功率；缺失或不可解析答案一律计入分母算错（§5 Setup）。统计上报告 task-clustered 区间与 seed SD，两套不确定性分开表述（§5，Appendix I.5）。</li>
+<li><strong>对照设计</strong>：修正 vs 原动作重试（同 checkpoint）；actor 实验以 success-only SFT 为参照（用论文自己的池，非 AgentTuning 数据）；资源对比用同 base、同 recipe、同任务数的 AgenTracer v1.0.0 数据（Appendix I.5、X.4）。</li>
+</ul>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p><strong>修正有效性（§5.1，Figure 1a）</strong>。3,062 对匹配 replay 上：初版提案把 verifier 成功率从 18.4%（原动作重试）提到 51.1%，+32.7 pp（task-clustered 95% 区间 28.4–37.0）；搜索选出的提案 +45.3 pp（59.1% vs 13.7%，区间 41.3–49.2）；原生 harness 完整恢复的 871 对 +47.1 pp（42.3–51.7）（Appendix X.3、H.1）。队列中仅 11&#x2F;3,062 次失败是”单纯耗尽步数预算”，且无一落在”只有原动作通过”的格子，限制了”对照成功只是预算伪影”的解释（Appendix H.1）。但 B.2 的对照分解显示：1,564 次”初版修正成功”中 470 次（30.1%）原动作重试也成功——净收益只来自 discordant 格子（1,094 vs 93）。</p>
+<p><strong>采集与生产（§5.1，Appendix I.6）</strong>。citation-first judge 在 1,500 条共同失败池上产出 93.5% 的”带引用诊断”，优于对照配置的 48.4–65.8%；但论文明确这是”产出兼容率”而非独立正确率（渲染与教师访问也不同）。</p>
+<p><strong>诊断学习（§5.2，Figure 5）</strong>。full-diagnosis SFT（1,656 任务、3 seeds）把 Qwen3-8B 在 943 例 holdout 上与内部教师标签的 micro exact-step 一致率从 47.19% 提到 63.56±0.82；最强 prompting 参照 Claude Opus 5 为 54.72，升幅在四个嵌套训练规模（240&#x2F;480&#x2F;948&#x2F;1,656）上单调：53.13±1.43 → 57.26±1.60 → 60.59±0.93 → 63.56±0.82（Table 28）。作者同时写明：与参照相比”学生用共识标签训练、参照未训练”，测的是与记录标注（含其约定与缺陷）的一致率，不是诊断能力的普遍排序（§5.2）。</p>
+<p><strong>诊断学习的反面证据（§5.2，Appendix I.1、I.9、I.13）</strong>。公开迁移混乱：培训格式 prompt 下多数格显著下降（Who&amp;When AG -21.43、AG+WG -29.37，TrajErrBench -12.14；Holm 校正后 13 项检验仅剩 3 项显著，全是损失）；唯一正格（unified Who&amp;When +7.07，p&#x3D;0.049）在 Holm 校正后不显著（p&#x3D;0.437）；剔除与训练重叠的任务后，+7.97 的区间收缩到含零（+4.92 [-2.24,12.08]）（Table 15、30、31）。compact-target 的缩放曲线随训练集增大反而下降：48.89（120）→ 47.72（252）→ 47.40（504）→ 46.13（1,020）→ 46.59±0.12（1,656），base 47.19——因为 verdict-only 目标让模型输出越来越多空 reasoning block（1,020 任务时 90.4%，1,656 时约 100%）（Appendix I.13，Figure 14）。与 AgenTracer 数据的同 recipe 对比：在自己 holdout 上 AED 无增益（+0.11 [-2.72,2.99]），在对方测试集上落后 9.07 pp（31.65±0.33 vs 40.72±0.48）（Table 11，Appendix X.4）。</p>
+<p><strong>actor 修复训练（§5.3，Figure 6）</strong>。六环境、单种子、各 arm 任务池&#x2F;曝光&#x2F;更新数不同的对比：修复含入的配方在 WebShop-lite 上高于 success-only（preventive +4.67、post-error +6.67<em>、+reflection +6.67</em>，* 为 Holm 校正后显著），在 TextQuest 上显著更低（-9.00<em>、-8.33</em>、-9.67*）；反思相对纯动作无检测到的增益（Appendix X.6，R&#x2F;A McNemar 均不显著）。真实环境反转：preventive 臂在真实 ALFWorld 仅解 1&#x2F;134（0.75%）vs base 8&#x2F;134（5.97%），真实 ScienceWorld 1&#x2F;294（0.34%）vs base 29&#x2F;300（9.67%）（Appendix X.6）。</p>
+<p><strong>供给位置下的恢复（§5.1，Figure 1c，Table 27）</strong>。给定错误位置，diagnosis-guided continuation 31.3%，generic reconsideration 26.0%，重放原动作 18.6%；”诊断内容 - 泛化重试”配对增益 +5.6 pp，区间 [0.0, 11.3]——诊断内容相对”再给一次机会”的额外收益未被确立（Appendix I.10）。</p>
+<p><strong>偏好试点</strong>。DPO（33 个训练对）在 94 个 holdout 对上把”选中动作”偏好从 54.3% 提到 54.6±0.6%，无任务恢复评估，论文自认不构成恢复收益证据（Appendix I.15）。</p>
+<p><img src="/images/dailypaper/2026-10-01/2609.40111_fig2.png" alt="论文 Figure 1（本报告图 2，images/2609.40111_fig2.png）：三面板主结果。面板 (a)&quot;Test corrections&quot;是对照重放的哑铃图，比较三种提案规则的 verifier 通过率：原动作重试（空心点）与修正提案（实心点）——First proposal 18.4→51.1、Selected proposal 13.7→59.1、Same harness, restored 6.1→53.2；它回答&quot;修正相比同 checkpoint 原动作重试是否真的更可能成功&quot;，是本论文最强的因果性证据形式。面板 (b)&quot;Learn to diagnose&quot;是 943 例内部教师标注上的 exact-step 一致率条形图：Qwen3-8B base 47.2、GPT-6 Astra 50.7、Claude Sonnet 5 51.6、Gemini 3.8 Flash 53.2、Claude Opus 5 54.7、AED Qwen3-8B 63.6——与最强 prompting 参照相差约 8.9 pp，但衡量对象是&quot;与论文内部记录标签的一致率&quot;，不是独立真值（§5.2 正文原话）。面板 (c)&quot;Assist recovery&quot;是给定错误位置后的恢复成功率柱状图：Replay 18.6、Generic retry 26.0、Diag.+fix 31.3；它说明&quot;在告知位置的前提下，带诊断与修复的续跑优于泛化重试，但超出&#39;再试一次&#39;的净增益区间触零&quot;。图注特别声明三个面板使用不同队列（caption：&quot;Panels use separate cohorts&quot;），因此三块数字不能互相换算。"></p>
+<p><img src="/images/dailypaper/2026-10-01/2609.40111_fig3.png" alt="论文 Figure 5（本报告图 3，images/2609.40111_fig3.png）：诊断学习与训练规模。左图 (a) 与 Figure 1b 同源（943 例内部标注，模型排序一致）；右图 (b)&quot;Learning from more failures&quot;给出四个训练规模（240/480/948/1,656 个 source task）上的均值±样本 SD 曲线：53.13→57.26→60.59→63.56，虚线为未训练 base 47.19，空心小点是个体 seed（每 size 3 seeds），图注声明&quot;连线只是观测均值的连接，不拟合 scaling law&quot;。这张图支撑&quot;内部一致率随数据规模单调提升&quot;的结论；但论文在 Appendix I.11 自己限定：更大的数据集同时意味着更多优化步数（本实验测的是完整训练过程而非 compute-matched 的数据量效应），且区间条件在选定 checkpoint 上、不含训练 seed 不确定性。"></p>
+<p><img src="/images/dailypaper/2026-10-01/2609.40111_fig4.png" alt="论文 Figure 6（本报告图 4，images/2609.40111_fig4.png）：含修复监督的三个配方相对 success-only SFT 的初始状态成功率变化（pp），横轴刻度为 -10/0/+10，六行是六个开发环境（每环境 n 标注在行标签上）。三列分别是 Preventive repair、Post-error actions、Actions + reflection；实心标记与 * 表示通过 Holm 多重校正的显著差异。可以看到模式高度环境依赖：WebShop-lite 上三个配方均为正（+4.67/+6.67*/+6.67*），TextQuest 上均为显著负（-9.00*/-8.33*/-9.67*），其余环境差异不显著；图注明确&quot;任务池与曝光不同&quot;&quot;单训练种子&quot;，且真实环境上 preventive 臂的显著退化（ALFWorld/ScienceWorld）不在此图、只出现在 Appendix X.6——也就是说这张图展示的是&quot;开发 harness 上的混合结果&quot;，不是修复监督普遍有效。"></p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><ul>
+<li><strong>修正有效性</strong>属于干预证据：同 checkpoint、同执行条件的对照使”修正成功”与”原动作也能成功”可分离（§5.1，Figure 1a；Appendix B.2）。不过每臂当前只有一次执行（k&#x3D;1），证据分级中 E2（≥2 次&#x2F;臂）大量缺席，无法排除单次判决的随机性；论文在 Appendix R 的重放复现中报告了”同一动作重复执行会随机翻转”的现象，并建议保留控制臂结果与试验次数。</li>
+<li><strong>诊断训练</strong>只证明了”拟合记录标签”：学生与参照都未见过这些标签（参照）或太多（学生），无法排除”学习教师的约定与缺陷”的解释；论文明确写”citation matching 检查的是存在性而非蕴含”（Appendix A）。直接反证是 G1b：执行辅助（X）与单判官（J）两种标签构造在 168 和 948 任务上都没有超过 base（Appendix I.9）。</li>
+<li><strong>机制归因</strong>（为何 actor 训练环境依赖）：论文只给出了相关性——WebShop-lite 增益伴随更短 episode、TextQuest 新失败多撞步数上限，但明确声明”不隔离预算机制与曝光&#x2F;更新次数差异”（§5.3，Appendix X.6）。同样，Compact 曲线的空 reasoning block 与确切度下降之间的因果也被保留（Appendix I.13）。</li>
+<li>论文自己反复划线：”性能提升不得自动解释为机制验证”的做法基本被贯彻——多处用”supports X under these conditions, not Y”的措辞（§3.2 阶段 4、§5.1）。</li>
+</ul>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><ul>
+<li><strong>构建成本</strong>（实际计费口径）：两个历史采集波次共 1,198 个完成 cell（21,629 次运行、6,898 条有效步骤诊断），rollout $415.53 + diagnosis $343.44 &#x3D; $758.96；平均 $0.110&#x2F;诊断（MCPMark 最贵 $0.469，AgentBench-DB 最低 $0.049）；仅含 rollout 与诊断 meters，<strong>不含 hosting、human labor 与 replay</strong>（Appendix I.7）。</li>
+<li><strong>准入成本</strong>：admission 消融显示每保留一行成本随严格度上升：无检查 19,904 行（$0.04&#x2F;行）→ 仅 grounding 2,628 行（$0.31&#x2F;行）→ grounding+语义审查 767 行（$1.25&#x2F;行）；而学习收益没有随严格度上升（”配对区间全部含零或为负”，Appendix I.8、X.3）。</li>
+<li><strong>零散计费</strong>：盲化模型 panel 120 条 ×3 判 &#x3D; $17.40；rubric 试验 $5.17；供给位置队列 $3.66；语义审查阶段 $0.039&#x2F;条（Claude Opus 5 verdict）（Appendix E.4、G.1、M、I.8）。人工审核由 4 位作者志愿完成，<strong>未报告人工成本</strong>；GPU 训练成本、replay hosting 成本<strong>论文未报告</strong>。</li>
+<li><strong>适用范围</strong>：全部为文本型 agent 环境（Table 1 脚注：AED 是 text-only）；”环境数”不等于公开基准数（含合成任务、简化移植与程序化玩具环境，Table 36）；replay 证据只覆盖可恢复状态的原生 harness 子集；actor 结论限于六环境配方；公开迁移结论全部受协议（prompt&#x2F;答案 schema&#x2F;step 坐标）影响。<strong>论文未报告</strong>：完整集合的训练效用（训练只在冻结子集上做）、部署失败率（失败样本无法估算）。</li>
+</ul>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑-1：主结果度量的是”与自建教师标签的一致率”，而该冻结版本被论文自己审计出系统性缺陷——这削弱了-63-6-的解释力"><a href="#质疑-1：主结果度量的是”与自建教师标签的一致率”，而该冻结版本被论文自己审计出系统性缺陷——这削弱了-63-6-的解释力" class="headerlink" title="质疑 1：主结果度量的是”与自建教师标签的一致率”，而该冻结版本被论文自己审计出系统性缺陷——这削弱了 63.6% 的解释力"></a>质疑 1：主结果度量的是”与自建教师标签的一致率”，而该冻结版本被论文自己审计出系统性缺陷——这削弱了 63.6% 的解释力</h4><ul>
+<li><strong>原文依据</strong>：§5.2 原话”measures agreement with the recorded annotations, including their conventions and defects”；Appendix S 记录教师为多模型共识（Gemini 3.6 Flash 记录为 arbiter）；Appendix E.1&#x2F;E.5 列出冻结发布的具体缺陷：440&#x2F;4,737 行（GAIA&#x2F;WideSearch）所有检索调用失败却仍标注错误、AgentBench-DB gold SQL 在 234&#x2F;455 个任务上无法通过 grader、617&#x2F;1,016 行在任务契约进入 prompt 前完成标注、125&#x2F;943 条 holdout 的 gold agent 是不出现在 trace 中的单元；E.5 的逐条审计拒绝 37&#x2F;60 抽样行；Appendix C.3 记录 0&#x2F;4,319 诊断行带 replay 佐证。</li>
+<li><strong>为什么重要</strong>：这决定了论文第二号贡献（”能训练出有竞争力的失败诊断模型”）是否成立。若标签含大量缺陷，学生学到的是”符合缺陷”的输出，63.6% 可能高估真实诊断能力；反之如果缺陷稀疏，也应有证据排除。</li>
+<li><strong>当前能够得出的判断</strong>：存在测量效度风险但方向未知。论文对缺陷披露非常充分，且声称”当前检查已修复这些缺陷”——但修复发生在评估之后，不会追溯修正已报告的分数；论文自己也承认”冻结 v14 保留被标记行”。</li>
+<li><strong>如何验证或补强</strong>：用 rubric v5 修订后的导出重新训练与评估（论文报告了修订导出的行数：train 3,157→53 行通过全部过滤，Table 9，但未重训）；在无缺陷子集（剔除 108 个受影响 holdout case 后 835 例）上重算；引入独立人工金标评估 holdout 而不是只做 80 条覆盖选择审计。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑-2：公开基准上的迁移证据大多是负面的，”训练出有竞争力的诊断模型”仅在内部标签协议下成立"><a href="#质疑-2：公开基准上的迁移证据大多是负面的，”训练出有竞争力的诊断模型”仅在内部标签协议下成立" class="headerlink" title="质疑 2：公开基准上的迁移证据大多是负面的，”训练出有竞争力的诊断模型”仅在内部标签协议下成立"></a>质疑 2：公开基准上的迁移证据大多是负面的，”训练出有竞争力的诊断模型”仅在内部标签协议下成立</h4><ul>
+<li><strong>原文依据</strong>：Table 30&#x2F;31：13 项配对检验中培训格式 prompt 下最大跌幅 -29.37（Who&amp;When AG+WG，Holm &lt;0.001）；Holm 校正后仅存的 3 项显著全部是损失；唯一正格 unified Who&amp;When +7.07（Holm 0.437）；TrajErrBench 在可解析子集上仍 -11.73（p&lt;10⁻⁵）；与 AgenTracer 数据的资源对比在自己 holdout 上无增益、在对方测试集上 -9.07（Table 11）；Appendix I.1 的 overlap 敏感性把 +7.97 缩到 +4.92 [-2.24,12.08]。</li>
+<li><strong>为什么重要</strong>：这直接限制论文主张的边界。作者在 §5.2 承认”resource rankings reverse across test distributions”，但摘要&#x2F;引言仍把 63.6% 放在显眼位置，读者容易忽略多数公开协议为负。</li>
+<li><strong>当前能够得出的判断</strong>：证据支持”内部标签拟合”结论，不支持”公共迁移”结论；论文对此基本诚实（Takeaway 与 Limitations 都写明），但头条数字的展示位置仍有放大之嫌。</li>
+<li><strong>如何验证或补强</strong>：预注册多协议评测（prompt 与答案 schema 冻结后再训）；公布对 TrajErrBench 负迁移的诊断实验（如格式专属化 vs 标签质量）；在 decontaminated 重训（Table 16 只做了 Who&amp;When one protocol）覆盖全部基准。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑-3：actor-修复训练是单种子、任务池-曝光-更新数混杂的配方对比，”修复监督有用”的机制没有被隔离"><a href="#质疑-3：actor-修复训练是单种子、任务池-曝光-更新数混杂的配方对比，”修复监督有用”的机制没有被隔离" class="headerlink" title="质疑 3：actor 修复训练是单种子、任务池&#x2F;曝光&#x2F;更新数混杂的配方对比，”修复监督有用”的机制没有被隔离"></a>质疑 3：actor 修复训练是单种子、任务池&#x2F;曝光&#x2F;更新数混杂的配方对比，”修复监督有用”的机制没有被隔离</h4><ul>
+<li><strong>原文依据</strong>：§5.3”their contrasts measure the combined recipe, not repair supervision alone”；Appendix X.6：repair arms 1,490 updates &#x2F; success-only 1,326；preventive 与 success-only 的 token 曝光在 Text-to-SQL 差 +8.25%、WebShop-lite 差 -13.69%；真实环境仅 preventive 一臂对测（ALFWorld 0.75% vs 5.97%；ScienceWorld 0.34% vs 9.67%）。</li>
+<li><strong>为什么重要</strong>：第三号贡献（error-aware post-training 对 acting policy 的价值）目前只有 WebShop-lite 一个环境的正面点估计；真实环境与 TextQuest 的显著退化恰恰说明用失败的修复轨迹训练 actor 可能损害原策略，这是部署层面的重要风险。</li>
+<li><strong>当前能够得出的判断</strong>：结论被正确限定在”tested recipes and environments”（§5.3 Takeaway），但摘要”action-only repair training scores 6.67 pp higher on WebShop-lite”缺少”单种子、环境特异、且其他环境退化”的并列提示；机制解释（episode 变短、预算撞顶）为相关性。</li>
+<li><strong>如何验证或补强</strong>：多种子 + 匹配 max-token&#x2F;update 的对照；把 preventive 臂的真实环境评测补全到全部 arm；分解”任务覆盖”与”监督类型”（如固定任务集只换目标）；检查是否学到缩短 episode 的非预期策略（如提前放弃）。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑-4：replay-证据的外部效度受限（替代-harness、部分恢复、单次试验），且与冻结诊断集完全不相交"><a href="#质疑-4：replay-证据的外部效度受限（替代-harness、部分恢复、单次试验），且与冻结诊断集完全不相交" class="headerlink" title="质疑 4：replay 证据的外部效度受限（替代 harness、部分恢复、单次试验），且与冻结诊断集完全不相交"></a>质疑 4：replay 证据的外部效度受限（替代 harness、部分恢复、单次试验），且与冻结诊断集完全不相交</h4><ul>
+<li><strong>原文依据</strong>：Table 14：原生 harness 完整恢复仅 871 对，1,846 对用替代 ReAct harness，345 对多 agent 状态部分恢复；§5.1”Both studies test correction at a supplied location; neither tests autonomous detection”；Appendix D：replay 温度调度（0.2&#x2F;0.8）与源 rollout（0.7）不同、k&#x3D;1 无法达 E2；Appendix C.3：0&#x2F;4,319 诊断行与 replay 记录相交；Appendix T.2：9,715 次导出尝试中 9,712 从未 replay，冻结发布只物化诊断视图。</li>
+<li><strong>为什么重要</strong>：修正有效性的 32.7 pp 是本论文最接近因果的结论，但它只覆盖可恢复子集，且替换 harness 会改变多 agent 协作&#x2F;记忆&#x2F;停止规则——修正在该环境有效不代表在原系统有效（Appendix Q.2 已自认）；同时”诊断训练数据”与”replay 验证数据”互不相交意味着训练用诊断的修正提案从未被执行验证过（论文中能验证的被验证了，被拿去训练的没有）。</li>
+<li><strong>当前能够得出的判断</strong>：证据支持”在恢复或替代的连续性下修正优于原动作重试”；不支持”修正对原系统普遍有效”或”训练数据的修正提案都是有效的”。</li>
+<li><strong>如何验证或补强</strong>：扩大原生 harness 支持（smolagents&#x2F;Pydantic AI&#x2F;AutoGen&#x2F;LangGraph&#x2F;planner–executor 目前全部被替代）；对每臂做 ≥2 次试验以达 E2；把 replay 验证结果与诊断训练集打通（对训练用提案做抽样 replay 审计）。</li>
+<li><strong>严重程度</strong>：次要问题（论文已充分披露并分层报告，结论措辞与证据范围基本匹配）。</li>
+</ul>
+<h4 id="质疑-5：人工审核与质量审计的独立性不足"><a href="#质疑-5：人工审核与质量审计的独立性不足" class="headerlink" title="质疑 5：人工审核与质量审计的独立性不足"></a>质疑 5：人工审核与质量审计的独立性不足</h4><ul>
+<li><strong>原文依据</strong>：Appendix W：4 位作者在自愿参与下审核 80 条覆盖选择样本（模型 panel 报告先给出、审核时可见），”This is AI-assisted human verification by author volunteers… not independent external validation”；verdict 一致率 62.5%（50&#x2F;80）、joint accept 51.3%（41&#x2F;80）；Appendix E.4：盲化模型 panel 中三门一致”步骤合理+证据支持”仅 9&#x2F;120（7.5%，Wilson 4.0–13.6%）；Appendix E.6：”Among 69 disagreements… a hand check of 10 found the stricter judge correct on 8”（样本极小）。</li>
+<li><strong>为什么重要</strong>：数据集工作可信度取决于标签质量的独立验证强度。作者团队自我审核 + AI 辅助可能系统性高估质量；且最大规模审计只覆盖 80 条（占 50,228 对的 0.16%）。</li>
+<li><strong>当前能够得出的判断</strong>：已知的三重机器审计（citation grounding 57.4% 通过；panel ALFWorld 243&#x2F;323 vs solo 285&#x2F;323；test-retest 已准入 88.2% vs 未准入 58.2%，gap 29.9 pp）是有价值的内部信号，但不能替代独立金标。</li>
+<li><strong>如何验证或补强</strong>：外部标注团队对随机（非覆盖选择）样本做盲化定位与诊断接受度评估；报告分层间的盲评一致性（κ）而非 raw rate；对主张”修复正确”的记录做人工抽验。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现失败 rollout 中被丢弃的”决策级信号”（改哪一步、换成什么动作）可以用受控重放检验，因此构建了 50,228 对自然失败诊断数据集 AED 与 AET 五阶段流水线，通过”收集—诊断—引用取证—可选对照重放—视图导出”实现。实验在 3,062 对同 checkpoint replay 上表明修正确实提高 verifier 通过率（18.4%→51.1%），在 943 例内部标签上表明 full-diagnosis SFT 优于所有 prompting 参照（63.6% vs 54.7%）；其中对照 replay 的干预证据与”成功重试也成功”的 discordant 分解较强，但诊断训练证据受制于标签自身的审计缺陷与公开迁移的普遍负迁移，actor 修复训练只有单种子、环境依赖的混合结果。本文最有价值的部分是近乎范例级的诚实披露——把数据集缺陷、负结果、成本口径、对照混淆全部写进正文与附录；最大的审稿风险是：最有把握的结论（replay 修正效用）覆盖的只是可恢复子集，而最显眼的数字（63.6%）衡量的是作者自己构造且自认有缺陷的标签。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：中——资源缺口陈述清楚，但”缺口大小&#x2F;为何致命”缺乏测量；数据集与训练用子集、replay 队列三者关系的边界是论文自己厘清的（§3.3、Table 7），读者需细读才不被 50,000 的标题数字误导。</li>
+<li><strong>创新性证据</strong>：中——对照 replay 与证据分级是实打实的流程创新并有实验支撑；但核心诊断组件沿用 AgentDebug&#x2F;AgentDebugX，训练目标均为标准 SFT&#x2F;DPO，创新以数据工程与实验设计为主。</li>
+<li><strong>方法可信度</strong>：中——pipeline 契约（引用可解析、信息可用性、泄漏检查、lineage 上限）设计审慎且有 schema 与审计支撑（Appendix D、E、T）；但训练数据无 replay 验证、标签由自建共识产生，方法正确性对外部使用者仍有依赖。</li>
+<li><strong>实验支持力度</strong>：中——replay 与内部一致率实验有多 seed&#x2F;对照&#x2F;区间支撑且披露充分；公开迁移、actor 训练、DPO 均未达支持其主张的强度，论文对此的结论收束基本与证据一致。</li>
+<li><strong>可复现性</strong>：无法确认——论文称接收后开源（数据与 checkpoint “planned after acceptance”），当前仓库、prompts、splits 与结果生成器均不可获取；教师与参照模型为闭源 API（含 2026 年各家的 Gemini&#x2F;Claude&#x2F;GPT 版本），标签重建依赖同一批服务。</li>
+<li><strong>综合阅读价值</strong>：高——对做 agent 数据构建、失败分析与 error-aware post-training 的读者，本文提供了可操作的流水线契约、证据分级方案以及一整套”如何诚实报告混杂与负结果”的样板；其缺陷披露清单本身即是同类工作的检查表。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Agent Error Dataset: Scaling 50,000 Error–Diagnosis Pairs for Failure Analysis and Error-Aware Post-Training</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-01 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-01 14:13:50
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/01/2609.40111v1_Agent_Error_Dataset_Scaling_50_000_Error-Diagnosis_Pairs_for_Failure_Analysis_and_Error-Aware_Post-Training/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%90%8E%E8%AE%AD%E7%BB%83/">#后训练</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Agent/">#LLM Agent</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%A4%B1%E8%B4%A5%E5%88%86%E6%9E%90/">#失败分析</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E9%94%99%E8%AF%AF%E8%AF%8A%E6%96%AD/">#错误诊断</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%95%B0%E6%8D%AE%E9%9B%86%E6%9E%84%E5%BB%BA/">#数据集构建</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/01/2609.38721v1_UniEvo-VL_An_On-policy_Self-Distillation_Training_Recipe_for_Multimodal_Model_Self-improvement/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">UniEvo-VL: An On-policy Self-Distillation Training Recipe for Multimodal Model Self-improvement</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/01/2609.38827v1_More_Choices_Fewer_Decisions_Ordinal-Scale_Bias_in_JEV-like_Direct-Decision_Models/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">More Choices, Fewer Decisions: Ordinal-Scale Bias in JEV-like Direct-Decision Models</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Agent Error Dataset: Scaling 50,000 Error–Diagnosis Pairs for Failure Analysis and Error-Aware Post-Training</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 42 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
