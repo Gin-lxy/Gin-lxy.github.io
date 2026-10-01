@@ -57,7 +57,7 @@ function splitTitle(content, stem) {
 function rewriteImages(body, date) {
   const prefix = `/images/dailypaper/${date}/`;
   return body
-    .replace(/!\[([^\]]*)\]\((?:\.\/)?images\/([^)\s]+)((?:\s+"[^"]*")?)\)/g, `![$1](${prefix}$2)$3`)
+    .replace(/!\[([^\n]*?)\]\((?:\.\/)?images\/([^)\s]+)((?:\s+"[^"]*")?)\)/g, `![$1](${prefix}$2)$3`)
     .replace(/(src=["'])(?:\.\/)?images\//g, `$1${prefix}`);
 }
 
