@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/02/2609.35690v1_agent_priors-guided_policy_learning/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Agent Priors-guided Policy Learning">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/02/2609.35690v1_Agent_Priors-guided_Policy_Learning/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-02T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-02T05:57:14.244Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="LLM Agent">
+<meta property="article:tag" content="技能组合">
+<meta property="article:tag" content="机器人操作">
+<meta property="article:tag" content="模仿学习">
+<meta property="article:tag" content="结构先验">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Agent Priors-guided Policy Learning | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">160</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">52</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Agent Priors-guided Policy Learning</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-02 12:00</span>
+        <span class="mobile">2026-10-02 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-02 13:57:14</span>
+            <span class="mobile">2026-10-02 13:57:14</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/LLM-Agent/">LLM Agent</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%93%8D%E4%BD%9C/">机器人操作</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0/">模仿学习</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%8A%80%E8%83%BD%E7%BB%84%E5%90%88/">技能组合</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E7%BB%93%E6%9E%84%E5%85%88%E9%AA%8C/">结构先验</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Puming Jiang*、Tianrun Hu*（二人共同一作）、Haozhe Du、Yibo Li、Zhiwei Xue、Xinhu Li、Harold Soh（共 7 人），均属 National University of Singapore；arXiv 标注为 Preprint。</p>
+<p>论文：2609.35690v1；Hugging Face 来源批次：2026-10-02；精读归档日期：2026-10-02（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2609.35690" >https://huggingface.co/papers/2609.35690<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2609.35690v1" >https://arxiv.org/abs/2609.35690v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>分析范围：以 arXiv HTML 全文为主（正文 §1–§6、附录 A–D、AI 使用声明 &#x2F; 可复现性声明 &#x2F; 伦理声明、附录 C 的全部 agent prompts），并用官方 35 页 PDF 逐条核对图表编号与实验设置（Table 1–11、Eq. 1–8、Algorithm 无）。四张配图全部由官方 PDF 以 300 dpi 裁剪得到（Fig. 1 取自 PDF p.2，Fig. 2 取自 p.8，Fig. 3 取自 p.19，Fig. 4 取自 p.21），曾尝试直接渲染 HTML 内嵌 SVG（Fig. 1 为 foreignObject 内嵌 SVG），但本机字体下文本溢出、版式不可读，故四张图统一改用 PDF 裁剪。另按 Hugging Face 页面所列的官方项目页与代码仓库（agentics-robotics.github.io&#x2F;APPL、github.com&#x2F;Agentics-robotics&#x2F;Agent-Priors-guided-Policy-Learning）核对了”代码已释放”这一声明，仅用于可复现性判断，未从中读取任何实验结论。论文未报告的部分（训练 wall-clock &#x2F; GPU 成本 &#x2F; API 花费、真机实验）在正文中按”论文未报告”标注。</p>
+<p>标签：机器人操作、模仿学习、技能组合、结构先验、LLM Agent。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文要解决”技能泛化（技能在新状态下仍可用）”与”组合泛化（用技能拼出新任务）”彼此依赖、但组合层只能通过名字&#x2F;指令&#x2F;符号算子看到技能、不知道策略真正在哪些状态可靠这一问题；核心思路是把训练时用于塑造策略泛化的结构先验（structural prior）同时写成运行时接口，让 LLM 构造代理为每个技能训练多个”先验不同”的策略并附文档，再由 LLM 调度代理按文档挑选与组合。在当前证据下，该思路在论文报告的两个仿真基准上（6 个 MetaWorld 任务、5 个 ManiSkill 长程任务）确实提升了分布外成功率，但结论必须限定为：Exp. 2 每格仅 1 个 episode、无跨种子方差，且”先验描述带来组合泛化增益”这一最关键主张的配对检验 p&#x3D;0.125、统计上不显著。</p>
+<hr>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>背景与任务。</strong> 机器人示范昂贵，通常只能从少量示范中学到少数任务，而部署时要面对新目标、新操作顺序、物体出现在新位置。论文把所需泛化分成两类（§1、§3）：</p>
+<ul>
+<li><strong>技能泛化（skill generalization）</strong>：每个技能背后的策略在演示没覆盖过的起始状态下也能执行——例如物体整体平移，或状态是”由另一个技能执行完留下的”，而不是演示中的交接状态。论文把”任务与技能序列不变、只挪物体”这一子情形称为 <strong>motion-level OOD</strong>。</li>
+<li><strong>组合泛化（compositional generalization）</strong>：通过演示中不存在的技能序列或交接来完成新任务，包括跳过中间技能、重排技能、或”某个子目标已完成”导致下一技能的入口条件改变。论文把”改变任务从哪里开始 &#x2F; 请求在哪结束（前缀目标）”单独称为 <strong>task-level OOD</strong>，并声明物体位移本身不算新组合（§3）。</li>
+</ul>
+<p>两类泛化耦合：新的序列&#x2F;交接会产生新的起始状态，技能必须能覆盖它们；反过来，任务级决策的质量取决于它对每个技能实际能力的了解（§1”Information, however, is lost between the task level and the skill level”）。</p>
+<p><strong>现有方法怎么做、在哪些条件下不好。</strong> 论文列举三条路线（§1、§2）：</p>
+<ol>
+<li><strong>VLA 端到端模型</strong>把任务语义与底层控制耦合在一个模型里，但”学到的行为在什么条件下泛化”是隐式的，对布局与物体位姿变化仍然脆弱（引 Fei et al. 2026 的 LIBERO-Plus 稳健性基准）。</li>
+<li><strong>任务与运动规划（TAMP）</strong>用符号前置&#x2F;效果连接两层，靠人手写或从数据学抽象（Garrett et al. 2021；Konidaris et al. 2018）。其中 <strong>SymSkill</strong>（Shao et al. 2025）是最接近的先例：从演示中联合发明谓词、算子与相对坐标系下的动力学系统技能，让同一结构同时服务学习与规划——但该结构被预先固定在”relative-frame predicates + dynamical-system controllers”这一族内（§2、§D.3）。</li>
+<li><strong>LLM&#x2F;Agent 系统</strong>把策略当工具调用，接口是技能名、指令或可行性估计（Ahn et al. 2022；Shi et al. 2025；Zhang et al. 2026）。名字告诉代理”这个工具是干什么的”，但不告诉它”这个策略在什么物理条件下真的能用”，于是技能之间的交接成为常见失败源（引 Rui et al. 2026）。</li>
+</ol>
+<p><strong>本文的新观察&#x2F;瓶颈。</strong> 论文把这个困境形式化为<strong>接口信息丢失</strong>（§3）：策略真实的成功域 W(π_i)（从哪些起始观测出发能以 ≥1−ε 概率达成子目标）一般不可观测；组合器只能看到接口 ℐ_i 声明的适用域 A_i。若 A_i ⊄ W(π_i)，组合器会在策略会失败的地方调用它；若 A_i 远小于 W(π_i)，组合器会放弃本来可用的调用。因此有用的接口应当<strong>忠实</strong>（A_i ⊆ W(π_i)）且<strong>有信息量</strong>（A_i ≈ W(π_i)）。这是概念性形式化，论文没有直接测量”现有方法的接口在多大程度上违反该准则”，属于动机论证而非因果实验。</p>
+<p><strong>作者认为的原因与核心假设。</strong> 论文认为根源在于”策略训练时用的结构”与”组合时看到的描述”是两套互不相干的信息（摘要；§1）。核心假设是：<strong>训练时用来塑造策略泛化方式的结构先验，可以同时充当运行时对该策略可适用范围的假设</strong>——同一假设既决定覆盖率（coverage，训练实现），又支撑选择（selection，描述实现），见 §4.1 与 Eq. 2、Eq. 3。</p>
+<p><strong>问题分层。</strong> 领域早已存在的一般问题：少量示范下扩散策略易记忆、OOD 泛化差（§2 引 He et al. 2026）；长程组合时技能交接失败。本文发现并形式化的新问题是”接口—成功域失配”的双角色先验框架。本文实际解决的子问题是：在仿真、给定少量完整示范与固定策略类（Diffusion Policy + 共享 IK）的前提下，用 LLM 代理设计&#x2F;实现&#x2F;验证多先验策略并把先验写入接口，再由 LLM 代理在运行时选择与组合。</p>
+<hr>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p><strong>一段话概括。</strong> 已往工作要么把结构先验只用于训练（LGA、KALM 用一个设计喂给策略），要么让固定结构族同时服务学习与规划（SymSkill），要么让 agent 通过名字&#x2F;指令调用策略（Harness VLA、BATON、RoboHarness）。APPL 的技术增量是：<strong>把”每个技能的结构先验”变成可多选的运行时资产</strong>——同一技能保留多个不同先验的策略实现，先验的文字描述、交接重叠、训练支撑统计与验证证据一起构成接口，供运行时 LLM 代理阅读、选择并设定每次调用的参数与停止条件。下面逐项拆解，并标出论文自己承认”不算新”的部分。</p>
+<p><strong>创新点 1：先验的双角色（训练实现 + 描述实现）。</strong> 新增机制：策略类 Θ_ρ 由先验决定，训练目标为 BC 损失加可选辅助项（Eq. 2）；同一先验又以”变换后的观测 φ_ρ(o) 落在演示覆盖区域 ℛ_i 内”的形式给出假设适用域（Eq. 3），并连同验证证据写入接口 ℐ_i&#x3D;(d_i, h_i, s_i, v_i)（Eq. 6）。与最接近方法的差异：LGA&#x2F;KALM”每任务一个设计、只服务训练”；SymSkill 策略唯一且结构族固定。<strong>不可替代性的证据</strong>：在同一策略库上只隐藏接口信息，动因级 OOD 从 50.0% 掉到 20.0%、task-level 从 92.5% 掉到 65.0%、组合从 8&#x2F;16 掉到 2&#x2F;16（§5.2，Table 2；配对精确 McNemar p&#x3D;0.017 &#x2F; 0.003 &#x2F; 0.031，Table 9）。移除后的退化被明确报告。但注意该消融一次移除四个字段，不能单独归因于”先验”本身。</p>
+<p><strong>创新点 2：每个技能保留多个先验&#x2F;多个策略。</strong> 机制上这是”同名技能、多个可调用实现”的工程选择；论文给出的理由是”无法预知哪个结构假设最适合未来所有调用状态”（§4.3），且不同先验对应不同的预期失效模式。配套证据：§B.4 报告在三个原任务上，”物体&#x2F;机构坐标系”先验的验证通过率中位数为 12 次中 5 次，而”相对当前 TCP 预测修正”的先验为 12 次中 12 次——两类先验的分布内表现差异很大，说明它们确实是不同工具。<strong>但论文没有做”多策略但共享同一先验”或”多策略不同随机种子”的对照</strong>，因此”多选性”本身带来的贡献未被隔离。相关工作里 Agentic Skill Discovery（Zhao et al. 2026）同样保留多策略但把选择留给未来工作，论文承认这一区别只是”由运行时代理来做这个选择”（§D.3）。</p>
+<p><strong>创新点 3：LLM 构造代理把”分割→提出多先验→实现→验证→写文档”整条链自动化，并按开发集反馈追加第四个先验。</strong> 与 LGA&#x2F;KALM 的差异是”多先验家族、多候选并存、保留为可调用替代品”，而不仅是”自动选一个先验”。论文明确声明：<strong>agent 设计先验本身不算新</strong>（§D.3”APPL does not claim agent-designed priors by themselves as new”），因此这一项的增量仅在流程与产物形态。</p>
+<p><strong>不算创新的部分（论文自己声明或属于常见做法）：</strong> 技能交界处的训练数据重叠（handoff overlap）——§D.3 原文”we treat the overlap as a design choice rather than a contribution”；以”指令 + 步数预算 + 停止条件”调用策略——§D.3 承认与 Harness VLA、BATON、RoboHarness 相同，”APPL does not claim this call as new”；底层使用现成的 Diffusion Policy、条件 1D U-Net、共享 IK 与 MetaWorld&#x2F;ManiSkill 环境。</p>
+<p><strong>原创边界说明。</strong> 根据本文的 related work 与 Table 11，只能确认作者声称的差异；”是否首次把训练期结构先验作为运行时接口”还需要更完整的文献检索才能断言。表中对 SymSkill、Lorang et al. 2025、DR-LfD 等最接近方法的比较是<strong>设计维度比较，不是实验比较</strong>（§D.3 明说”the table implies no empirical ranking”）。</p>
+<hr>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉。</strong> 假设一个”抓红块”策略是在<strong>物体坐标系</strong>里学的：网络学习的不是”世界系下往左移 3 cm”，而是”相对红块往左移 3 cm”。那么只要红块与末端手的相对几何不变，红块整体挪到别处时这条策略仍然有意义。”物体相对”这个假设既决定了策略在哪里泛化（训练时的归纳偏置），又可以被写成一句话告诉调度者”当物体整体平移、相对构型仍在演示范围内时优先用它”（运行时的接口说明）。APPL 的全部设计就是把这两件事绑在同一个先验上。</p>
+<p><strong>教学简化示例（非论文实验）。</strong> 某”抓取”技能有三个先验实现：物体坐标系、当前 TCP 相对修正、目标点坐标系。当红块整体平移 15 mm（超出演示区间）时，高层代理应优先调用物体坐标系策略，因为其接口写明”动作以被操作物观测位姿表达、对整体平移到演示相对构型范围内仍有效”；若第一次抓取滑脱需要二次接近，则改调”TCP 相对修正”策略，因为其接口写明它从当前末端位置出发预测残差。选择依据不是技能名，而是先验描述 + 训练支撑 + 验证记录。以上只为说明机制，论文并未用这个例子做实验。</p>
+<p><strong>实际运行流程（图 1）。</strong></p>
+<p><img src="/images/dailypaper/2026-10-02/2609.35690_fig1.png" alt="Fig. 1 APPL 的离线构建与在线组合：左栏为 construction agent 的三步（分割示范、为每个技能提出多个先验、实现/训练/验证并生成文档），中栏为冻结后的技能库（每个技能下挂多个带接口的策略），右栏为 runtime agent 的循环（读接口选策略、给定参数/时长/停止条件，执行器逐步检查）"></p>
+<p>图 1 是全文的骨架，三部分各自解决一个前述问题：左栏说明<strong>覆盖率怎么来</strong>——构造代理先把 N 条完整演示切成有重叠的技能段（重叠是为了让后继策略见过”前序技能真正到达的、尚未名义完成”的状态），再为每个技能提出多个不同族的先验并逐个实现和验证；中栏说明<strong>信息怎么不丢失</strong>——每个策略都带着 prior 描述、handoff 说明、训练支撑范围与验证结果一起入库，橙色标注的正是”同一个先验同时出现在训练与接口两侧”；右栏说明<strong>选择怎么做</strong>——运行时代理读这些文档选择策略与调用参数、设定 ≤300 步时长与数值停止条件，执行器每步检查并在条件满足时把控制权交回代理。</p>
+<ol>
+<li><strong>输入</strong>：N 条完整、未分割的演示（Exp. 1 每任务 20 条，Exp. 2 每任务 12 条，均由脚本专家或脚本规划器采集，且<strong>不含失败与恢复轨迹</strong>，§A.1、§B.1）；任务目标；观测与控制约定 𝒦。观测为结构化状态（Exp. 2 含关节位置&#x2F;速度、TCP 位姿、物体位姿、抽屉位移&#x2F;盒盖角度等关节物体状态、目标位置），策略不吃图像（只有 Agent+VLA 基线额外吃图像）。</li>
+<li><strong>构建阶段（离线，只做一次，无权重随后更新）</strong>：<ul>
+<li><p><em>分割</em>：construction agent 在每条轨迹上选技能边界，把执行同一可复用操作的片段归入技能数据集；相邻技能<strong>刻意重叠</strong>，重叠段包含前一个技能的结尾与后一个技能的开头（§4.2）。重叠不引入新演示数据，只扩大后继策略在交接状态附近的训练支撑。</p>
+</li>
+<li><p><em>提出与实现先验</em>：每个技能提出约 3 个<strong>互补</strong>先验（”互补”指预期失效模式不同，至少一个针对被操作物位移），每个先验写成一份实现，允许改变输入表示、动作坐标系、编码器与辅助损失，但必须沿用固定策略接口（公共 DP backbone、历史 2 帧、预测 16 步、执行 8 步），参数量不超过基线 B0 的 3 倍（§4.3、§A.3、附录 C 提示词）。训练目标是统一的</p>
+<p>θ_i &#x3D; argmin_{θ∈Θ_ρi} E_{D_k(i)}[ℓ_BC(θ)] + λ_i ℓ_aux^ρi(θ)　（Eq. 2）</p>
+</li>
+<li><p>典型的先验实现是物体坐标系动作参数化：x_loc &#x3D; R_t^T (x_world − p_t)，Δx_loc &#x3D; R_t^T Δx_world，Δx_world &#x3D; R_t Δx_loc（Eq. 5），即让学到的行为依赖物体相对运动而非绝对运动；解码出的末端目标再由共享 IK 模块转成原生关节指令。</p>
+</li>
+<li><p><em>验证</em>：每个候选策略从<strong>演示中该技能段的入口状态</strong>出发（Exp. 2 为 12 条演示各自的入口），执行 1.5 倍段长，在末状态用固定出口条件判定（§4.3、§B.2）。构造代理只读这些结果，写一份区分”观察事实”与”推断”的报告，据此再设计<strong>一个</strong>补充策略 h04，同样训练+验证，最后为每个策略写 usage note。</p>
+</li>
+<li><p><em>冻结</em>：生成接口 ℐ_i&#x3D;(d_i, h_i, s_i, v_i)（Eq. 6）——先验描述、交接描述、训练支撑摘要、验证证据，另加类型化调用参数（如操作对象、目的地）。</p>
+</li>
+</ul>
+</li>
+<li><strong>运行时（每个 episode，在线，无权重更新）</strong>：runtime agent 接收任务目标 g、当前状态与目标谓词、最近六轮交互、自己的 episode notebook 与全部策略接口，选出 (i_j, u_j, m_{j+1}) 即”调用哪个策略、传什么参数、跑多久、何时停”，随后由该策略产生动作块：a_{t:t+H} ~ π_{i_j}(·|h_t, u_j)（Eq. 7）。执行器用新观测跑策略并逐步检查停止条件，条件触发或任务整体成功时立刻打断并把状态交回代理；代理可继续当前技能、换同一技能的另一策略、换技能或终止，但不能改库、不能写控制代码，episode 间记忆清零（§4.4）。Exp. 2 中单次调用 ≤300 步、每 episode ≤128 次代理请求、仿真在代理推理期间暂停（Table 7、§B.1）。</li>
+<li><strong>训练了什么、没训练什么</strong>：只有构建阶段的各个先验策略被训练，方法是<strong>行为克隆（BC）</strong>，不是 RL——论文没有 reward 定义，也没有在线交互或策略改进；运行时不做任何学习，LLM 代理的权重同样冻结（§4.4”frozen after construction”）。这与”用 RL 微调策略”的路线是两种范式。</li>
+<li><strong>模型决定 vs 固定流程</strong>：LLM 代理决定技能边界、先验内容与代码实现、h04 的设计、运行时的策略&#x2F;参数&#x2F;时长&#x2F;停止条件；固定的是 diffusion backbone 与训练超参、控制与 IK 接口、执行器逻辑、成功判据。</li>
+<li><strong>输出</strong>：动作块（Exp. 2 预测 16 步 TCP 目标位姿与夹爪命令、执行前 8 步，经共享 IK 变为关节目标，20 Hz 执行）。</li>
+</ol>
+<hr>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p><strong>Exp. 1（技能泛化，隔离 coverage 这一侧）。</strong> 6 个 MetaWorld 任务（pick-place-wall、assembly、drawer-open、door-open、peg-insert-side、stick-push，状态输入版），每任务 20 条成功示范，取嵌套子集 N∈{2,5,10,20}；每个任务变动两个空间因子（Table 3）。测试状态三类：<strong>IID</strong>（在演示因子区间内新采样）、<strong>C</strong>（把两因子重组到演示未出现的组合）、<strong>E</strong>（两个因子都外推到演示区间之外），OOD &#x3D; C 与 E 等权平均；每模型测 20 个 IID + 40 个 C + 40 个 E 状态（§A.4）。基线：<strong>B0</strong> &#x3D; vanilla Diffusion Policy；<strong>B1</strong> &#x3D; 加入三个世界系”角色相对向量”（物体−手、目标−被操作件、stick-push 的 target−tool）经小 MLP 编码的<strong>固定关系先验</strong>（§A.3，作者声明 B1 是”一个固定先验”，而非穷尽的专家先验集合）。候选：A1–A3 在<strong>任何性能反馈之前</strong>提交，A4 依据三者开发集 OOD 结果设计并从头训练；记录 q1&#x3D;A1、q3&#x3D;最优 A1–A3、q4&#x3D;最优 A1–A4（选择规则冻结，测试前锁定，§5.1、§C.1）。共 144 个模型，每个 20,000 次更新。所有系统共享相同状态通道、同一控制器与评测状态；代理设计时可看演示图像，但策略本身不用图像。</p>
+<p><img src="/images/dailypaper/2026-10-02/2609.35690_fig3.png" alt="Fig. 3 Exp. 1 的因子布局：每个任务两个空间因子，蓝点为 20 条演示的支撑点，橙/紫分别为重组（C）与外推（E）测试状态；测试状态在设计时不可见"></p>
+<p>图 3 的作用是定义”OOD”到底是什么：以 pick-place-wall 为例，演示只覆盖 object x 与 goal x 同号的低–低&#x2F;高–高两格（LL&#x2F;HH），C 类把两因子交叉到 LH&#x2F;HL 格，E 类把两个因子都挪到演示区间之外（如 object x 从 ±0.03 m 扩到 ±0.05 m）。它服务于分析”先验是否真的扩展了策略的覆盖”：如果方法只拟合了演示状态，C 与 E 两列会一起塌掉（B0 的 OOD 均值只有 28.96%–46.67%）。</p>
+<p><strong>Exp. 2（coverage + selection 一起，长程组合）。</strong> 5 个 ManiSkill 任务，每任务 12 条脚本规划器示范（无失败&#x2F;恢复）：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-02/2609.35690_fig2.png"
+                      alt="Fig. 2 五个 ManiSkill 长程任务在演示起始状态下的场景：抽屉交换、缓冲区交换、低位隧道取放、覆盖式销装配、颗粒倾倒与归还"
+                ></p>
+<p>图 2 说明任务的长程性与交接依赖：完成一个任务通常需要 3–4 个技能（例如”抽屉交换”&#x3D; 开抽屉 → 红块转移 → 蓝块放入），因此每个技能的入口状态往往由上一个技能的执行结果产生，这正是论文强调”交接状态必须被后继策略覆盖”的现实来源。评测分三类（§5.2、§B.3）：<strong>motion-level OOD</strong>（每任务 8 个冻结布局，被操作物沿至少一轴偏离名义位 13–27.5 mm，超出演示的 ±8–15 mm）、<strong>task-level OOD</strong>（每任务 8 例：4 例从中途状态恢复、4 例只请求演示序列的前缀目标）、<strong>组合</strong>（16 例：跳过&#x2F;重排技能、或让某子目标预先完成从而改变下一技能的入口条件）。比较对象：DP（全任务扩散策略）、SinglePrior（同一 LLM 设计<strong>一个</strong>全任务先验、无运行时代理）、Agent+VLA（同一个 runtime agent 调用微调后的 π0.5：4.14B 全参、204 个技能段共 112,761 帧、17 条技能名指令、10 epochs &#x2F; 20,136 次更新，§B.2）；消融四个：w&#x2F;o interface information（同一已验证库 + 同一代理，仅保留技能名、随机顺序的策略标签 A–D 与调用 schema）、w&#x2F;o prior information（保留验证分数与出口条件，隐藏先验&#x2F;交接&#x2F;支撑描述与 usage note）、w&#x2F;o HL agent（换成固定规则：按演示技能顺序、几何子目标达成即算完成、每个策略最多调 300 步、连续两次失败才换下一个策略）、w&#x2F;o verification（每技能 3 个策略、跳过验证）。每例 1 个 episode、5000 步上限，成功按<strong>首次达成</strong>目标计算（§B.6）。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p><strong>Exp. 1（Table 1、Table 6；指标 &#x3D; 隐藏测试成功率 %，六任务等权平均）。</strong></p>
+<ul>
+<li>N&#x3D;2 时，q4 的 OOD &#x3D; **89.58%**，B0 &#x3D; 28.96%，B1 &#x3D; 37.92%；q4 相对 B1 的差距在 N&#x3D;2&#x2F;5&#x2F;10&#x2F;20 上分别为 <strong>51.67 &#x2F; 50.83 &#x2F; 41.04 &#x2F; 36.88</strong> 个百分点。</li>
+<li>均值 OOD（对四个 N 平均）：B0 37.86、B1 47.29、q1（首个提案）67.92、q3 85.21、q4 92.40。也就是说，<strong>只提交一个未经反馈的提案就已经比固定关系先验高 18.1–22.5 点</strong>，多候选+开发集选择再加 10.2–24.0 点，反馈轮再加 2.9–12.1 点（§5.1）。</li>
+<li>IID 侧：N&#x3D;20 时所有系统都是 100.00%，论文据此主张”增益来自泛化而非拟合”；但外推（E）仍然难：N&#x3D;20 时 E 成功率 B0 25.42%、B1 36.25%、q4 88.33%（§A.6）。</li>
+<li>覆盖率：24 个 task–N 条件中，q4 全部优于 B0，23 胜 1 平 B1（§A.6）。</li>
+<li><strong>负面结果</strong>：door&#x2F;N&#x3D;20 上 q4（96.25%）反而低于 q3（100.00%）；assembly 是最难任务且成功率随 N 非单调；A4 在 24 个条件中 10 次提升、13 次持平、1 次下降（§5.1、§A.6）。</li>
+<li><strong>不确定性</strong>：Table 6 的 95% 区间是”对已训练模型与 6 个任务条件化”的配对状态 bootstrap（20,000 次重采样），<strong>明确不度量训练种子或独立 agent 设计之间的变异</strong>（§A.4）。§A.5 也承认展示的修订案例是”看结果后挑选的、不是消融”。</li>
+</ul>
+<p><img src="/images/dailypaper/2026-10-02/2609.35690_fig4.png" alt="Fig. 4 Exp. 1 的逐任务结果：六张子图分别为 pick-place-wall、assembly、drawer、door、peg-insert-side、stick-push，横轴为演示数 N，纵轴为测试 OOD 成功率；灰 = B0 vanilla DP，橙 = B1 固定关系先验，蓝/青/紫 = APPL 的 q1/q3/q4"></p>
+<p>图 4 的作用是拆开宏平均，回答”增益是不是只来自个别任务”。可以看到：drawer、door、stick-push 在较大 N 时被 q3&#x2F;q4 推到接近 100%，而 <strong>assembly 始终最难、且随 N 非单调</strong>（在 N&#x3D;10 处出现回落），这正是论文所称”设计会随 N 变化、曲线描述的是设计流程而非单一架构的缩放”的原因（§A.6）——换言之，横轴 N 变化时被测对象本身也在变，读这张图时不能把 q1–q4 当成同一模型的不同数据量版本。</p>
+<p><strong>Exp. 2（Table 2；指标 &#x3D; 首次达成成功率，M &#x3D; 动因级 8 例&#x2F;任务、T &#x3D; task-level 8 例&#x2F;任务、Comp &#x3D; 16 个新组合）。</strong></p>
+<ul>
+<li>APPL：动因级 **50.0%**、task-level **92.5%**、组合 <strong>8&#x2F;16</strong>；DP 与 SinglePrior 动因级均为 **10.0%**（M 列逐任务：DP 0&#x2F;8、0&#x2F;8、1&#x2F;8、3&#x2F;8、0&#x2F;8），配对精确 McNemar p&lt;0.001（§5.2、Table 9）。</li>
+<li>Agent+VLA：动因级 **32.5%**、task-level 70.0%、组合 6&#x2F;16——优于 DP 但低于 APPL。</li>
+<li><strong>同一策略库、只隐藏接口信息</strong>：动因级 **20.0%**、task-level **65.0%**、组合 <strong>2&#x2F;16</strong>（p&#x3D;0.017 &#x2F; 0.003 &#x2F; 0.031）。</li>
+<li>换成固定规则调度（w&#x2F;o HL agent）：22.5% &#x2F; 52.5% &#x2F; 1&#x2F;16（p&#x3D;0.019 &#x2F; &lt;0.001 &#x2F; 0.016）。</li>
+<li>只恢复验证分数与出口条件（w&#x2F;o prior information）：<strong>45.0% &#x2F; 72.5% &#x2F; 3&#x2F;16</strong>。与 full APPL 的动因级差距不显著（6:4，p&#x3D;0.754），task-level 显著（9:1，p&#x3D;0.021），组合不显著（6:1，<strong>p&#x3D;0.125</strong>）（§B.4、Table 9）。</li>
+<li><strong>未提升&#x2F;异常点</strong>：covered peg assembly 上 APPL 动因级只有 1&#x2F;8，而 w&#x2F;o verification 消融在该任务为 8&#x2F;8；论文解释为<strong>验证分数在分布外把策略排错</strong>，并把它当作重要的负面发现（§5.2、§B.4）。</li>
+<li><strong>缺方差</strong>：Exp. 2 每例仅 1 个 episode、无重复与置信区间；组合案例的分项为 drawer 2&#x2F;4、buffer 1&#x2F;3、retrieve 3&#x2F;3、peg 0&#x2F;3、pour 2&#x2F;3（§B.3）。</li>
+</ul>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><ul>
+<li>**最干净的机制对照是”同一策略库、只改变运行时可见信息”**（§5.2、Table 9）：策略权重完全固定，因此 50.0→20.0、92.5→65.0、8&#x2F;16→2&#x2F;16 的下降不能归因于策略质量变化。这是本文最有说服力的因果证据。</li>
+<li><strong>但”为什么有效”只拆到字段组粒度</strong>。§B.4 的三段式拆分显示：<strong>验证分数与出口条件</strong>贡献了动因级增益的大头（20.0→45.0，p&#x3D;0.041），先验&#x2F;交接&#x2F;支撑文本的<strong>额外</strong>贡献在 task-level 上显著（72.5→92.5，9:1，p&#x3D;0.021），在动因级上几乎没有（45.0 vs 50.0，p&#x3D;0.754），在组合上是正向但不显著的趋势（3&#x2F;16→8&#x2F;16，6:1，p&#x3D;0.125）。<strong>因此”先验描述本身驱动组合泛化”这一核心主张在统计上未被确认。</strong></li>
+<li><strong>Exp. 1 对”先验塑造覆盖率”是间接支持</strong>：B0 与 B1 共享同一 backbone 与更新预算，q1–q4 也共享，差异主要在表示与训练目标；q4 在 24&#x2F;24 条件不低于两个基线。但仍属系统级证据，无法排除”代理恰好写了更复杂的输入特征”这类替代解释。</li>
+<li><strong>论文给出的反面机制证据很有价值</strong>：h03 策略在 12 次分布内验证中 0&#x2F;12 通过，但 12 次运行的原始记录显示它都在第 347–384 步一度满足 staging 判据，只是固定在第 570 步判定时已丢失——说明”验证为 0 分”掩盖了一段其实可以交接的执行区间（§B.4）。据此论文自己承认：验证应当与被调用时的入口分布和交接规则一致，而当前 A_i ⊆ W(π_i) 的忠实性只是<strong>假设</strong>。</li>
+<li><strong>无法排除的替代解释</strong>：(a) 更多策略意味着更多”尝试机会”或近似集成效应（缺”多策略同一先验”对照）；(b) 收益可能来自 LLM 调度本身的强先验知识，而非接口信息（w&#x2F;o HL agent 用固定规则部分回答，但该固定规则写得较弱，需连续两次失败才换策略）；(c) Agent+VLA 的容量与预训练不同，不能反推”结构先验优于大规模数据”。论文没有把”增加测试时算力&#x2F;采样次数”或”多 checkpoint 集成”作为对照。</li>
+</ul>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><ul>
+<li><strong>训练成本</strong>：Exp. 1 共 144 个模型 × 20,000 次更新；Exp. 2 中 APPL 每个策略 20,000 次更新（DP&#x2F;SinglePrior 为 60,000 次），库规模 &#x3D; 技能数 × 4（每任务 3–4 个技能）。<strong>论文未报告</strong> GPU 型号、wall-clock、总 FLOPs 或 LLM API 花费。</li>
+<li><strong>推理&#x2F;运行成本</strong>：Exp. 2 单次调用 ≤300 步、每 episode ≤128 次代理请求、只保留最近六轮上下文；<strong>仿真在代理推理时暂停</strong>（意味着真实部署会有可观延迟）；episode 上限 5,000 步（Table 7、§B.1）。</li>
+<li><strong>外部依赖</strong>：构建与运行时都依赖闭源 LLM——Exp. 1 的设计代理为 GPT-6 Astra（reasoning effort max，§A.3），Exp. 2 全部代理角色为 GPT-5.6 Sol（extra-high effort，Table 7）；可复现性声明明说重跑代理可能产生不同的设计与运行时决策（Reproducibility statement）。</li>
+<li><strong>人工标注</strong>：无额外人工标注；但 12&#x2F;20 条示范来自脚本专家或脚本规划器，<strong>不含失败与恢复轨迹</strong>（§B.1、§B.5）。</li>
+<li><strong>已解决&#x2F;未解决</strong>：改善了”少量示范下技能的 OOD 覆盖率”与”物体位移、中途状态下用多策略组合完成任务”；<strong>未解决</strong>恢复行为（库中没有”重新接近丢失物体”的技能，失败三成因中的第二、三类无法处理，§B.5），未做真机，先验只是”预期泛化的假设、不保证能力”（§6 Limitations）。</li>
+<li><strong>结论边界</strong>：只适用于论文报告的两个仿真基准、报告中的示范规模与状态输入设定；不能外推为”普遍提升机器人 Agent 的能力”。</li>
+</ul>
+<hr>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：系统级比较使”先验即接口”的因果贡献无法完全分离。"><a href="#质疑：系统级比较使”先验即接口”的因果贡献无法完全分离。" class="headerlink" title="质疑：系统级比较使”先验即接口”的因果贡献无法完全分离。"></a>质疑：系统级比较使”先验即接口”的因果贡献无法完全分离。</h4><ul>
+<li><strong>原文依据</strong>：§5.2 自己写明 50.0% vs 10.0% 的比较”evaluates the combined advantage of runtime agent scheduling and a larger library of skill policies trained with diverse agent-designed priors”；现有消融虽然固定了策略库，但<strong>没有”每技能多策略但先验相同（或仅随机种子不同）”的对照</strong>。</li>
+<li><strong>为什么重要</strong>：直接决定创新点 1 与 2 是否成立。如果收益主要来自”多几个策略可试 + LLM 调度”，那么”训练期先验必须写进接口”这一主张的必要性会显著减弱。</li>
+<li><strong>当前能够得出的判断</strong>：证据不足。隐藏接口信息的消融（同一库 50.0→20.0）确实证明运行时可读信息有用，但不能排除多策略数量本身的贡献。</li>
+<li><strong>如何验证或补强</strong>：增加一个对照组，每技能同样 4 个策略、但全部由同一先验（或不同随机种子）训练，配同一 runtime agent 与同样的描述字段，看组合成功率是否仍然下降。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：Exp-2-的统计强度不足以支撑”enables-previously-unseen-skill-compositions”这一摘要级主张。"><a href="#质疑：Exp-2-的统计强度不足以支撑”enables-previously-unseen-skill-compositions”这一摘要级主张。" class="headerlink" title="质疑：Exp. 2 的统计强度不足以支撑”enables previously unseen skill compositions”这一摘要级主张。"></a>质疑：Exp. 2 的统计强度不足以支撑”enables previously unseen skill compositions”这一摘要级主张。</h4><ul>
+<li><strong>原文依据</strong>：Table 2 标注”one episode per case”；组合 16 例、每例一次；§B.4 报告 full APPL 与 w&#x2F;o prior information 的组合差异为 6:1、精确 McNemar <strong>p&#x3D;0.125</strong>（不显著）；§A.4 说明 Exp. 1 的区间不覆盖种子或独立 agent 设计变异。</li>
+<li><strong>为什么重要</strong>：组合泛化是论文标题级卖点，也是与 SymSkill 等工作的主要区别所在。</li>
+<li><strong>当前能够得出的判断</strong>：方向一致但统计上未被确认；属于”证据不足”，不是”结论错误”。</li>
+<li><strong>如何验证或补强</strong>：每例多随机流重复、报告种子间方差、扩大案例数（尤其 covered peg assembly 仅 3 例、全败）、预注册评估集与成功判据。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：验证机制既是方法核心环节，又被自己的数据证明在偏移下会排错策略。"><a href="#质疑：验证机制既是方法核心环节，又被自己的数据证明在偏移下会排错策略。" class="headerlink" title="质疑：验证机制既是方法核心环节，又被自己的数据证明在偏移下会排错策略。"></a>质疑：验证机制既是方法核心环节，又被自己的数据证明在偏移下会排错策略。</h4><ul>
+<li><strong>原文依据</strong>：§5.2”Verification aids selection but can misrank policies under shift”——covered peg assembly 上因验证报告排错策略，成功率从 8&#x2F;8 掉到 1&#x2F;8；§B.4 的 h03 案例（12&#x2F;12 判 0 分，但区间内实际可达交接条件）；验证只用演示入口状态、只跑 1.5 倍段长、末状态一次判定。</li>
+<li><strong>为什么重要</strong>：接口忠实性 A_i ⊆ W(π_i) 是 §3 形式化目标之一，而支撑它的唯一证据是分布内验证。若验证分数会系统性偏袒”分布内好看”的策略，接口可能有反作用。</li>
+<li><strong>当前能够得出的判断</strong>：论文没有验证忠实性，只验证了”验证信息总体上对选择有帮助，并且有时会误导”；忠实性仍是假设。</li>
+<li><strong>如何验证或补强</strong>：在接近部署分布与交接规则的入口分布上做验证；直接测量忠实性（例如在 A_i 内采样起点统计实际成功率）；报告验证分数与真实 OOD 成功率的排序相关性。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：缺少与最接近方法（SymSkill-及符号规划器路线）的实证对比；最强基线的可比性也存疑。"><a href="#质疑：缺少与最接近方法（SymSkill-及符号规划器路线）的实证对比；最强基线的可比性也存疑。" class="headerlink" title="质疑：缺少与最接近方法（SymSkill 及符号规划器路线）的实证对比；最强基线的可比性也存疑。"></a>质疑：缺少与最接近方法（SymSkill 及符号规划器路线）的实证对比；最强基线的可比性也存疑。</h4><ul>
+<li><strong>原文依据</strong>：§2、§D.3 与 Table 11 只做<strong>设计层面</strong>比较，明确声明”implies no empirical ranking”，未运行 SymSkill、Lorang et al. 2025、DR-LfD 等；Agent+VLA 基线是全参微调 4.14B 的 π0.5（§B.2），与状态输入的小型扩散策略在容量与预训练知识上差异巨大，虽然论文声称”同一 runtime agent、同一数据”。</li>
+<li><strong>为什么重要</strong>：创新性证据与实验支持力度都依赖”与最强最接近方法比”。目前无法判断 APPL 相对同路线符号抽象方法的真实优劣。</li>
+<li><strong>当前能够得出的判断</strong>：当前材料无法确认；论文的比较是自设基线集合内的比较。</li>
+<li><strong>如何验证或补强</strong>：在同一 ManiSkill 任务与同一示范预算下复现 SymSkill 或 DR-LfD，并给相同的高层调度预算与相同的调用次数上限；再补一个使用相同次数随机重启的小型扩散策略对照。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：评估集与成功判据存在事后调整，且训练-API-成本未披露。"><a href="#质疑：评估集与成功判据存在事后调整，且训练-API-成本未披露。" class="headerlink" title="质疑：评估集与成功判据存在事后调整，且训练&#x2F;API 成本未披露。"></a>质疑：评估集与成功判据存在事后调整，且训练&#x2F;API 成本未披露。</h4><ul>
+<li><strong>原文依据</strong>：§B.6 披露动因级 OOD 的难度是在看到更难的 split 结果之后”减半偏移量”得到的，且 4 个 drawer 案例在 task-level 结果出来后<strong>被重新归类</strong>为组合案例；原设的 300 步 goal-hold 条件从未生效——所有 173 个成功的高层 episode 都是首次满足即停，组合案例 C-N3 甚至在方块仍以约 1.66 m&#x2F;s 下落时就被判成功。成本方面，训练 wall-clock&#x2F;GPU 与 LLM token 花费均<strong>论文未报告</strong>。</li>
+<li><strong>为什么重要</strong>：它影响”成功”指标的含义（是一次瞬时达成还是稳定完成）与复现成本的可估性；虽然论文主动披露，读者仍需据此调整对数字的信心。</li>
+<li><strong>当前能够得出的判断</strong>：指标是 first-attainment，论文自己说明”does not establish sustained stability”；成本无法评估。</li>
+<li><strong>如何验证或补强</strong>：预注册案例集与判据、报告持续成功率（如 hold K 步）、公开资源开销明细。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<hr>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现少量示范下的机器人技能既要在新位置用得上、又要在新序列里被正确调用，而组合层对技能的全部认识只是一个名字或指令，于是提出把<strong>训练期塑造策略泛化的结构先验同时写成运行时接口</strong>，通过”LLM 构造代理分割示范、为每个技能产出多个不同先验的策略并附验证文档，LLM 调度代理读文档选择与组合”来实现（APPL）。实验在 6 个 MetaWorld 任务上表明技能 OOD 泛化大幅提升（N&#x3D;2 时 89.6% vs 固定关系先验 37.9%，并有 95% bootstrap 区间），在 5 个 ManiSkill 长程任务上表明动因级 OOD 从 10.0% 提升到 50.0%、task-level 92.5%、解决 8&#x2F;16 个新组合；其中**”同一策略库只改运行时可读信息”的消融证据较强<strong>（50.0→20.0、92.5→65.0、8&#x2F;16→2&#x2F;16），但</strong>“先验描述本身带来组合增益”仍缺少充分支持<strong>（p&#x3D;0.125），且 Exp. 2 每格仅一次试验、验证机制被自证会在偏移下排错、缺少与 SymSkill 一类的实证比较。本文最有价值的部分是把”接口—成功域失配”形式化、并用同一策略库上的信息隐藏实验给出了干净的因果对照，以及附录中对失败机制与停止规则的诚实审计；最大的审稿风险是</strong>核心机制主张（先验描述支撑选择）在组合泛化上统计不显著，而系统级比较无法排除”多策略 + LLM 调度”的替代解释**。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。用 W(π_i)、A_i、faithful&#x2F;informative 准则把”任务层与技能层的信息丢失”写成可检验的形式（§3），并明确区分 motion-level OOD、task-level OOD 与组合三种情形。</li>
+<li><strong>创新性证据</strong>：中。双角色先验的想法清楚且论文诚实标注了非首创部分（§D.3），但”多策略库 + 调度”这一组合的不可替代性缺少直接对照（质疑 1、4）。</li>
+<li><strong>方法可信度</strong>：中。组件均为成熟模块的组合（Diffusion Policy、IK、LLM 代理），流程可执行且消融设计干净；但 A_i ⊆ W(π_i) 的忠实性未被验证，作者自己也承认先验只是假设（§6、§B.4）。</li>
+<li><strong>实验支持力度</strong>：中。Exp. 1 有 144 个模型、嵌套数据量与配对区间，但区间不覆盖种子&#x2F;设计变异（§A.4）；Exp. 2 每例一次、组合差异不显著、评估集有事后调整（§B.6）。</li>
+<li><strong>可复现性</strong>：中。论文列出完整超参（Table 5、Table 7）、复刻全部提示词（附录 C），并声明将释放代码、代理生成的策略实现、评估用例与 episode 结果；Hugging Face 页链接的官方仓库确已存在（MIT、含 results&#x2F;policies&#x2F;experiments 目录），但重跑 LLM 代理会产生不同设计、未报告环境成本，精确复现受限。</li>
+<li><strong>综合阅读价值</strong>：高。即使部分主张待验证，”把训练期结构假设保留为运行时接口”这一设计模式、以及附录 B 对验证失效、失败机制与停止规则的披露，对做机器人学习系统与 LLM-agent 调度的读者都有直接参考价值。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Agent Priors-guided Policy Learning</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-02 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-02 13:57:14
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/02/2609.35690v1_Agent_Priors-guided_Policy_Learning/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Agent/">#LLM Agent</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%93%8D%E4%BD%9C/">#机器人操作</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0/">#模仿学习</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%8A%80%E8%83%BD%E7%BB%84%E5%90%88/">#技能组合</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E7%BB%93%E6%9E%84%E5%85%88%E9%AA%8C/">#结构先验</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/02/2609.38024v1_Retrieval-Augmented_Skill_Optimization_via_Cross-Harness_Adaptation/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Retrieval-Augmented Skill Optimization via Cross-Harness Adaptation</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Agent Priors-guided Policy Learning</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 52 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

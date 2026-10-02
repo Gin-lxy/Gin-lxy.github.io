@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/02/2610.01509v1_sharpening_tax_in_post-training/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Sharpening Tax in Post-Training">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/02/2610.01509v1_Sharpening_Tax_in_Post-Training/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-02T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-02T05:57:14.249Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="LLM Agent">
+<meta property="article:tag" content="pass@K 与解覆盖率">
+<meta property="article:tag" content="后训练锐化">
+<meta property="article:tag" content="强化学习">
+<meta property="article:tag" content="测试时扩展">
+<meta property="article:tag" content="自适应采样温度">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Sharpening Tax in Post-Training | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">160</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">52</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Sharpening Tax in Post-Training</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv4</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-02 12:00</span>
+        <span class="mobile">2026-10-02 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-02 13:57:14</span>
+            <span class="mobile">2026-10-02 13:57:14</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">强化学习</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-Agent/">LLM Agent</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%B5%8B%E8%AF%95%E6%97%B6%E6%89%A9%E5%B1%95/">测试时扩展</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%90%8E%E8%AE%AD%E7%BB%83%E9%94%90%E5%8C%96/">后训练锐化</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/pass-K-%E4%B8%8E%E8%A7%A3%E8%A6%86%E7%9B%96%E7%8E%87/">pass@K 与解覆盖率</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%87%AA%E9%80%82%E5%BA%94%E9%87%87%E6%A0%B7%E6%B8%A9%E5%BA%A6/">自适应采样温度</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Changdae Oh（Meta Superintelligence Labs、University of Wisconsin–Madison）、Qi Zeng、Qi Qi、Andrey Zhmoginov、Deren Lei、Yun He、Hoang Phan、Hangoo Kang、Azalia Mirhoseini、Sharon Li，共 10 人；机构：Meta Superintelligence Labs、University of Wisconsin–Madison、NYU、Stanford University（Changdae Oh 与 Hoang Phan 标注 work done at Meta）。通讯作者 Changdae Oh 与 Sharon Li。</p>
+<p>论文：2610.01509v1；Hugging Face 来源批次：2026-10-02；精读归档日期：2026-10-02（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.01509" >https://huggingface.co/papers/2610.01509<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.01509v1" >https://arxiv.org/abs/2610.01509v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>分析范围：以 arXiv 官方 HTML（<code>https://arxiv.org/html/2610.01509v1</code>，2026-10-02 抓取，arXiv:2610.01509v1 [cs.AI]，2026-10-01 提交，License: CC BY 4.0）为准逐节通读；覆盖摘要、§1–§9 正文、Acknowledgments、References，以及 Appendix A–F（A 实验细节与伪代码、B 全部证明、C–D 锐化诊断补充结果、E–F PTGS 补充与分析），核对式 (1)–(10)、Proposition 1、Theorem 2、Theorem 3、Corollary 4、Proposition 5 及其证明、Table 1–8 与 Fig. 1–42 的图注与正文引用。未读取 PDF（HTML 完整可得，无材料缺失）。论文给出的官方项目页 <code>https://changdaeoh.github.io/sharpening-tax/</code> 与代码仓库 <code>https://github.com/changdaeoh/sharpening-tax</code> 在归档当日 HTTP 200 可达，仅读取仓库 README 用于补充实现与可复现性信息（README 明确写明其只是”minimal working examples，不是 reproduction package”）。配图共 5 张：Fig. 1（总览）、Fig. 5（税随预算变化）、Fig. 7（PTGS 示意）为官方 HTML 内嵌 PNG 原图；Fig. 2（pass@K 交叉曲线）、Fig. 4（双峰化直方图）在 HTML 中以 SVG 资产给出，用无头 Chrome 渲染为 PNG，均逐张目检确认为正确图面、非空、尺寸非零。论文未报告的信息一律标注”论文未报告”。</p>
+<p>标签：后训练锐化、pass@K 与解覆盖率、测试时扩展、LLM Agent、强化学习、自适应采样温度。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文把”RL 后训练是扩展能力还是锐化原有行为”的争论搬到多轮工具调用类 agentic 任务上：在 14 组开源 base&#x2F;post-trained checkpoint 对 × 3 个基准（BFCL v4 多轮、WebShop、ACEBench，42 个组合、每任务 128 次 rollout）上，后训练模型赢在 pass@1，但在大预算下常被”仅加轻量 harness 的 base 模型”在 pass@K（解覆盖率）上反超，作者把这一代价归因于后训练将每任务成功率分布”双峰化”（推向总解出&#x2F;总解不出两个极端），并把它压缩为一个可诊断标量 Sharpening Tax（K&#x3D;128 时 42 个组合中 36 个为正）。为解决它，作者提出 PTGS（按题自适应采样温度的 Bayesian sampler），在 Qwen2.5-7B-Instruct 的两个网格世界 RL 环境（Sokoban、FrozenLake，PPO&#x2F;GRPO，5 个随机种子）中同时提升 pass@1 与 pass@128、并减小税。边界：诊断部分证据面广但为观测性（后训练配方未公开，因果解释只由带强假设的数理模型支持）；缓解部分仅一个 7B 模型、两个玩具环境、均值对比未做显著性检验，”PTGS 可推广到一般 agentic RL”当前证据不足。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>领域一般问题。</strong> “RL 后训练（RLVR 等）究竟是创造了新能力，还是只是在放大 base 模型已有的高奖励行为（distribution sharpening）”是当前争论焦点：一方报告 RL 模型在 pass@K（大 K）上输给 base 模型，认为后训练以解覆盖率为代价换取 pass@1；另一方认为能力边界可以真正扩展（延长训练、grokking 等），也有人把差异归因于训练数据&#x2F;任务分布（§7 Related Work 概括了这两派争论）。</p>
+<p><strong>现有方法的局限（作者给出的动机）。</strong> 该争论的证据几乎全部来自数学与代码任务，作者指出两个问题：(1) 预训练对数学&#x2F;代码的曝光极大，base 模型可能本就编码了大量候选解法；(2) 这类评测往往只检查最终答案，运气好的错误推理也能得分，会虚高 pass@K（§1，引 Skalse et al. 2022；Wen et al. 2026）。因此现有结论未必能迁移到 agentic 任务。</p>
+<p><strong>本文的新观察。</strong> 作者主张 agentic 任务（多轮工具调用、场景化接口、环境反馈、长程一致性）是检验”锐化假说”的 stress test，因为这类行为在预训练数据中稀少、通常被认为要靠后训练获得（§1）。在此基础上给出三个观察：其一，只加一个”数据集无关、模型无关”的轻量 harness，预训练 base 模型就能执行 agentic 任务，并在测试时预算足够大时在 pass@K 上反超其后训练版本（Fig. 2）；其二，反超所需预算 k* 随模型规模缩小，WebShop 上 4B 的 k* &gt; 128 而 31B 约 3（Fig. 3，§3）；其三，后训练把每任务成功率分布推向两个极端——总是解出或从不解出，中间”给算力就能解出”的区域大幅塌缩（Fig. 4 与 §3 正文；gemma-4-31B 在 WebShop 上中间类别从 87.6% 降到 30.0%，总是解出从 0.0% 升到 26.0%，总是失败从 12.4% 升到 44.0%）。</p>
+<p><strong>支撑证据。</strong> 14 组 base&#x2F;post-trained 对（Gemma-4、Ministral-3、Qwen2.5、Qwen3.5 四族，3B–35B，Table 1）× 三个过程性（process-centric）基准，每任务 128 次 rollout（§A.1、Table 3）；三基准都按环境状态判定成功，不易被”幸运最终答案”刷分（§A.1）。harness 的作用有消融：8 个 base 模型中 6 个在没有 harness 时 BFCL 得分为 0，加 harness 后平均 pass@1 从 5.6% 升到 15.6%、pass@32 从 15.2% 升到 49.1%（§3 正文汇总，per-model 见 Appendix Table 2）；同一 harness 会损害后训练模型（平均 pass@1 42.8→16.3%），故作者对后训练模型保留各自默认脚手架（§3、§A.3）。</p>
+<p><strong>作者认为的原因。</strong> 分布锐化（sharpening）：后训练把概率质量集中到少数高奖励行为模式，代价是解覆盖率。作者用 Theorem 2 给出一个理想化模型：若后训练以比例 λ 独立地把每任务成功率坍缩到 0 或 1，则原始税 Tax_A(K)&#x3D;λ·A_Base(K) 恒非负且成比例（§6）。</p>
+<p><strong>核心假设。</strong> (i) 准确率—覆盖率张力可迁移到 agentic 领域且普遍存在；(ii) 该代价可用单一标量刻画、可用少量 rollout 预测，并与其他评测指标相关；(iii) 其中一部分覆盖率损失并非不可避免，通过改变 RL 训练时的 rollout 采样（按题调温）可以兼得 pass@1 与 pass@K。</p>
+<p><strong>必须区分的是：</strong> 论文观测到了”双峰化”现象并有跨模型证据，但因果解释（是 RL&#x2F;SFT&#x2F;DPO 中的哪一环节、以什么机制造成）没有被验证——checkpoint 的预训练&#x2F;后训练数据与配方均未公开，作者在 §9 Limitations 中明确承认这是”observational rather than interventional”，需要可控数据配方实验才能给出因果结论。Theorem 2 是一个建模结果而非对真实训练过程的验证。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p><strong>一段话概括：</strong> 本文的技术增量有三块：一个把 base 模型当作”覆盖率锚点”、用 pass@K 曲线面积差与校准化差额刻画的诊断标量（Sharpening Tax），一套把该诊断落到 14 模型 × 3 基准 × 128 rollout 的 agentic 评测协议（含让 base 模型能当 agent 的轻量 harness），以及一个不改动 RL 算法本体、只按每题目难度在线自适应 rollout 温度的 Bayesian sampler（PTGS，附三个小定理解释其机制）。其中诊断思路有较好的可解释性与可预测性验证（ρ&#x3D;0.85），但构造本身是标准 pass@k 估计量的重加权；PTGS 是采样侧已有思路（温度调度&#x2F;自适应采样）的一个干净实例化，实证范围很小。</p>
+<p>逐项分析：</p>
+<ol>
+<li><p><strong>Sharpening Tax（诊断标量，§4, Eq. (1)–(3)）</strong></p>
+<ul>
+<li>新增什么：A(K)&#x3D;Σ_{k&#x3D;1}^{K-1}[pass@K−pass@k]（pass@K 天花板下的面积，Eq. (1)）；S(K)&#x3D;A(K)&#x2F;[(K−1)(1−pass@1)]（用准确率余量校准并归一到 [0,1]，Eq. (2)）；Tax_X(K)&#x3D;X_Base(K)−X_Post(K)（Eq. (3)）。Proposition 1 给 A(K) 一个概率解释：A(K)&#x3D;E[(H−1)·1{H≤K}]，即”首次成功前的期望失败次数”，S(K) 是它在首试失败任务上、归一到 [0,1] 的版本（§6）；Corollary 4 把税分解为”天花板差”与”预算平均覆盖率差”（Eq. (8)，Appendix B.2）。附录 D.1 的 42 组合汇总表显示，后训练模型对其自身天花板的达成比例 C̄&#x2F;C 在所有组合中都高于 base。</li>
+<li>与最接近已有方法的具体差异：pass@k 无偏估计量（Chen et al. 2021）与重复采样扩展曲线（Brown et al. 2024）都是既有工具，以往工作要么肉眼比较曲线形状、要么只看端点指标（pass@K、pass^K）。本文的差异是把整条曲线的”重试价值”归一成一个标量并以 base 模型为锚（差分化），并验证其可预测性。</li>
+<li>属于哪类：指标设计层面的新组合&#x2F;工程改进，不是新学习原理；作者也承认这一节的价值在”把可视化变成可观测量”（§7）。</li>
+<li>对应什么问题：让”锐化税”可以在不同模型&#x2F;基准&#x2F;预算间比较，并支持预算受限场景下的早期估计。</li>
+<li>证据：Tax_S(8)（8 次 rollout、半数任务上估计）能预测留出半数任务上的 Tax_S(32)，Spearman ρ&#x3D;0.85；Tax_S(8) 与一致性差 Δpass^8 正相关；在三个预测目标（Tax_S(32)、Δpass@32、Δpass^32）上，它是唯一三个都强显著的早期预测子（Fig. 6 三面板，§4）。</li>
+<li>移除后会怎样：没有消融实验（这是指标而非可移除模块），但可对照的是：若只看端点指标，就无法区分”K&#x3D;8 就饱和”与”K&#x3D;128 仍在爬升”这两种非常不同的策略，例子见 §4 中 Fig. 5 的两类税形状（Tax_A 随预算近似单调上升，Tax_S 可升可降）。</li>
+</ul>
+</li>
+<li><p><strong>agentic 领域的评测协议与新经验事实（§3）</strong></p>
+<ul>
+<li>新增什么：一套轻量、无任务泄漏的 harness（系统提示 + Python 函数签名形式的工具目录 + 让模型用 JSON 写 <code>tool_call</code> 块的指令 + <code>### User/Assistant/Tool Output</code> 分节 + stop 序列防自造环境回复，§A.3），使没有 chat template 的 base checkpoint 能以 completion 接口进入标准 benchmark runner；以及由此得到的经验事实：base 模型 + harness 是”合格的 agent”，且 crossover 预算随规模减小（Fig. 2、Fig. 3）。</li>
+<li>与最接近已有方法差异：此前 coverage 分析几乎只在数学&#x2F;代码域做，且不涉及 base 模型的工具调用适配。这是把已有争论换到新领域做（新的经验研究，而非新算法）。</li>
+<li>证据：harness 消融（§A.3 Table 2）显示它对 base 必要（6&#x2F;8 得 0→非 0），对后训练模型平均有害（BFCL 平均 pass@1 42.8→16.3%），说明”base 能工作”确实依赖这个适配层，且论文主比较中该层的方向性偏差（若存在）是保守的（harness 若给后训练模型反而更差）。</li>
+<li>不可替代性：harness 的增益极大（gemma-4-31B BFCL 上 pass@32 从 0.0% 到 86.5%），但它本身是”让 base 能答题”的前提而非性能技巧。</li>
+</ul>
+</li>
+<li><p><strong>PTGS（训练期 sampler，§5, Eq. (4), Algorithm 1）</strong></p>
+<ul>
+<li>新增什么：对每个 prompt 维护带遗忘因子 γ 的成功&#x2F;失败计数 (s̃_x,f̃_x)，构造成以目标成功率 p̃ 为中心的 Beta 先验（总质量 2），用 Thompson sampling 抽后验成功率 p̂_x，再经映射 T_x&#x3D;τ^{h(p̂_x)}（h 分段：难题升温、易题降温，T_x∈[1&#x2F;τ,τ]）决定该组 rollout 的温度；RL 更新规则不改，log-prob 用同温度计算以保持 on-policy（§5、§A.5、Algorithm 1）。</li>
+<li>与最接近已有方法的具体差异：采样侧已有工作做全局温度调度、rollout 内调度或估计幂分布（§7 引 Yang et al. 2025；Liao et al. 2025；Dang et al. 2026；Karan and Du 2026）；PTGS 的差异是”每题一个 Beta-Binomial 后验 + 按题目难度自适应”，且不侵入 RL 目标函数。</li>
+<li>属于哪类：已有组件（温度采样、Beta-Binomial 后验、Thompson sampling、组采样）在 RL 训练循环中的新组合，理论上是干净的，但每一块组件都是成熟的。</li>
+<li>对应什么问题：直接针对 §1 观察到的”中间成功率任务被推向两极”，让难题保持在中段（重试仍能翻盘），易题更确定。</li>
+<li>证据：§5 的 PTGS 结果表显示在 PPO 与 GRPO、Sokoban 与 FrozenLake 四组对照中，加 PTGS 后 pass@1 与 pass@128 同时提高、Tax_S 均下降（细节见 §4.2）；E.3 的固定温度&#x2F;截断解码消融（Table 7、8）表明这不是”全局调温”或”截断分布”的等价物；Theorem 3 给机制解释（见 §3）；Appendix F.1&#x2F;F.2 显示难度估计与真实成功率相关（Pearson 0.81&#x2F;0.71）、高熵不是单纯来自更高温度。</li>
+<li>移除后会怎样：Table 7、8 就是”移除 PTGS 换成固定 T∈{0.5,…,1.5} 或 top-p&#x2F;top-k&#x2F;min-p”的对照：在 Sokoban 上固定的高温提高 pass@1 也提高税（T&#x3D;1.5 时 Tax_S&#x3D;0.102，比默认的 0.094 更高）；在两种环境里没有任何固定温度能同时达到 PTGS 的 pass@1 与 pass@128。</li>
+</ul>
+</li>
+<li><p><strong>理论结果（§6, Appendix B）</strong></p>
+<ul>
+<li>Proposition 1（税的语义）、Corollary 4（税的天花板&#x2F;饱和分解）、Theorem 2（双峰化按比例收税）、Theorem 3（升温难 prompt 会增加”含成功的组”与”混合组”的概率，改善 PPO&#x2F;GRPO 的学习信号）、Proposition 5（冷却已掌握 prompt 会把混合组转为全成功组）。证明完整（Appendix B），但均为理想化模型下的结论（如 Thm 2 假设任务独立地坍缩到 {0,1}；Thm 3 假设升温确实提高成功率 p′&gt;p，这一点由 Fig. 39 的经验结果支持）。</li>
+</ul>
+</li>
+</ol>
+<p><strong>原创边界说明：</strong> 根据本文 related work 与实验对比，只能确认作者声称的差异（agentic 域首个系统性 coverage 分析；PTGS 与已有采样侧方法在机制与对照上的区别）。是否构成”首次提出”需要更完整的文献检索；此外”用 pass@k 验证 RL 是否只做锐化”这一研究路线本身已有 Yu et al. 2025、Zhao et al. 2025 等先行工作，本文是其中的新成员而非开创。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉。</strong> 如果后训练只是把策略变得更”确定”（高奖励行为概率更高、其余压平），那么当用户愿意为一个任务采样很多次时，这种确定性就要付费：原 base 策略里”偶尔蒙对”的行为在重试预算下能累积成解出，而后训练后的策略要么一次就中、要么永远不中，重试不再产生新信息。于是：(a) 把”重试还能带来多少成功”量化成税；(b) 在 RL 训练时，把”总是失败”的难题加热（保持探索），把”已经会做”的易题降温（固化成功），让重试的价值在训练中保留下来。</p>
+<p><strong>按实际运行流程展开：</strong></p>
+<ol>
+<li><strong>输入（诊断部分，§3–§4）。</strong> 每个基准的任务集（BFCL v4 multi_turn_base 200 任务、WebShop 前 500 条指令、ACEBench 770 任务子集，§A.1）+ 14 组 base&#x2F;post-trained checkpoint（Table 1）。采样配置对所有模型统一（BFCL temp 0.4，WebShop&#x2F;ACEBench temp 0.7，top-p 0.95，N&#x3D;128 rollouts&#x2F;task，Table 3）；后训练模型关闭 thinking mode（并用 Fig. 9 消融说明该选择不改变结论）。全部模型用 vLLM 0.19.0 服务（§A.2）。</li>
+<li><strong>关键步骤（诊断）。</strong> base 模型经 harness 适配（A.3，见 §2）；两种策略在相同任务集上各采样 N&#x3D;128。对每任务统计成功数 c_i，计算 pass@1&#x2F;pass@k&#x2F;pass^k（§2，无偏估计量），先看曲线交叉（Fig. 2），再看每任务成功率的分布形状（Fig. 4：总是解出 &#x2F; 给算力能解出 &#x2F; 总是失败三类），最后计算税的两种版本（Eq. (1)–(3)）并做配对任务 bootstrap 置信区间（1000 次重采样，重采样任务而非 rollout，§A.4）。</li>
+<li><strong>由什么组件执行。</strong> 全部是固定流程（采样→统计→bootstrap），无模型决策；附录 A.6 给出 tax 计算的伪代码（accumulative product 实现避免组合数数值问题）。</li>
+<li><strong>PTGS（训练部分，§5、Algorithm 1）。</strong> 输入：任务池 D、组大小 n、目标成功率 p̃、温度跨度 τ、遗忘因子 γ。对每个训练步：(i) 取任务批；(ii) 对每个 prompt 由 (s̃,f̃) 与先验构造 Beta(2p̃+s̃, 2(1−p̃)+f̃)，Thompson 采样得 p̂_x；(iii) 计算 T_x&#x3D;τ^{h(p̂_x)}（式 (4)；h 对难题取 (p̃−p)&#x2F;p̃、易题取 (p̃−p)&#x2F;(1−p̃)，故 T 的取值在 [1&#x2F;τ,τ]，且过三点 T(0)&#x3D;τ·T_ref、T(p̃)&#x3D;T_ref、T(1)&#x3D;T_ref&#x2F;τ，§A.5）；(iv) 以 T_x 生成 n&#x3D;16 条 rollout（组内所有 turn 用同一温度），统计成功数 s_x；(v) 以 γ&#x3D;0.95 折扣更新计数；(vi) 用原 RL 规则更新（PPO&#x2F;GRPO 均不改）。哪些由模型决定：只有 rollout 文本；温度、更新、过滤全是固定流程。</li>
+<li><strong>训练哪些部分。</strong> 只微调策略（以及 PPO 的 critic）：Qwen2.5-7B-Instruct，在 RAGEN 框架中训练 PPO 与 GRPO 各 200 步（每步 8 任务 × 16 rollout；AdamW，actor lr 1e-6，DAPO 式 clip 0.2&#x2F;0.28，无 KL 惩罚，minibatch 32，含 RAGEN 的 reward-variance filter 保留方差最高 90% 的组，§A.5）。PTGS 超参：PPO 用 τ&#x3D;1.5（T_x∈[0.667,1.5]）、p̃ 从 0.25 线性升到 0.5；GRPO 按验证集选参（Sokoban τ&#x3D;1.4、FrozenLake τ&#x3D;1.2，§A.5）。</li>
+<li><strong>推理阶段发生什么变化。</strong> 训练完成后评测时 PTGS 被移除（§5 末）：每个 checkpoint 在 64 个未见任务上以 T&#x3D;0.5 采样 128 条，报告 pass@k 与 Tax_S(128)（对照该环境的 base 模型一次共享评测）。附录 E.4 另做了”推理期 PTGS”变体（先采 pilot，再由后验定温度采解答，不训练），在 FrozenLake 上优于全局温度曲线，在 Sokoban 上只有少数配置略优（64 个任务里差 1–2 个任务）。</li>
+<li><strong>最终输出。</strong> 一个诊断结论（税的存在性、大小、可预测性、路由应用）与一个训练方法（PTGS）。</li>
+</ol>
+<p><strong>关键公式与设计假设。</strong></p>
+<ul>
+<li>诊断：A(K)&#x3D;Σ_{k&#x3D;1}^{K−1}[pass@K−pass@k]（Eq. (1)）；S(K)&#x3D;A(K)&#x2F;[(K−1)(1−pass@1)]（Eq. (2)，要求 1−pass@1&gt;0）；Tax_X&#x3D;X_Base−X_Post（Eq. (3)）。Proposition 1 的解释：只有”首试失败、但在预算内某次成功”的任务贡献 A，且首成越晚贡献越大——因此税为正 &#x3D; 后训练的成就不再依赖重试（Appendix B.2 进一步分解为”天花板损失”与”饱和加速”两种效应）。</li>
+<li>PTGS：T_x&#x3D;τ^{h(p̂_x)}（Eq. (4)）；Theorem 3 给出 I_n(p)&#x3D;1−(1−p)^n（组内至少一次成功）与 J_n(p)&#x3D;1−p^n−(1−p)^n（混合组）随 p 的单调性：加热难题使两者都变多（p′≤1&#x2F;2 时），这正是 PPO（需要成功样本才能强化）与 GRPO（需要混合组才有非零优势）所需的学习信号；已掌握题降温则由 Prop 5 保证混合组转化为全成功组而非全失败组。</li>
+<li>设计假设：rollout 在给定任务下条件独立（§2、§6 均声明）；训练时自适应采样可在不改变 RL 目标的前提下塑造最终策略（引 Schaul et al. 2015；Nath et al. 2025，§5）。</li>
+</ul>
+<p><strong>关键图与”每部分做什么”。</strong></p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-02/2610.01509_fig2.png"
+                      alt="Figure 2（官方 SVG 渲染）：四个最强 backbone 在两模型（base 青、post 橙）下的 pass@K 曲线矩阵（3 行 × 4 列）"
+                ></p>
+<p>Fig. 2（上图）是全文核心经验证据：横轴是每任务 rollout 预算 k（1–128，对数轴），纵轴 pass@k，青&#x3D;base+harness、橙&#x3D;post-trained。每格一条曲线对：橙色在小 k 更高（单次更准），青色更陡，在大 k 交叉反超——即”post 赢采样效率、base 赢覆盖率”在四个规模最大的 backbone 与三个基准上的一致性；交叉点位置（Fig. 3）随模型规模左移，是论文”规模越大锐化代价越高”论断的来源。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-02/2610.01509_fig4.png"
+                      alt="Figure 4（官方 SVG 渲染）：gemma-4-31B 在三个基准上每任务 128 次 rollout 成功率直方图，base 与 post 对比"
+                ></p>
+<p>Fig. 4（上图）把交叉现象拆到任务层面：横轴是每任务经验成功率（0 到 1），纵轴是任务占比；绿色 base 在两端的质量较少、大量任务落在中段（”给算力就能解出”），橙色 post 把中段质量搬到 0 和 1 两端（BFCL 与 WebShop 最明显）。这张图是”双峰化”这一机制叙事的直接证据，也是 Theorem 2 建模的现实对应；但它只展示分布形状，不区分”能力丢失”与”行为固着”（见 §5 质疑）。</p>
+<p><img src="/images/dailypaper/2026-10-02/2610.01509_fig5.png" alt="Figure 5（官方 PNG）：8 个模型（每族最大/最小）在三基准上 Tax_A(k)（上排）与 Tax_S(k)（下排）随预算变化，阴影为 95% bootstrap 置信区间"></p>
+<p>Fig. 5（上图）展示税随预算的增长：上排原始税 Tax_A 对最大 backbone 几乎处处为正且随 k 近似单调上升；下排校准税 Tax_S 可升可降；最小 backbone（如 Ministral-3-3B）在小预算时为负（锐化在算力极度受限时反而有利），随预算增大转正或趋零。它回答”锐化什么时候有害”：与模型规模、预算、应用场景联合判断（§3）。</p>
+<p><img src="/images/dailypaper/2026-10-02/2610.01509_fig7.png" alt="Figure 7（官方 PNG）：PTGS 示意——每题难度估计 → 自适应温度（难题加热/易题降温）→ 组采样与 RL 更新"></p>
+<p>Fig. 7（上图）解释 PTGS 的三段闭环：左段从折扣成功&#x2F;失败计数构 Beta 后验 p̂_x（对应（i)(ii)）；中段把 p̂_x 映射到温度（难题→τ 升温、易题→1&#x2F;τ 降温，阈值 p̃ 居中）；右段用该温度采 n 条 rollout、算奖励、做策略梯度更新，观测再回流更新计数。理解它的关键在于”每题一个温度、随训练动态变化、且不触碰 RL 目标函数”——这是它与”全局调温”的核心区别，也是消融（Table 7、8）要证明的。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-02/2610.01509_fig1.png"
+                      alt="Figure 1（官方 PNG）：论文总览——(a) 锐化假设与覆盖率损失；(b) Sharpening Tax 的构成；(c) PTGS 效果预览"
+                ></p>
+<p>Fig. 1（上图）是全篇导航：(a) 展示 base 与 post 的 pass@K 曲线及覆盖率损失、以及任务成功率从中间向两端的迁移；(b) 用示意画法定义税（base 的 scaling 面积减去 post 的面积）；(c) 预告 PTGS 在 Tax_S(128) 上低于 PPO&#x2F;GRPO 基线且在 pass@K-pareto 上更优。它对应论文的三段结构（发现→诊断→缓解），可用于向读者先建立全局框架。</p>
+<p><strong>教学简化示例（非论文实验）。</strong> 设某任务 base 模型每次 rollout 成功率 p&#x3D;0.25、预算 K&#x3D;4。则 pass@1&#x3D;0.25，pass@4&#x3D;1−0.75⁴≈0.684；按 Eq. (1)&#x2F;(5)，该任务对 A(4) 的贡献 a₄(0.25)&#x3D;Σ_{k&#x3D;1}^{3}[(1−p)^k−(1−p)^4]&#x3D;(0.75−0.316)+(0.5625−0.316)+(0.4219−0.316)≈0.785，等于”首次成功前的期望失败次数”。若后训练把它锐化到 p&#x3D;1（总解出）或 p&#x3D;0（永不），该贡献都变成 0——而 p&#x3D;1 时 pass@1 反而升到 1，这正是”税为正但看起来更好”的最小例子。</p>
+<p><strong>论文提出的组件 vs 直接使用的现有工具。</strong> 提出：harness 模板、Sharpening Tax 与其估计&#x2F;分解、PTGS、以及全部理论结果。直接使用：vLLM 0.19.0（除 gemma-4-12B 用 0.23）、BFCL v4&#x2F;WebShop&#x2F;ACEBench 及其 checker、RAGEN 训练框架与 StarPO 流程、PPO&#x2F;GRPO 算法与 DAPO clip、reward-variance filter、Chen et al. 2021 的 pass@k 估计量、bootstrap。开放权重 checkpoint 全部来自 HuggingFace collections（§A.2）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><ul>
+<li><strong>诊断（§3–§4）</strong>：14 对 checkpoint（Gemma-4 E4B&#x2F;12B&#x2F;26B-A4B&#x2F;31B；Ministral-3 3B&#x2F;8B&#x2F;14B；Qwen2.5 3B&#x2F;7B&#x2F;14B&#x2F;32B；Qwen3.5 4B&#x2F;9B&#x2F;35B-A3B，其中两个 MoE 约 4B&#x2F;3B 激活）见表 Table 1；三基准各 N&#x3D;128 rollouts&#x2F;任务（BFCL 200 任务、WebShop 500、ACEBench 770，见 Appendix D.1 汇总表）；同基准内 base 与 post 共享任务、温度、seed 与步数预算（Table 3）；报告配对任务 bootstrap 95% 区间（§A.4）。基线即”同族 post-trained 模型”与”base+harness”互为对照；另含 thinking mode 消融（Fig. 9）、harness 双向消融（Table 2）、按规模分组的聚合（§C.1）、全局温度对照（§C.4、Fig. 24）。</li>
+<li><strong>PTGS（§5、§A.5）</strong>：Qwen2.5-7B-Instruct 在 RAGEN 的 Sokoban（6×6、1 箱、shaped reward）与 FrozenLake（4×4 slippery，0.8&#x2F;0.1&#x2F;0.1 转移）上训练；PPO 与 GRPO 各有无 PTGS 两版；5 个随机种子取均值；200 步训练；评测用 64 个未见任务 × 128 rollout @ T&#x3D;0.5（无 PTGS）。消融：固定训练温度 T∈{0.5,0.7,1.0,1.3,1.5}（Table 7）、top-p&#x2F;top-k&#x2F;min-p 截断解码（Table 8）、τ∈{1.2,…,1.5}（Fig. 35）、推理期 PTGS（Fig. 36）、高温度 PPO 对照（Fig. 40）。</li>
+<li><strong>基线公平性</strong>：RL 基线与原论文同在 RAGEN&#x2F;StarPO 设置下（同样本、同预算、同 filter）；主要区别仅是 rollout 温度与相应 log-prob 温度（§A.5）。主实验与消融、附录实验分别回答：”现象是否存在&#x2F;多广”（§3–4）、”税的诊断价值”（Fig. 6、Fig. 32）、”方法是否有效&#x2F;为什么有效”（§5 结果表、Table 7、8、Fig. 33–34、39–42）。</li>
+</ul>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p>以下数字均核对指标、对象、条件与原文位置：</p>
+<ol>
+<li><strong>交叉反超（覆盖率）</strong>：gemma-4-31B 在 WebShop 上 base 的 pass@128&#x3D;87.6% 对 post 56.0%（§3 正文”over 85% vs 56%”，对应 Appendix D.1 汇总表该行 C_B&#x3D;0.876、C_P&#x3D;0.560）；同模型 ACEBench 为 94.2% 对 91.4%、BFCL 为 90.5% 对 83.5%（Appendix D.1 汇总表）。</li>
+<li><strong>并非处处如此</strong>：小 backbone 上后训练扩大了覆盖率（Ministral-3-3B WebShop base 32.6% vs post 68.8%，Qwen2.5-7B BFCL base 22.0% vs post 60.0%，Appendix D.1 汇总表）；聚合上”最大 backbone 组”的均值曲线在 k≈22 被 base 反超，”最小 backbone 组”在 128 内从不被反超（§C.1，Fig. 10）。</li>
+<li><strong>双峰化</strong>：gemma-4-31B 在 WebShop 上”给算力能解出”的任务占比 87.6%→30.0%，总是解出 0.0%→26.0%，总是失败 12.4%→44.0%（§3、Fig. 4、Table 4）。例外：小 backbone 在 BFCL 上后训练把任务从”总是失败”提升到中间类别（§C.1、Table 4）。</li>
+<li><strong>税的普遍性</strong>：Tax_S(128)&gt;0 出现在 42 个组合中的 36 个（§4 正文）；负值共 6 个，多为最小 backbone 在 BFCL 的情形（Ministral-3-3B −0.027、Qwen2.5-3B −0.023、Qwen2.5-7B −0.044，即”后训练修补了 base 的工具调用格式”），另有 Qwen3.5-4B&#x2F;35B-A3B 在 ACEBench（−0.005&#x2F;−0.026）与 Ministral-3-3B 在 WebShop（−0.003）（Appendix D.1 汇总表）。最大 backbone 组的税几乎处处为正（§4、Fig. 5），Tax_A 对最大 checkpoint（如 gemma-4-31B）最大；Tax_S 的最大值出现在 Gemma 族（26B-A4B 在 WebShop +0.105、12B 在 WebShop +0.092，Appendix D.1 汇总表）。</li>
+<li><strong>可预测性</strong>：Tax_S(8)（8 rollouts、半任务估计）预测留出任务上的 Tax_S(32)，ρ&#x3D;0.85；Tax_S(8) 与一致性差 Δpass⁸ 正相关；Fig. 6 右图中它是唯一对三个目标都强显著的早期预测子（§4）。</li>
+<li><strong>路由应用（附录 D.4）</strong>：用 32 条 pilot rollout 估计的 Tax_S 逐任务在 base&#x2F;post 间路由，pass@128 在六个面板中的五个超过纯 post 策略，最多 +13.6 分（WebShop、最大 backbone 组；唯一例外在 1.1 分内），且每个面板都超过均匀随机路由、接近 oracle 路由（Fig. 32）。</li>
+<li><strong>PTGS 主结果（§5 结果表，5 种子均值）</strong>：<ul>
+<li>Sokoban：PPO pass@1 46.5→61.1、pass@128 55.0→69.7、Tax_S 0.094→0.081；GRPO 36.5→39.1、55.3→72.5、0.081→0.025；base 为 20.7&#x2F;76.6（无税概念）。注意 PPO+PTGS 的 pass@128 仍低于 base 的 76.6，即 PTGS 减小而非消除税。</li>
+<li>FrozenLake：PPO 63.7→65.0、74.1→80.0、0.039→0.020；GRPO 63.4→67.3、77.8→81.2、0.029→0.028；base 26.3&#x2F;89.1（覆盖率仍高于所有 RL 结果）。</li>
+</ul>
+</li>
+<li><strong>不是”全局调温”或”截断解码”（附录 E.3）</strong>：Sokoban 上固定 T&#x3D;1.5 的 PPO 得到 57.4±11.6 &#x2F; 64.4±11.1，低于 PTGS 的 61.1±8.6 &#x2F; 69.7±9.7，且其 Tax_S&#x3D;0.102±0.017 高于默认温度；FrozenLake 上任何固定温度都无法同时达到 PTGS 的水平（如 T&#x3D;0.7：63.7±7.1 &#x2F; 70.3±4.9 对 PTGS 65.0±3.2 &#x2F; 80.0±8.3）；各类截断解码相对祖先采样大多在 ±2 分内，无一致增益（Table 7、8）。</li>
+<li><strong>提升小&#x2F;无显著性的地方</strong>：FrozenLake 上 GRPO+PTGS 的税 0.029→0.028 基本持平；§5 结果表只报均值不报方差；Table 7 中 PTGS 的税区间与多数基线重叠（Sokoban 0.081±0.039 对默认 0.094±0.016、T&#x3D;1.5 的 0.102±0.017），因此”收更少的税”在多数环境中未达统计显著，主要增益来自 pass@1&#x2F;pass@128 的均值提升。此外 FrozenLake 上 PTGS 的 pass^128（一致性）低于默认（42.5 对 50.9，区间重叠，Table 7）。</li>
+<li><strong>失败&#x2F;反例案例</strong>：§C.4 报告全局升温并非单调有效，gemma-4-31B-it（锐化最重）对升温几乎无响应；E.4 的推理期 PTGS 在 Sokoban 上仅两个配置在 pass@1 与 pass@128 两个指标上同时超过所有固定温度，且优势只有 64 个任务中的 1–2 个任务（Fig. 36）。</li>
+</ol>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><ul>
+<li><strong>“有效”层面</strong>：跨 14 模型 42 组合的税测量本身较扎实（配对 bootstrap、同任务同预算、含 thinking-mode 与 harness 消融排除部分替代解释）；PTGS 的主效果有 5 种子均值与 PPO 的 ±95% CI 支持。</li>
+<li><strong>“为什么有效”层面</strong>：Theorem 2 只说明”在假设的坍缩模型下税必然非负且成比例”；Theorem 3 说明”若升温提高成功率，则含成功组与混合组都更频繁”，其前提 p′&gt;p 由经验证据支持而非证明——Fig. 39 显示 PTGS 训练中”零成功组”占比在大部分训练步低于固定温度 PPO；F.1 显示后验难度估计与真实成功率相关（Pearson 0.81 Sokoban &#x2F; 0.71 FrozenLake，且系统性低估约 0.1）；F.2 用”PPO 全局升温到 1.3&#x2F;1.5”的对照说明 PTGS 的高熵不能由更高温度解释（FrozenLake 上 T&#x3D;1.5 达到相似熵但需要比 PTGS 平均温度高约 60% 的采样温度），且全局高温不带来对应的覆盖率提升。F.3 的案例研究（Fig. 41–42）显示 PPO 在 5 次运行中有 4 次丢失的个别任务，PTGS 多数运行能解出——这是存在性证据，不是统计性证据。</li>
+<li><strong>能否排除替代解释</strong>：可以排除”仅仅因为温度更高&#x2F;解码截断不同&#x2F;thinking mode 开启&#x2F;评测端点噪声”等一部分解释；<strong>不能</strong>排除的包括：不同 checkpoint 的后训练数据配比差异（观测性设定，§9 承认）、harness 对 base 的增益带来的能力归属模糊、以及”覆盖率损失其实是偏好对齐而非能力丢失”的替代解读——论文没有设计实验去区分”策略真的忘了怎么解”与”策略只是压低了解出的概率”（例如在 token 级比较 base&#x2F;post 在同一 prompt 下的分布，或做能力探测），Theorem 2 的”p 被替换为 0&#x2F;1”是这一不可区分性的直接体现。另外，”税&#x3D;能力的净损失”的解读需要依赖 pass@K 作为能力代理，而 pass@K 衡量的是”重试可恢复的成功”，本身混合了能力与行为倾向。</li>
+</ul>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><ul>
+<li><strong>训练成本</strong>：PTGS 不改变 RL 更新、无额外计算开销（§5：”does not require any changes to RL update itself nor bring computational overhead”）；PTGS 训练本身 200 步 × 128 trajectories&#x2F;步 × 2 环境 × 2 算法 × 5 种子。但<strong>论文未报告</strong>任何 GPU 型号&#x2F;小时数&#x2F;费用。</li>
+<li><strong>评测成本</strong>：诊断部分需要 14 对模型 × 3 基准 × 3 种任务量级 × 128 rollouts × 2 种策略的大规模推理，是本文最重的开销，<strong>论文未报告</strong>其具体算力或时延。</li>
+<li><strong>推理时延&#x2F;token</strong>：诊断不引入推理侧开销（只是统计已有 rollout）；PTGS 训练期修改采样温度不增加 token 数；推理期 PTGS 变体（E.4）把预算拆成 pilot 与解答两段，pilot 的预算开销为半预算（B&#x3D;256 时 m&#x3D;n&#x3D;128）。</li>
+<li><strong>外部依赖</strong>：全部为开源权重 + vLLM + RAGEN，无闭源 API；无人工标注需求；需存储 14 对模型的本地产出。</li>
+<li><strong>可复现性材料</strong>：超参与流程在 Appendix A 报告较细（含伪代码）；官方 GitHub 仓库存在，但 README 声明它是”minimal working examples for understanding the project; it is not a reproduction package”，benchmark 检出、模型服务环境与 RL 训练基础设施留给读者（仓库提供 metrics 与 PTGS 的 numpy 最小实现与测试）。复现论文的主实验需要自建大规模推理设施。</li>
+<li><strong>适用范围与未解决</strong>：结论适用于”文本、二值成功信号、K≤128、开源 checkpoint、评测性分析”的范围；作者指出 open-ended 生成、多模态&#x2F;VLA、不同后训练类型（RL vs SFT vs on-policy distillation）的税差异、以及”何时&#x2F;如何”出现锐化的因果问题均未解决（§9）；PTGS 只验证于两个网格世界环境。</li>
+</ul>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：PTGS-的结论建立在单一-7B-instruct-模型与两个玩具网格环境上，与诊断部分的大规模证据完全不成比例，”平衡采样效率与覆盖率”的普适性主张缺乏支撑。"><a href="#质疑：PTGS-的结论建立在单一-7B-instruct-模型与两个玩具网格环境上，与诊断部分的大规模证据完全不成比例，”平衡采样效率与覆盖率”的普适性主张缺乏支撑。" class="headerlink" title="质疑：PTGS 的结论建立在单一 7B instruct 模型与两个玩具网格环境上，与诊断部分的大规模证据完全不成比例，”平衡采样效率与覆盖率”的普适性主张缺乏支撑。"></a>质疑：PTGS 的结论建立在单一 7B instruct 模型与两个玩具网格环境上，与诊断部分的大规模证据完全不成比例，”平衡采样效率与覆盖率”的普适性主张缺乏支撑。</h4><ul>
+<li><strong>原文依据</strong>：§5 与 Appendix A.5——所有 PTGS 实验仅用 Qwen2.5-7B-Instruct，在 Sokoban（6×6）与 FrozenLake（4×4）上训练，任务池 200&#x2F;环境、评测 64 个未见任务；而诊断部分覆盖 14 个模型、3 个真实 agentic 基准、42 个组合。作者在 §9 列举的局限（多模态、open-ended 等）并未明确点名这一”缓解侧实验规模远小于诊断侧”的问题。</li>
+<li><strong>为什么重要</strong>：PTGS 是论文三大贡献之一，其声称解决的问题（后训练锐化）在主实验域（BFCL&#x2F;WebShop&#x2F;ACEBench）完全未被验证；网格世界与真实工具调用任务在动作空间、horizon、奖励结构上差异巨大。</li>
+<li><strong>当前能够得出的判断</strong>：在论文报告的两个环境下有效；跨域&#x2F;跨规模外推当前证据不足。属于结论范围被隐含放大的风险。</li>
+<li><strong>如何验证或补强</strong>：在 BFCL&#x2F;WebShop 上以 1.5B–32B 多规模模型训练 RL（或对已有后训练流程加 PTGS），报告税与 pass@K；至少在第三个环境与另一个模型族上复现 §5 结果表。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：”PTGS-收更少的税”在统计上不稳健，主表不报告方差，”税下降”的多数区间与基线重叠，部分依赖检查点选择。"><a href="#质疑：”PTGS-收更少的税”在统计上不稳健，主表不报告方差，”税下降”的多数区间与基线重叠，部分依赖检查点选择。" class="headerlink" title="质疑：”PTGS 收更少的税”在统计上不稳健，主表不报告方差，”税下降”的多数区间与基线重叠，部分依赖检查点选择。"></a>质疑：”PTGS 收更少的税”在统计上不稳健，主表不报告方差，”税下降”的多数区间与基线重叠，部分依赖检查点选择。</h4><ul>
+<li><strong>原文依据</strong>：§5 结果表只有 5 种子均值（如 Sokoban PPO 税 0.094→0.081、FrozenLake GRPO 税 0.029→0.028），无区间；Appendix Table 7 的 CIs 显示 0.081±0.039（PTGS）对 0.094±0.016（默认）、0.102±0.017（T&#x3D;1.5）均重叠，FrozenLake 为 0.020±0.047 对 0.039±0.026，同样重叠；GRPO 使用”训练中验证成功率最高的 checkpoint”（记为 †，§A.5），而 PPO 用最终 checkpoint——两种选择规则并存于同一主表。</li>
+<li><strong>为什么重要</strong>：这是方法有效性的核心指标之一（”smaller tax”写在摘要）；CI 重叠意味着该结论在多数环境下尚不能被区分于噪声，而”最高验证”选择在 5 种子下的方差本身较大（Table 7 中部分基线 pass@1 的 CI 达 ±26.8）。</li>
+<li><strong>当前能够得出的判断</strong>：pass@1&#x2F;pass@128 的提升有均值支持（且方向一致），但”税显著下降”当前证据不足；需要更多种子与配对显著性检验。</li>
+<li><strong>如何验证或补强</strong>：对每个环境&#x2F;算法报告配对种子差值的 CI 或检验；统一 checkpoint 选择规则并报告两套结果；把种子数从 5 扩大。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：”锐化”作为因果机制未被验证，Sharpening-Tax-测量的是”重试价值差”而非”能力差”，观测性设定下无法区分替代解释。"><a href="#质疑：”锐化”作为因果机制未被验证，Sharpening-Tax-测量的是”重试价值差”而非”能力差”，观测性设定下无法区分替代解释。" class="headerlink" title="质疑：”锐化”作为因果机制未被验证，Sharpening Tax 测量的是”重试价值差”而非”能力差”，观测性设定下无法区分替代解释。"></a>质疑：”锐化”作为因果机制未被验证，Sharpening Tax 测量的是”重试价值差”而非”能力差”，观测性设定下无法区分替代解释。</h4><ul>
+<li><strong>原文依据</strong>：§9 自述”observational rather than interventional”，checkpoint 的预训练&#x2F;后训练数据均未公开；Theorem 2 假设后训练”独立地”把任务成功率替换为 0&#x2F;1（§6）；正文把税解释为”post-training 让成功更少依赖重试”，但观测到的负税案例（后训练修复工具调用格式，Appendix D.1 汇总表）表明该指标同样会捕捉”能力获得”，即它是”后训练净效应”而不是纯粹的”锐化”度量。</li>
+<li><strong>为什么重要</strong>：论文的全部叙事（包括 Discussion 中”许多科学难题可能靠一次不寻常的奏效而非每次可靠的流程”）依赖”锐化&#x3D;能力受窄化”的因果解读。</li>
+<li><strong>当前能够得出的判断</strong>：机制解释是”与数据一致的一种模型”，不是被识别的因果；作者已如实标注。</li>
+<li><strong>如何验证或补强</strong>：用完全可控的预训练&#x2F;后训练数据配方（作者 §9 指出的方向）做干预实验；在同一 base 上分别做 SFT&#x2F;DPO&#x2F;RLVR 并比较税；或做 token 级分析区分”概率重分配”与”能力丧失”。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：缺少与最接近的”保持多样性-防熵坍缩”方法的实证对照，PTGS-的优势无法定位。"><a href="#质疑：缺少与最接近的”保持多样性-防熵坍缩”方法的实证对照，PTGS-的优势无法定位。" class="headerlink" title="质疑：缺少与最接近的”保持多样性&#x2F;防熵坍缩”方法的实证对照，PTGS 的优势无法定位。"></a>质疑：缺少与最接近的”保持多样性&#x2F;防熵坍缩”方法的实证对照，PTGS 的优势无法定位。</h4><ul>
+<li><strong>原文依据</strong>：§7 提到目标侧方法（exploration bonus、entropy-collapse 缓解：Yu et al. 2025；He et al. 2025；Song et al. 2025；Gai et al. 2025；pass@k-aware 目标：Walder and Karkhanis 2025；Tajwar et al. 2026），以及采样侧方法（Yang et al. 2025；Liao et al. 2025；Dang et al. 2026；Karan and Du 2026）。但实验对照只有固定温度（Table 7）与截断解码（Table 8）；PPO 的熵系数固定 0.001、GRPO 为 0，未做熵奖励基线；没有与任何 pass@k-aware 目标或 KL 正则的对比。</li>
+<li><strong>为什么重要</strong>：审稿人需要知道”按题 Bayesian 调温”相比”简单加大熵奖励&#x2F;加大 KL&#x2F;全局温度调度”是否值得其复杂度；E.3 部分回答了”不是全局温度”，但未回答与目标侧方法的差别。</li>
+<li><strong>当前能够得出的判断</strong>：在论文选择的对照内 PTGS 占优；相对更主流多样性方法的相对优势无法评估。</li>
+<li><strong>如何验证或补强</strong>：加 entropy-coefficient 扫描（如 0.001→0.01→0.05）与 pass@k-aware 目标基线，同预算同种子比较 pass@1&#x2F;pass@128&#x2F;税。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：base-与-post-trained-的比较协议不对称，base-的”最佳可能表现”无上界，harness-增益之大使”能力归属”模糊。"><a href="#质疑：base-与-post-trained-的比较协议不对称，base-的”最佳可能表现”无上界，harness-增益之大使”能力归属”模糊。" class="headerlink" title="质疑：base 与 post-trained 的比较协议不对称，base 的”最佳可能表现”无上界，harness 增益之大使”能力归属”模糊。"></a>质疑：base 与 post-trained 的比较协议不对称，base 的”最佳可能表现”无上界，harness 增益之大使”能力归属”模糊。</h4><ul>
+<li><strong>原文依据</strong>：base 模型配 harness、post-trained 模型用各自默认脚手架（§A.3 的 asymmetric scaffolding）；同一 harness 会显著损害 post-trained 模型（平均 pass@1 42.8→16.3%，Table 2）；harness 对 base 的增益极大（gemma-4-31B 在 BFCL 的 pass@32 从 0.0% 到 86.5%；6&#x2F;8 个 base 模型无 harness 时 BFCL 得 0）。”w&#x2F;o harness” 的 base 对照是人工构造的（借用其 post-trained 版本的 chat template），并非 base 的部署形态。</li>
+<li><strong>为什么重要</strong>：主结论”base 在覆盖率上反超”是相对于”base+本文 harness”这一特定配置；harness 本身是外部脚手架，其好坏直接放大或压缩 base 的 pass@K 曲线。偏差方向对主结论是有利的（论文显示若给 post-trained 加 harness 会更差，所以不对称比较是保守的），但这只说明交叉反超不是 harness 强加给 post-trained 的伪结论，不能说明 base 的能力边界在更优 harness 下不会更高——反过来也不能说明 base 在更差 harness 下还有此现象，总之能力归属是可操作的变量。</li>
+<li><strong>当前能够得出的判断</strong>：交叉现象在”轻量 harness”下成立且方向性偏差保守，但”base 模型的覆盖率”没有脱离脚手架定义的绝对含义；论文未做 harness 强度的扫描（除有&#x2F;无二值）。</li>
+<li><strong>如何验证或补强</strong>：扫描 harness 质量（few-shot、更强解析、不同模板）对 crossover 点的影响，并给出 base 表现的 harness 敏感性区间；或在显式训练 base 使用模板后再公平比较。</li>
+<li><strong>严重程度</strong>：次要问题（方向保守，但影响结论的解释口径）。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现：在 agentic 任务上，只配轻量 harness 的预训练 base 模型在足够测试时预算下常能在 pass@K 上反超其后训练版本，后训练把每任务成功率分布推向”总是解出&#x2F;从不解出”两个极端，以采样效率与一致性换取解覆盖率。因此提出以 base 为锚的 Sharpening Tax 把这一代价量化（42 个模型—基准组合中 36 个在 K&#x3D;128 为正、可由 8 次 rollout 预测、ρ&#x3D;0.85，并能用于 per-task 路由），再提出 PTGS 用 Beta-Binomial 后验按题目难度自适应 rollout 温度。实验表明：诊断部分在 14 个开源模型对、3 个过程性 agentic 基准上证据较强且含 thinking-mode&#x2F;harness 消融；机制部分有 Theorem 2&#x2F;3 的形式化与难度估计、零成功组、高熵归因等分析支持”与锐化模型一致”，但因果识别缺失（配方未公开、观测性设定，作者自认）；缓解部分在 Qwen2.5-7B 的两个网格世界中同时提升 pass@1 与 pass@128 并（在均值上）减小税，然而只有 5 种子、主表无区间、税差与基线 CI 重叠、且完全未在主基准上验证。本文最有价值的部分是”把测试时扩展曲线变成可诊断、可预测、可路由的标量”这一视角与跨 42 组合的经验证据；最大的审稿风险是把仅在两个玩具环境验证的 PTGS 表述为对后训练锐化的通用解法。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。研究问题（后训练是扩展还是锐化）表述明确、边界清楚，且把已有争论的域限制（数学&#x2F;代码）作为切入理由；指标定义、实验协议与结论适用范围在正文与附录中均有交代。</li>
+<li><strong>创新性证据</strong>：中。诊断指标是标准 pass@k 估计量的面积&#x2F;差值重加权，PTGS 是成熟组件（温度采样、Beta 后验、Thompson sampling、组采样）的新组合；原创性主要落在”agentic 域的系统性经验研究 + 可预测诊断 + 干净的自适应采样实例化”，论文未声称更深的理论突破，相关工作的差异有讨论但未做实证对照。</li>
+<li><strong>方法可信度</strong>：中。诊断协议严谨（同任务同预算、配对 bootstrap、多重消融），理论证明完整但依赖理想化假设；PTGS 的方法本身简洁、可插拔、无额外开销，但效果证据方差大、部分区间重叠。</li>
+<li><strong>实验支持力度</strong>：中（诊断强、缓解弱）。诊断侧的 42 组合 + 路由 + 可预测性分析足以支撑”税普遍存在且可诊断”；缓解侧仅一个模型、两个环境、5 种子，且未报告显著性，支撑”在报告条件下 PTGS 同时改善准确率与覆盖率”这一有边界的结论，而不支撑更一般的”可平衡”主张。</li>
+<li><strong>可复现性</strong>：中。模型、基准、超参、伪代码、评测协议齐全（附录 A）；官方仓库提供最小实现但自述非复现包；主实验的算力规模与成本未报告，完整复现需要自建大规模推理与 RL 训练设施。</li>
+<li><strong>综合阅读价值</strong>：高。对关心”RL 后训练是否真的提升能力上限””测试时扩展与后训练的关系””多轮 agent 的评测协议”的读者，本文提供了概念工具（税）、可复用的诊断代码与一套跨模型的证据；同时它把未验证部分（因果、通用缓解、成本）标注得相对诚实，适合作为该争论的入门与批判性阅读材料。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Sharpening Tax in Post-Training</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-02 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-02 13:57:14
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/02/2610.01509v1_Sharpening_Tax_in_Post-Training/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">#强化学习</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Agent/">#LLM Agent</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%B5%8B%E8%AF%95%E6%97%B6%E6%89%A9%E5%B1%95/">#测试时扩展</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%90%8E%E8%AE%AD%E7%BB%83%E9%94%90%E5%8C%96/">#后训练锐化</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/pass-K-%E4%B8%8E%E8%A7%A3%E8%A6%86%E7%9B%96%E7%8E%87/">#pass@K 与解覆盖率</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%87%AA%E9%80%82%E5%BA%94%E9%87%87%E6%A0%B7%E6%B8%A9%E5%BA%A6/">#自适应采样温度</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/02/2610.01215v1_AutoGUIWorld_Image_Generators_as_Visual_World_Models_for_GUI_Agent/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">AutoGUIWorld: Image Generators as Visual World Models for GUI Agent</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/02/2610.02162v1_World_Observer_Joint_Actor-Observer_Generation_for_Persistent_World_Modeling/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">World Observer: Joint Actor-Observer Generation for Persistent World Modeling</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Sharpening Tax in Post-Training</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 52 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
