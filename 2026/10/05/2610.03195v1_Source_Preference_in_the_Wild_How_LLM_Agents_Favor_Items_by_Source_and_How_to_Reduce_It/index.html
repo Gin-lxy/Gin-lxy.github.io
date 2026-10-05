@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/05/2610.03195v1_source_preference_in_the_wild_how_llm_agents_favor_items_by_source_and_how_to_reduce_it/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Source Preference in the Wild: How LLM Agents Favor Items by Source, and How to Reduce It">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/05/2610.03195v1_Source_Preference_in_the_Wild_How_LLM_Agents_Favor_Items_by_Source_and_How_to_Reduce_It/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-05T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-05T06:25:37.896Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="DPO">
+<meta property="article:tag" content="LLM Agent">
+<meta property="article:tag" content="公平性">
+<meta property="article:tag" content="来源偏好">
+<meta property="article:tag" content="端到端搜索">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Source Preference in the Wild: How LLM Agents Favor Items by Source, and How to Reduce It | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">216</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">67</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Source Preference in the Wild: How LLM Agents Favor Items by Source, and How to Reduce It</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-05 12:00</span>
+        <span class="mobile">2026-10-05 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-05 14:25:37</span>
+            <span class="mobile">2026-10-05 14:25:37</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/LLM-Agent/">LLM Agent</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%9D%A5%E6%BA%90%E5%81%8F%E5%A5%BD/">来源偏好</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%85%AC%E5%B9%B3%E6%80%A7/">公平性</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/DPO/">DPO</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%90%9C%E7%B4%A2/">端到端搜索</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Jonghyun Song、Haewon Park、Jeonghoon Shim（三人共同一作，arXiv PDF 首页以 * 标注）、Woojung Song、Yohan Jo（通讯作者，† 标注）；机构：Seoul National University, Graduate School of Data Science（依据：arXiv PDF 首页署名与邮箱域名 snu.ac.kr）。项目页&#x2F;代码库：论文未提供代码仓库链接；Reproducibility statement 称代码与数据集 “will be released upon publication”，当前无法验证可达性（仅依据正文声明）。</p>
+<p>论文：2610.03195v1；Hugging Face 来源批次：2026-10-05；精读归档日期：2026-10-05（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.03195" >https://huggingface.co/papers/2610.03195<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.03195v1" >https://arxiv.org/abs/2610.03195v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>分析范围：逐节通读 arXiv HTML 版全文，覆盖 §1–§8 正文与 Appendix A–K（含各实验的完整系统提示词、判定协议、DPO 实现细节与推理片段示例）；附录 F 的逐模型全量结果表 F.1–F.3 按抽样方式阅读（其表注及 F.4、F.5、F.6 全读），未逐行核对其中每个模型×来源的数值。关键数字另行下载 arXiv PDF（41 页）交叉核对：PDF 首页作者与机构、摘要中的 “two-thirds” 与 68%&#x2F;2%、Table 1（Qwen 行等逐值）、Table 3（T+−T− 与附录 Table H.1 的 T+ 换算关系）、Tables 4–6（全部数值）、§5.1 的 +5.8&#x2F;−5.9 pp 与 9&#x2F;11 模型比例；未逐页通读 PDF 其余内容（参考文献与部分表格的排版细节）。HTML 渲染问题：§5.2 正文中指向 §5.1 的交叉引用在 HTML 中显示为 “§2”（如 “In §2, we show that revealing URLs and source names strengthens source preference”），PDF 对应处为 “§5.1”，本报告按 PDF 编号引用。配图 5 张：均取自 arXiv HTML 所引用的 SVG 资产原图（source-preference-overview.svg → Figure 1、wild_tau_top20.svg → Figure 2、inversion.svg → Figure 3、section5_1_domain_average_trajectories.svg → Figure 4、scatter_top10_20_30_labeled.svg → Figure I.1），用 headless Chrome 矢量重渲染为 PNG（宽 1400–1500 px，均未超过 1600），经 file 与 sips -g pixelWidth&#x2F;pixelHeight 校验为非零。代码&#x2F;数据仓库仅验证正文声明，未声称审阅过任何代码。论文未报告的信息一律标注”论文未报告”。</p>
+<p>标签：LLM Agent、来源偏好、公平性、DPO、端到端搜索。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>本文研究 LLM agent 在端到端网络搜索中是否按”来源”（URL 的 registrable domain）系统性偏好条目，并用”要求满足度匹配 + 位置循环轮转 + Bradley–Terry 评分”把这种偏好量化，进一步用隐藏&#x2F;互换来源信息的受控实验、DPO 训练实验和推断时干预来定位其来源与缓解路径。在论文报告的三个域（Shopping、Accommodation、Scholar）与 12 个模型上，证据较强地支持”显式来源信息本身会影响选择”；但”野外偏好幅度可全部归因于来源身份”与”现实模型的偏好由训练数据中的来源–满足度关联造成”两条更强的因果表述，目前证据只能支持”在受控设置下能够发生”，尚不足以支持”现实成因即如此”。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>研究背景与任务：LLM agent 正从”提供信息”转向”替用户做决定”——决定展示哪些商品、推荐哪家酒店、引用哪篇论文（§1）。当 agent 对来自某些来源（site 或 service，定义为条目 URL 的 registrable domain）的条目表现出偏好——即便不同来源的条目同等满足用户请求——用户的可见范围会被收窄，被回避来源即使提供更好的条目也可能失去曝光；若 agent 的选择反馈进后续训练，偏好还可能自我强化（§1，作者提出的动机，属作者主张）。</p>
+<p>现有方法的处理与失效条件：已有工作在受控设置中把语义相同的内容挂到不同来源上，证明模型存在来源偏好（如 Khan et al. 2026 报告学术、新闻、购物域的来源偏好；Blankenstein et al. 2026 显示功能等同的工具也存在 provider 与位置相关的选择偏差）；但真实端到端搜索中，每个来源提供自己的一组条目，内容质量与请求满足度天然不同，展示位置也不同。此时只看”选择率”无法区分”偏好该来源”与”其条目更好或位置更有利”（§1、§3）。</p>
+<p>本文发现的新现象与支撑证据：（1）在控制要求满足集合（requirement-matched）与展示位置后，12 个模型在三个域中每一个都同时偏爱某些来源、回避另一些，且模型间方向高度一致（§4.1）；(2）偏好可压过满足度：少满足一个 requirement 的条目来自 preferred source 时被选择率中位数 68%，而反方向仅 2%（§4.2，Fig. 3）；（3）显式来源信息（URL、标题&#x2F;正文中的来源名）本身影响选择——隐藏减弱偏好、恢复增强、互换改变选择（§5）；（4）训练中把来源与”更好条目”反复配对可以让来源成为满足度的 shortcut（§6.1，DPO 实验）；(5）内容缺少请求所需信息时，agent 用关于来源的先验知识填补（§7，Appendix K 给出真实推理片段）。</p>
+<p>作者认为问题产生的原因：来源被当作”该来源条目更可能满足请求”的捷径信号（作者援引 shortcut learning 文献 §6.1）；缺失信息触发对来源的刻板先验（§7）。核心待验证假设为三条：端到端搜索中存在可测量的来源偏好；显式来源身份本身（而非其条目差异）影响选择；该依赖可由训练中的来源–满足度关联产生，并可通过补全信息或改写系统提示减轻。</p>
+<p>区分三类：领域一般问题——LLM 的顺序&#x2F;位置偏差与上下文线索敏感性早已被研究（Appendix A）；本文新观察——端到端搜索（agent 自行检索、条目内容各不相同）中的来源偏好、inversion 率与其跨模型一致性；本文实际解决的子问题——给出可比的来源偏好度量并隔离”来源身份”的因果贡献，以及两条缓解路径的可行性验证。需要强调：论文观察到了偏好现象并做了因果隔离实验，但对现实中 12 个模型的偏好”为何形成”没有直接验证（Appendix I 的 Interpretation 明确承认这一点）。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的技术增量可以概括为：把”来源偏好”从人工构造的受控问答搬到端到端检索—选择流程中，构造了一套在同满足度、同位置下比较来源的度量（requirement-matched pairs + 循环位置轮转 + Davidson 扩展的 Bradley–Terry 模型 + 请求级聚类 bootstrap 与 FDR 控制），并配合三组干预（来源信息隐藏&#x2F;恢复、内容固定的来源身份互换、合成来源的 DPO 训练）把”来源身份影响选择”这一命题从相关性推进到受控因果证据，最后测试了缺失信息场景下的缓解手段。逐项分析：</p>
+<ol>
+<li>端到端搜索中的来源偏好度量与 inversion 指标。新增了什么：以 LLM judge 判定每个条目的要求满足向量 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span>，仅把”满足同一 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span>”且来自不同来源的条目配对（requirement-matched pair），每条结果列表做全部 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi></mrow><annotation encoding="application/x-tex">L</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span> 个循环轮转（每个轮转单独运行，构成循环拉丁方），逐位置比较选择结果 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>c</mi></msub><mo>=</mo><msub><mi>Y</mi><mi>c</mi></msub><mo>−</mo><msubsup><mi>Y</mi><mi>c</mi><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msubsup><mo>∈</mo><mo stretchy="false">{</mo><mo>−</mo><mn>1</mn><mo separator="true">,</mo><mn>0</mn><mo separator="true">,</mo><mn>1</mn><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">D_c=Y_c-Y&#x27;_c\in\{-1,0,1\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">D</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">Y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.9989em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.2222em;">Y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7519em;"><span style="top:-2.453em;margin-left:-0.2222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord">−</span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1</span><span class="mclose">}</span></span></span></span>；用 Davidson 扩展的 Bradley–Terry 模型联合估计每个来源评分 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\beta_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与 tie 参数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ν</mi></mrow><annotation encoding="application/x-tex">\nu</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0637em;">ν</span></span></span></span>，偏好分定义为</li>
+</ol>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>τ</mi><mi>s</mi></msub><mo>=</mo><mi mathvariant="double-struck">E</mi><mrow><mo fence="true">[</mo><mi>D</mi><mo>∣</mo><msub><mi>β</mi><mi>s</mi></msub><mo separator="true">,</mo><msub><mi>β</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">p</mi></mrow></msub><mo fence="true">]</mo></mrow><mo>=</mo><mfrac><mrow><mi>exp</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>β</mi><mi>s</mi></msub><mo stretchy="false">)</mo><mo>−</mo><mn>1</mn></mrow><mrow><mi>exp</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>β</mi><mi>s</mi></msub><mo stretchy="false">)</mo><mo>+</mo><mn>1</mn><mo>+</mo><mi>ν</mi><mi>exp</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>β</mi><mi>s</mi></msub><mi mathvariant="normal">/</mi><mn>2</mn><mo stretchy="false">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">\tau_{s}=\mathbb{E}\left[D\mid\beta_{s},\beta_{\mathrm{opp}}\right]=\frac{\exp(\beta_{s})-1}{\exp(\beta_{s})+1+\nu\exp(\beta_{s}/2)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">s</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mord mathbb">E</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;">[</span><span class="mord mathnormal" style="margin-right:0.0278em;">D</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">s</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">opp</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;">]</span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.363em;vertical-align:-0.936em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mop">exp</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">s</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord mathnormal" style="margin-right:0.0637em;">ν</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">exp</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">s</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">/2</span><span class="mclose">)</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mop">exp</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">s</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span>
+<p>（Eq. 1），并用请求级聚类 bootstrap（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>=</mo><mn>10,000</mn></mrow><annotation encoding="application/x-tex">B=10{,}000</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8389em;vertical-align:-0.1944em;"></span><span class="mord">10</span><span class="mord"><span class="mpunct">,</span></span><span class="mord">000</span></span></span></span>）加 FDR 5% 把来源分类为 Source+&#x2F;0&#x2F;−（§3，§E）。与最接近的已有方法（Khan et al. 2026 的语义相同内容+不同来源提示）的差异：条目由 agent 自己通过真实搜索获得、内容与满足度各异，匹配与位置控制针对的就是这种”野外”噪声。这一差异属于研究场景迁移 + 测量方法的组合式创新；论文用 Table E.2 报告 BT 单评分拟合的相关 r&#x3D;0.54–0.76、加权平均绝对残差 0.02–0.06 来支撑该度量的可用性。</p>
+<ol start="2">
+<li><p>来源身份的因果隔离实验。新增了什么：条件重放（Hidden：URL 隐藏且标题&#x2F;正文中的来源名替换为 “the website”；URL-only：恢复 URL；Original：原样）逐级恢复显式来源信息（§5.1、Table 2、Appendix G）；以及内容与位置严格平衡的互换实验——同一对 requirement-matched 条目，标题&#x2F;正文中的来源线索被擦除、来源身份只出现在 url 字段，来源赋值（原样&#x2F;互换）× 展示顺序（两种）共 4 臂，统计 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mo>+</mo></msub><mo>−</mo><msub><mi>T</mi><mo>−</mo></msub></mrow><annotation encoding="application/x-tex">T_+-T_-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">+</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">−</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span>（§5.2、Table 3、§H）。与已有工作的差异：不是比较不同条目的选择率，而是在内容与位置固定下只改变”显示的来源身份”。移除该设计的后果：仅凭 §4 的观测数据无法区分”来源身份”与”该来源条目未被判定的其他差异”（论文 §5 开篇自己指出了这一替代解释）。</p>
+</li>
+<li><p>训练机制实验（合成来源 DPO）。新增了什么：用三对虚构来源（Kelto–Varnis、Temnuki–Dalnuki、Roveki–Tavumi），在 DPO 偏好对中让 target 来源以 50%&#x2F;80%&#x2F;20% 的比例标记”更好满足请求”的条目（Balanced&#x2F;Aligned&#x2F;Reversed），推断时用满足度相同的条目对测量 target 的选择率（§6.1、Table 4、§J）；以及用同样方法对既有 Amazon 偏好做 rebalancing&#x2F;reversal（§6.2、Table 5）。这回答了”来源偏好能否被训练数据制造&#x2F;削弱”的可行性问题；无法回答”现实现有偏好是否由此产生”。</p>
+</li>
+<li><p>缺失信息下的缓解实验。新增了什么：在两候选（Source+ vs Source−）设置中，比较 Same Price（把缺失价格以相同值补进两条内容）、General 系统提示（”来源 URL 与价格无关”）、Designate 系统提示（”通常 {Source−零售商} 提供低价”）对 Source+ 选择率的影响（§7、Table 6）。结果模式清晰：补信息有效、否认关联无效、反向植入先验有效（§7.1、§7.2）。</p>
+</li>
+</ol>
+<p>几点对照规范”不得自动视为创新”的检查：论文的主实验未被更大模型&#x2F;换数据集替代；DPO、LLM judge、Tavily、Bradley–Terry 均为现成组件，本文贡献在其组合与实验设计而非新算法。关于原创边界：根据本文的 related work 和实验对比，只能确认作者声称的差异（把来源偏好研究延伸到端到端搜索并做来源身份隔离实验）；是否构成首次提出，还需要更完整的文献检索。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>直觉：要把”偏好来源”这个模糊说法变成可检验的命题，需要构造”除来源外尽量相同”的对比。作者的策略是两层控制——第一层在观测数据里，把满足度相同、位置相同、只差来源的条目配对比较（回答”偏好是否存在、有多大”）；第二层在干预实验里，把来源信息本身当作被操纵的变量（回答”是不是来源身份在起作用”），最后分别从训练侧与推断侧测试偏好的生成与消除路径。</p>
+<p>运行流程（按论文实际管线）：</p>
+<ol>
+<li><p>输入与检索：每个请求交给一个遵循共享系统提示的 ReAct 风格 agent（§2、§B）。agent 只能执行 <code>search[&lt;query&gt;]</code> 与 <code>select[&lt;n1,n2,...&gt;]</code>（可含”返回搜索页”），不能打开网页；结果页由 Tavily Search API 返回，每条含 title、content snippet、URL（按 Tavily 顺序展示、不重排，平均每条搜索 8.83 个结果）；每 episode 最多 5 个环境动作（最多 3 次搜索）。三个域共 4,822 个请求：WebShop 1,500、HotelQuEST 786（214 原始 + 572 地理位置替换变体）、ScholarGym 2,536（§C、Table C.1）。</p>
+</li>
+<li><p>要求满足度判定：Shopping 用 WebShop 结构化要求；Accommodation&#x2F;Scholar 用 LLM 从请求中抽取可核验条件（完整提示词见 §D）。逐要求的判定由 source-blind 的 LLM judge（Qwen3.8-27B）完成，judge 只看到 title 与 content（URL 与来源名被移除）；人类标注抽样验证 375&#x2F;375&#x2F;100 条，人在环一致性：人类–人类 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi></mrow><annotation encoding="application/x-tex">\alpha</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span></span></span></span> 0.67–0.72，人类–LLM <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi></mrow><annotation encoding="application/x-tex">\alpha</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span></span></span></span> 0.65–0.75（§2、§D、Table D.1）。</p>
+</li>
+<li><p>来源偏好测量：同一结果列表内，把满足同一要求集合 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span> 的条目两两配对；对长度 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi></mrow><annotation encoding="application/x-tex">L</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span> 的列表做全部 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi></mrow><annotation encoding="application/x-tex">L</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span> 个循环轮转、每个轮转单独运行，使每个条目在每个位置恰好出现一次；对每个位置 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span>，用”条目 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6595em;"></span><span class="mord mathnormal">i</span></span></span></span> 置于 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span> 的那次运行”与”条目 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.854em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0572em;">j</span></span></span></span> 置于 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span> 的那次运行”构成一次比较，得分 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>D</mi><mi>c</mi></msub></mrow><annotation encoding="application/x-tex">D_c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">D</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（仅 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6595em;"></span><span class="mord mathnormal">i</span></span></span></span> 选中为 1，仅 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.854em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0572em;">j</span></span></span></span> 选中为 −1，其余为 0，其中包括”都没选”与”都选”两类 tie）；随后拟合 BT+Davidson 模型得到来源评分 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\beta_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，按 Eq. 1 换算出与平均来源的期望选择差 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\tau_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（百分比点），并用请求级 cluster bootstrap 检验显著性、在模型×域内做 FDR 5% 控制，得到 Source+&#x2F;Source−&#x2F;Source0 标签（§3、§E）。少于 15 个匹配对的来源被合并为一个共享评分的 pooled opponent。</p>
+</li>
+<li><p>关键图：<img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-05/2610.03195_fig1.png"
+                      alt="论文总览：上排为端到端 agent 设置（请求→ReAct 检索与选择→source-blind 要求满足度判定），下排为偏好测量流程（匹配比较与位置轮转→Bradley–Terry 评分→来源分类规则）（原论文 Figure 1）"
+                ></p>
+<p>这张图把全文两半工作串起来：上半部分的三个面板对应”agent 如何自己检索并选择条目”，强调判定器看不到来源（source-blind），这是后续所有比较的可信前提；下半部分的第 4 面板展示循环轮转如何让同一对条目在每个位置都被公平比较（把位置从混淆变量变成受控变量），第 5 面板给出 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\tau_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的直觉解释（相对平均来源的期望选择差），第 6 面板给出按显著性把来源分为 Source+&#x2F;0&#x2F;− 的规则——注意 Source0 表示”证据不足”而不是”偏好为零”。没有这套位置与满足度的双重控制，”选择率差”就无法解释为来源偏好。</p>
+</li>
+<li><p>受控实验一（隐藏&#x2F;恢复来源信息）：冻结 agent 的自然轨迹（用户指令、查询、条目、此前 assistant 轮次不变、不再发起新搜索），仅在最终结果页上做三种可见性变换：Hidden（删 URL 字段、条目自身标题&#x2F;snippet 中的来源名替换为 “the website”）、URL-only（在 Hidden 基础上恢复 URL 行）、Original（原样）；对变换后的页面重新做全部循环轮转评估，逐条件重新估计 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\tau_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 并保持 §4 的来源分类标签固定（§5.1、§G）。预期的检验逻辑：若偏好源于来源身份，隐藏应使其减弱、恢复应使其增强。</p>
+</li>
+<li><p>受控实验二（来源身份互换）：对每个模型×域，取同请求、不同来源、满足判定向量完全相同（逐位相等，而非仅总分相同）的条目对；两个条目的标题&#x2F;snippet 中来源线索先被替换为 “the website”，来源身份只能通过 url 字段显示；每对做 4 次展示（原样&#x2F;互换 × 两种顺序），比较 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mo>+</mo></msub></mrow><annotation encoding="application/x-tex">T_+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">+</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span>（显示为 Source+ 身份时的选择率）与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mo>−</mo></msub></mrow><annotation encoding="application/x-tex">T_-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">−</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span>，差值 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mo>+</mo></msub><mo>−</mo><msub><mi>T</mi><mo>−</mo></msub></mrow><annotation encoding="application/x-tex">T_+-T_-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">+</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">−</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span> 在内容与位置都平衡时期望为 0（§5.2、§H）。</p>
+</li>
+<li><p>训练侧实验：对 Qwen3.5-9B、Llama-3.1-8B-Instruct、Tulu-3-8B-SFT 用冻结的 WebShop 搜索结果构造 DPO 偏好对——chosen 是”更好满足请求”的条目对应的选择动作，rejected 是另一个；训练数据中 target 来源被分配给 chosen 的比例在 Balanced&#x2F;Aligned&#x2F;Reversed 条件分别为 50%&#x2F;80%&#x2F;20%，每条对子在两种顺序下渲染（10,000 条训练样例），标签本身只由满足度决定（§6.1、§J，Table J.1：LoRA、5,000 updates、有效 batch 8、lr <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>5</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>6</mn></mrow></msup></mrow><annotation encoding="application/x-tex">5\times10^{-6}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">5</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">6</span></span></span></span></span></span></span></span></span></span></span></span>、单卡、bf16）。评估时不采样：对两个合法动作分别求条件对数概率，比较大小得到选择率（Eq. 3）；评估对子的满足向量完全相等，因此差异只能来自来源。</p>
+</li>
+<li><p>推断侧实验（缺失信息）：在两候选（Source+ vs Source−，来源身份仅出现在 url 字段）中，系统给缺失价格要求的情形设计三种干预：补上相同的价格（Same Price）；系统提示声明”来源 URL 与价格无关”（General）；系统提示植入”通常 {Source−零售商} 提供低价”（Designate）（§7）。</p>
+</li>
+</ol>
+<p>模型决定什么、流程固定什么：检索查询由 agent 决定（系统提示要求只写关键词），候选集由 Tavily 返回、顺序固定；选择子集由 agent 决定并立即结束 episode；而满足度判定、配对规则、轮转设计、bootstrap 与显著性、DPO 数据构造与评估的打分方式全部由固定流程控制。是否训练：主干实验（§4、§5、§7）不训练 agent，只做推理与重放；§6 为 3 个开放模型各做 LoRA-DPO 训练（Gemini 因推理成本被排除在 §5.1 之外，§G）。输出：每个来源的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\tau_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与分类标签、inversion 率、来源互换下的选择率差、DPO 前后的 target 选择率，以及各干预下 Source+ 选择率的变化（pp）。</p>
+<p>（教学简化示例，非论文实验）把测量逻辑示意为：两个条目 A、B 都满足”防水、蓝色”但 A 来自 X 站、B 来自 Y 站；只有当”把 A、B 轮流放到每个展示位置后，A 被选中的次数系统性更高”时，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mi>X</mi></msub><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\tau_X&gt;0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6891em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0785em;">X</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span> 才成立——而不是”X 的条目恰好排在前面”。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p>任务与数据：三个真实选择任务域——Shopping（WebShop 前 1,500 个目标）、Accommodation（HotelQuEST 全部 214 条 + 572 条地理位置替换变体）、Scholar（ScholarGym 全部 2,536 条查询），共 4,822 个请求；只用其请求，条目集合由 live 搜索动态构造（§2、§C）。</p>
+<p>基础模型（12 个 agent 模型，共享同一系统提示）：GPT-5.4-nano、GPT-5.6-Luna、Gemini-3.7-Flash、GLM-5.3-Flash、DeepSeek-v4-Flash-0731、Llama-4-Maverick、Llama-4-Scout、Llama-3.1-8B-Instruct、Tulu-3-8B、Qwen3.5-27B、Qwen3-30B-A3B、Qwen2.5-32B-Instruct（§2）。DPO 实验另用 Qwen3.5-9B、Llama-3.1-8B-Instruct、Tulu-3-8B-SFT（§6.1）；§7 的干预实验只取其中 5 个模型（§7、Table 6）。</p>
+<p>基线&#x2F;对照：inversion 分析用中性来源对 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>n</mi><msub><mi>v</mi><mrow><mn>0</mn><mo separator="true">,</mo><mn>0</mn></mrow></msub></mrow><annotation encoding="application/x-tex">Inv_{0,0}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord mathnormal">n</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span><span class="mpunct mtight">,</span><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 作基线（§4.2）；来源互换实验的零假设是内容与位置平衡下 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mo>+</mo></msub><mo>−</mo><msub><mi>T</mi><mo>−</mo></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">T_+-T_-=0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">+</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">−</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>（§5.2）；DPO 用 pre-DPO（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">n=0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">n</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>）与 Balanced 条件作对照（§6.1）；§7 用无干预的 Base 选择率作对照。值得注意的是：论文未与任何已有的去偏&#x2F;公平性方法（如提示去偏、重排序去偏）作对比，Table 3&#x2F;4&#x2F;5&#x2F;6 的对照都是本文自建的。</p>
+<p>指标：偏好分 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\tau_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（pp，Eq. 1）；inversion 率 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>n</mi><msub><mi>v</mi><mrow><mi mathvariant="normal">ℓ</mi><mo separator="true">,</mo><mi>m</mi></mrow></msub></mrow><annotation encoding="application/x-tex">Inv_{\ell,m}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord mathnormal">n</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">ℓ</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">m</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>（少满足者被选中的比例，Eq. 2）；来源互换差值 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mo>+</mo></msub><mo>−</mo><msub><mi>T</mi><mo>−</mo></msub></mrow><annotation encoding="application/x-tex">T_+-T_-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">+</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">−</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span>（pp）；target-source 选择率（%）；干预变化（pp）。公平性预算：所有比较复用同一次搜索轨迹与共享提示；位置通过轮转&#x2F;顺序平衡控制；解码温度 0（GPT-5.6-Luna 为 1）、seed 4242（支持的模型），但作者声明 API 模型无法保证完全确定性（§B）；swap 与 DPO 实验对内容和顺序做了严格交叉平衡。</p>
+<p>各实验回答的问题：§4 回答”偏好是否存在、多大、模型间是否一致”；§5 回答”来源身份本身是否影响选择”；§6 回答”训练能否制造&#x2F;削弱偏好”；§7 回答”缺失信息与提示能否减轻偏好”；§E–§F 提供估计细节、拟合检查、全量逐模型结果；§I 提供”偏好分与平均满足度正相关”的描述性证据。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>偏好普遍存在且模型间方向一致（§4.1，Table 1、Fig. 2）：12 个模型在三个域各自都同时存在 Source+ 与 Source−。Table 1 报告的 144 个模型–来源组合中 110 个被分类为 Source+ 或 Source−，两类的中位偏好分分别为 +15 与 −18 pp。对 12 个高频来源中的 10 个，没有任何模型偏爱另一模型回避的来源（例外是 Amazon 与 eBay，均由 GPT-5.4-nano 给出相反标签，§4.1、Table F.4）。同类来源间也不一致：12&#x2F;12 模型偏好 Walmart 但仅 2 个偏好同为综合零售的 Target；10 个偏好 Booking.com 而半数回避 Expedia。Fig. 2 把范围扩到每域 20 个高频来源：32 个被多数模型标为 Source+&#x2F;− 的来源中 27 个在所有模型上 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\tau_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 同号；Scholar 中 Source+ 占 14&#x2F;17，Shopping（6&#x2F;8）与 Accommodation（6&#x2F;7）中 Source− 占多数。<img src="/images/dailypaper/2026-10-05/2610.03195_fig2.png" alt="按搜索出现频率排序的每域前 20 来源的平均偏好分：点=模型均值，横杠=跨模型范围，颜色=多数标签；Shopping/Accommodation 以 Source−（蓝）为主，Scholar 以 Source+（红）为主（原论文 Figure 2）"> 该图支撑”偏好不是零散噪声而是跨模型的共同结构”这一关键判断，也是 Table 1 之外覆盖面最广的证据。</p>
+<p>偏好可压过满足度（§4.2，Fig. 3）：把满足 set 只差一个 requirement 的两个条目配对，inversion 率 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>n</mi><msub><mi>v</mi><mrow><mo>+</mo><mo separator="true">,</mo><mo>−</mo></mrow></msub></mrow><annotation encoding="application/x-tex">Inv_{+,-}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord mathnormal">n</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">+</span><span class="mpunct mtight">,</span><span class="mord mtight">−</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>（少满足者来自 preferred source）的中位数是 68%，反向 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>n</mi><msub><mi>v</mi><mrow><mo>−</mo><mo separator="true">,</mo><mo>+</mo></mrow></msub></mrow><annotation encoding="application/x-tex">Inv_{-,+}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord mathnormal">n</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mpunct mtight">,</span><span class="mord mtight">+</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 的中位数仅 2%，中性对 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>n</mi><msub><mi>v</mi><mrow><mn>0</mn><mo separator="true">,</mo><mn>0</mn></mrow></msub></mrow><annotation encoding="application/x-tex">Inv_{0,0}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord mathnormal">n</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span><span class="mpunct mtight">,</span><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 中位数 19%；该顺序在全部模型×域组合中成立（Table F.5 给出各单元数值与 95% bootstrap CI；每单元”仅选一个”的比较数中位数约 2,000）。<img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-05/2610.03195_fig3.png"
+                      alt="inversion 率：蓝=少满足者来自 dispreferred 而更优者来自 preferred（接近 0），灰=双中性来源（中间），红=少满足者来自 preferred（多数远超 50% 虚线）；虚线为 50%（原论文 Figure 3）"
+                > 图中也可见不可忽视的例外与不确定性：Gemini-3.7-Flash 在 Shopping 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>n</mi><msub><mi>v</mi><mrow><mo>+</mo><mo separator="true">,</mo><mo>−</mo></mrow></msub></mrow><annotation encoding="application/x-tex">Inv_{+,-}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord mathnormal">n</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">+</span><span class="mpunct mtight">,</span><span class="mord mtight">−</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 仅 97%（85–100，仅 39 次比较）、在 Scholar 为 48%（42–53，5,063 次比较，接近 50%）；GPT-5.4-nano 在 Shopping 为 54%（46–62）；Accommodation 中 Gemini 因只标出 2 个 Source+ 来源而没有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mo>+</mo><mo separator="true">,</mo><mo>−</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(+,-)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">+</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">−</span><span class="mclose">)</span></span></span></span> 对（Table F.5 注）。即”偏好压过满足度”的强度在不同模型×域上差异明显。把两侧分别与中性来源配对（Table F.6、Fig. F.1）：在每个域中多数模型满足 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>n</mi><msub><mi>v</mi><mrow><mn>0</mn><mo separator="true">,</mo><mo>−</mo></mrow></msub><mo>&gt;</mo><mi>I</mi><mi>n</mi><msub><mi>v</mi><mrow><mo>+</mo><mo separator="true">,</mo><mn>0</mn></mrow></msub></mrow><annotation encoding="application/x-tex">Inv_{0,-}&gt;Inv_{+,0}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord mathnormal">n</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span><span class="mpunct mtight">,</span><span class="mord mtight">−</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord mathnormal">n</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">+</span><span class="mpunct mtight">,</span><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>，作者据此认为 dispreferred 侧的效应更大（§4.2）。</p>
+<p>来源身份本身影响选择（§5）。隐藏→恢复实验（§5.1，Fig. 4）：恢复显式来源信息（Hidden→Original）使 Source+ 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span> 平均升高 5.8 pp、Source− 降低 5.9 pp（跨模型等权平均）；其中大部分升幅在恢复 URL 一步（Hidden→URL-only）就出现——11 个模型中有 9 个在该步完成全部差距扩张的 80% 以上（Gemini 因成本被排除，§G）。<img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-05/2610.03195_fig4.png"
+                      alt="来源信息可见性三档（Hidden→URL-only→Original）下的偏好分 τ：左图 Source+ 单调升高、右图 Source− 单调降低，且大部分变化发生在恢复 URL 一步（原论文 Figure 4）"
+                > 该图的两个面板互为镜像，说明”显示来源”同时放大正负偏好；但它本身只证明”可见性影响偏好强度”，不能证明同一内容的被选概率会随所挂来源变化——后者由互换实验回答。</p>
+<p>互换实验（§5.2，Table 3、Table H.1）：在内容与位置完全平衡的 4 臂设计下，12 个模型×3 域的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mo>+</mo></msub><mo>−</mo><msub><mi>T</mi><mo>−</mo></msub></mrow><annotation encoding="application/x-tex">T_+-T_-</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">+</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">−</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span> 全部为正，且每个模型至少在一个域上 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi><mo>&lt;</mo><mn>0.01</mn></mrow><annotation encoding="application/x-tex">p&lt;0.01</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7335em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&lt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.01</span></span></span></span>。Shopping 的效应最大（+19.2 到 +64.7 pp；如 Llama-4-Maverick +64.7、Tulu-3-8B +58.7、Llama-3.1-8B-It +43.7，Table 3）；Accommodation 最小（+2.5 到 +24.1pp，其中 Llama-4-Scout +2.5、Llama-3.1-8B-It +4.1、Gemini +13.3 不显著）；Scholar 居中（+8.8 到 +21.4pp）。对应 Table H.1 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mo>+</mo></msub></mrow><annotation encoding="application/x-tex">T_+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">+</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span> 显示率 51.2%–82.4%。</p>
+<p>训练可制造与削弱偏好（§6，Tables 4–5）：在合成来源上，DPO 前 target 选择率 49.8–51.0%；Balanced（50% 关联）后仍 49.4–51.0%；Aligned（80% 关联）升至 70.1–75.1%；Reversed（20%）降至 24.5–28.5%（± 为三对合成来源间的样本标准差，0.1–2.3pp）。对现实来源：Amazon vs eBay&#x2F;Etsy&#x2F;AliExpress 在 DPO 前选择率为 53.7–62.7%；Balanced 后回到 49.7–51.9%，Aligned 后升到 78.0–82.5%，Reversed 后降到 17.7–25.3%。</p>
+<p>缺失信息与提示（§7，Table 6）：Base 下 Source+ 条目的选择率为 68.8%（GPT-5.4-nano）、83.9%（Llama-3.1-8B-It）、87.6%（Tulu-3-8B）、95.7%（Llama-4-Maverick）、96.4%（Qwen3.5-27B）。Same Price 在所有 5 个模型上下降（−2.8 到 −28.3pp）；General 提示几乎不变（−1.1 到 +1.3pp）；Designate 在全部模型上下降（−7.4 到 −22.5pp）。</p>
+<p>上述结果中”提升小&#x2F;无效&#x2F;缺失”的部分：Accommodation 的互换效应普遍只有几个 pp 且部分不显著（Table 3）；Gemini 的 Accommodation 单元没有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mo>+</mo><mo separator="true">,</mo><mo>−</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(+,-)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">+</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">−</span><span class="mclose">)</span></span></span></span> 对、Shopping 单元比较数仅 39（Table F.5）；Fig. 3 个别单元 bootstrap CI 很宽（如 Accommodation GPT-5.4-nano 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mi>n</mi><msub><mi>v</mi><mrow><mo>+</mo><mo separator="true">,</mo><mo>−</mo></mrow></msub></mrow><annotation encoding="application/x-tex">Inv_{+,-}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord mathnormal">n</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2583em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">+</span><span class="mpunct mtight">,</span><span class="mord mtight">−</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>&#x3D;72%，CI 56–84，n&#x3D;380）；Table 3 的显著性为未校正 p 值（Table H.1 注明 unadjusted）；所有条件每个（请求, 条件, 顺序）只评估一次，论文未报告多 seed 方差——Table 4&#x2F;5 的 ± 只覆盖合成来源对间的离散度。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>论文把”有效”与”为什么有效”分开做了部分工作。支持机制的证据：（1）互换实验在内容与位置固定下改变来源身份仍改变选择，排除了”条目内容差异”和”位置效应”两个主要替代解释——这是三个实验里最干净的一环（§5.2、§H）；（2）DPO 实验显示”来源–被偏好”的关联率可以单调地制造偏好（50&#x2F;80&#x2F;20% → ~50&#x2F;74&#x2F;26%，Table 4），且对现实来源的既有偏好也能被 rebalancing 拉回 50% 附近（Table 5），格式与位置被严格平衡（§J），排除了”只是学会了位置选择”的解释；（3）§7 的 Same Price 干预有效而 General 声明无效、Designate 有效，与”缺失信息触发来源先验填充”的假设一致，且 Appendix K 给出 agent 真实的推理文本（如”Result 2 … is from Walmart (more likely to have under-$50 pricing)”、”Home Depot, which is more likely to provide a clear price under $350”）作为定性佐证。</p>
+<p>尚不能确立因果的部分：（1）Appendix I 的”来源平均满足度越高、偏好分越高”是描述性相关（top-20 截止下 Pearson r&#x3D;.778&#x2F;.598&#x2F;.677，33 个模型×域全部为正），但论文自己声明该分析”does not establish what their training data contained or why their existing preferences arose”，且相关性随来源数截止（10→30）而变化（Shopping r 从 .823 降到 .577，Accommodation 从 .705 降到 .465，Scholar 反向从 .494 升到 .705），未校正 τ 估计误差与请求重复（§I）。<img src="/images/dailypaper/2026-10-05/2610.03195_fig5.png" alt="偏好分 τ 与来源平均请求满足度的散点关系：三行对应每模型每域取前 10/20/30 个高频来源，三列对应三个域；每点为一个模型–来源观测，各面板内为正相关但强度随来源截止数变化（原论文 Figure I.1）"> 这张图是”训练关联假说”的动机证据：它显示现实中”平均更满足请求的来源”也确实更被偏好，因此模型若在训练中见过类似关系，就可能把它学成对来源的捷径——但如作者所言，这仍是相关，不能替代对训练数据的直接审计。（2）§4 的野外偏好中，除来源身份外的其他系统性差异（同一 requirement 向量下 snippet 的信息量、措辞、品牌线索）无法从该设计排除；§5.1 的”恢复 URL 后偏好增强”也与此一致——但隐藏条件下偏好并未消失，2% vs 68% 的 inversion 差距中究竟有多少来自”显示的来源身份”、多少来自与来源相关的未测量内容特征，swap 实验给出的是下界性的证据。（3）DPO 证明的是”可以产生”，不是”现实中就是这样产生的”；12 个受测闭源&#x2F;开放模型的偏好在训练侧的具体来源（预训练数据、RLHF、蒸馏等）论文未报告也无法从现有实验推断。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p>训练成本：§J 报告了 DPO 的全部设置（LoRA rank 16、5,000 optimizer updates、有效 batch 8、lr <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>5</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>6</mn></mrow></msup></mrow><annotation encoding="application/x-tex">5\times10^{-6}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">5</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">6</span></span></span></span></span></span></span></span></span></span></span></span>、cosine 5% warmup、bf16、单卡训练），但未报告 wall-clock、GPU 小时数或费用；每个 run 用一张 GPU（§J）。推理成本与时延：论文未报告 token 消耗、每次选择的时延或总调用量；仅报告交互预算（每 episode ≤5 个动作、最多 3 次搜索，§B）。人工标注：人类标注者完成 375（Shopping）&#x2F;375（Accommodation）&#x2F;100（Scholar）条目的逐要求判定用于 judge 验证（§D），标注成本与薪酬未报告。外部依赖：检索依赖 Tavily Search API；判定依赖 Qwen3.8-27B（部署方式未报告）；GPT-5.4-nano&#x2F;5.6-Luna 经 OpenAI API、DeepSeek&#x2F;Gemini&#x2F;Llama-4&#x2F;GLM 经 OpenRouter，部分模型用本地 vLLM（§H）——闭源服务依赖明显。存储&#x2F;系统复杂度：论文未报告。</p>
+<p>改善了什么：给出了首个（就本文覆盖范围而言）端到端搜索场景下的来源偏好量化证据，并在受控设置中确立了”显示来源身份→选择变化”的因果链，同时示范了两条可操作性有限的缓解路径。仍未解决：Same Price 的对策现实不可得（信息缺失正是因为拿不到）；Designate 需要预先知道哪个来源是 dispreferred，且作者自述只是”counteracts the preference rather than removing its cause”（§7.2）；General 型声明无效说明”告知模型忽略来源”不是可行手段；论文没有评估这些干预对用户最终效用（买到的东西是否更好）的影响——只测了选择率的移动；跨域&#x2F;跨时点&#x2F;跨语言的普适性也未经检验（单一搜索 API 快照、三个英文请求集）。适用边界：结论限定在 2026 年报告时点的 12 个模型、三个域、Tavily 检索环境与受控的 WebShop&#x2F;ScholarGym 请求集合内。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：野外偏好幅度（68-vs-2-）不能完全归因于”来源身份”，互换实验的效应量与之不匹配"><a href="#质疑：野外偏好幅度（68-vs-2-）不能完全归因于”来源身份”，互换实验的效应量与之不匹配" class="headerlink" title="质疑：野外偏好幅度（68% vs 2%）不能完全归因于”来源身份”，互换实验的效应量与之不匹配"></a>质疑：野外偏好幅度（68% vs 2%）不能完全归因于”来源身份”，互换实验的效应量与之不匹配</h4><ul>
+<li><strong>原文依据</strong>：§4.2 &#x2F; Fig. 3 &#x2F; Table F.5 报告 inversion 差距巨大（中位数 68% vs 2%）；而把来源身份隔离到只剩 URL 字段的互换实验（§5.2 &#x2F; Table 3）在 Accommodation 域只得到 +2.5 到 +24.1pp、多个单元不显著（Table H.1 中 Scout 51.2%、Llama-3.1 52.0%、Gemini 56.7%（n&#x3D;15）），显著小于观测层面的差距。requirement-matched 的匹配基于 LLM judge 判定的满足向量（§2、§D），同一向量并不保证 title&#x2F;snippet 的其他质量维度（信息量、表述）在来源间可比。</li>
+<li><strong>为什么重要</strong>：这直接影响全文核心定量主张的归因：如果 68&#x2F;2 大部分来自与来源相关的内容差异而非”看到 URL 就改变主意”，那么”来源偏好让用户拿到更差条目”的叙述需要下调；反之如果野外主要靠标题&#x2F;正文中的来源名（swap 实验擦除了它们、只留 URL），swap 实验则低估了效应。论文没有做”标题&#x2F;正文保留来源名”的版本，两种可能的误差方向都未被排除。</li>
+<li><strong>当前能够得出的判断</strong>：可以确认”显示来源身份能因果地改变选择”（swap 实验设计干净），不能确认观测到的 inversion 幅度全部由来源身份驱动；幅度归因存在混杂（未测量的内容质量差异），且 swap 与野外显示方式不同（来源只出现在 URL 字段）。</li>
+<li><strong>如何验证或补强</strong>：增加一个”来源信息出现在标题&#x2F;正文中”的互换变体；对 requirement-matched 对做人类盲评内容质量以审计残余差异；报告 inversion 率随”来源身份可见性”（Hidden&#x2F;URL-only&#x2F;Original）的变化——论文已有 Hidden 条件的数据收集管线（§G），把 Eq. 2 直接套用到三档可见性即可给出幅度归因的上&#x2F;下界。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：机制链”训练可产生偏好”被写成了近乎”现实偏好就是这样产生的”"><a href="#质疑：机制链”训练可产生偏好”被写成了近乎”现实偏好就是这样产生的”" class="headerlink" title="质疑：机制链”训练可产生偏好”被写成了近乎”现实偏好就是这样产生的”"></a>质疑：机制链”训练可产生偏好”被写成了近乎”现实偏好就是这样产生的”</h4><ul>
+<li><strong>原文依据</strong>：§6.1 的 DPO 实验只在 3 个开放模型上、用合成来源证明”来源–满足度关联可以制造偏好”；Appendix I 的相关分析是描述性且作者自认不构成归因（”this analysis does not establish what their training data contained or why their existing preferences arose”），相关强度还随来源截止数剧烈变化（r 在 Shopping .823→.577、Scholar .494→.705）；§4 发现的 12 个模型偏好（含多个闭源模型）没有任何训练端证据。</li>
+<li><strong>为什么重要</strong>：这关系到”本文解释了来源偏好的成因”这一创新表述的边界。目前证据支持的命题是”这是一种可能的产生机制”，而不是”这是现实模型中偏好的实际来源”；摘要与 §1 的措辞（”We test two routes to this preference”）比实验结果可支持的范围更宽。</li>
+<li><strong>当前能够得出的判断</strong>：受控机制实验的设计与结果扎实（Balanced&#x2F;Aligned&#x2F;Reversed 单调、对现实来源同样有效、位置严格平衡），但仅覆盖”can”；现实成因当前材料无法确认。</li>
+<li><strong>如何验证或补强</strong>：对训练数据可审计的开放模型（如论文用的 Qwen3.5-9B、Llama-3.1、Tulu-3）检查预训练&#x2F;SFT 数据中来源与质量的关联统计，并检验该统计量能否预测 §4 测得的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\tau_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>；或对同一模型家族、不同数据配比的检查点做横断比较。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：缓解实验的可用性与外部效度不足，且缺少与已有去偏方法的对比"><a href="#质疑：缓解实验的可用性与外部效度不足，且缺少与已有去偏方法的对比" class="headerlink" title="质疑：缓解实验的可用性与外部效度不足，且缺少与已有去偏方法的对比"></a>质疑：缓解实验的可用性与外部效度不足，且缺少与已有去偏方法的对比</h4><ul>
+<li><strong>原文依据</strong>：§7 的干预只在 5 个模型、WebShop 单一域的两候选设置上测试；Same Price 的对策在现实中不可得（作者自己在 §7.2 指出”in practice it is missing because it is unavailable”）；Designate 需要预先知道哪个来源是 dispreferred 且”counteracts the preference rather than removing its cause”（§7.2）；General 声明近乎无效（−1.1 到 +1.3pp）。全文没有任何与已有公平性&#x2F;去偏方法（如提示去偏、重排序、曝光配额）的对比实验。</li>
+<li><strong>为什么重要</strong>：论文在 §1 与 §8 把”reducing source preference”作为核心贡献之一（也是应用动机：防止曝光集中与自我强化）。如果可用手段仅剩”注入反向先验”，其现实价值与伦理中立性都要打折扣——Designate 本质上是把另一种来源刻板印象注入 agent，而不是让选择回归内容本身。</li>
+<li><strong>当前能够得出的判断</strong>：干预实验支持”选择可以被系统提示移动”这一机理性结论，但可用性结论（可部署的缓解方案）证据不足；与已有方法的相对收益完全未知（论文未报告）。</li>
+<li><strong>如何验证或补强</strong>：在更多域&#x2F;模型上重复干预；补齐与现有去偏基线的对照；测试不依赖”已知 dispreferred 列表”的提示形式（如强制逐要求核对内容、隐藏来源与要求核对的组合）；并评估干预对用户效用（选中条目的满足度）的实际影响，而不只是选择率移动。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：测量链条对-LLM-judge-与单维评分的依赖，以及显著性报告的稳健性细节"><a href="#质疑：测量链条对-LLM-judge-与单维评分的依赖，以及显著性报告的稳健性细节" class="headerlink" title="质疑：测量链条对 LLM judge 与单维评分的依赖，以及显著性报告的稳健性细节"></a>质疑：测量链条对 LLM judge 与单维评分的依赖，以及显著性报告的稳健性细节</h4><ul>
+<li><strong>原文依据</strong>：满足度由 LLM judge（Qwen3.8-27B）判定，人类验证仅覆盖 375&#x2F;375&#x2F;100 条且验证集是”agent 选中的结果”样本（§D）；BT 模型用单一 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\beta_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 概括来源，拟合相关仅 r&#x3D;0.54–0.76（Table E.2）；§5.2 互换实验使用的来源标签取自全量数据的在样本估计（”not estimated out of fold”，§H）；Table H.1 的显著性注明 unadjusted；所有评估每个条件只跑一次、无多 seed 方差，API 模型输出被作者自己声明不能保证确定（§B）；大量来源因出现次数不足被合并或更保守地标为 Source0（§E：1,376 个在 &gt;5% bootstrap 重复中缺席的来源里 1,373 个为 Source0）。</li>
+<li><strong>为什么重要</strong>：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>τ</mi><mi>s</mi></msub></mrow><annotation encoding="application/x-tex">\tau_s</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与 inversion 率都是下游统计量，judge 的错误会以非随机方式（如对某些来源的 snippet 风格更易判错）传导；样本内标签可能轻微高估 swap 效应；单 run 与未校正 p 值削弱结论的可复制性预期。</li>
+<li><strong>当前能够得出的判断</strong>：论文在估计层面比同类工作更规范（聚类 bootstrap、FDR、penalty 敏感性分析、轮转控制），判断为”方法负责但仍有残余风险”；这些细节更可能影响幅度而非方向。</li>
+<li><strong>如何验证或补强</strong>：对 judge 做规模更大、分层于来源的验证（含未选中条目）；swap 标签改用交叉拟合（out-of-fold）；报告多 seed&#x2F;多时点的复跑方差；对 Table 3&#x2F;6 做多重比较校正。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h4 id="质疑：”更家族内更新的模型偏好更强”等跨模型概括存在混杂，且黑盒模型不可审计"><a href="#质疑：”更家族内更新的模型偏好更强”等跨模型概括存在混杂，且黑盒模型不可审计" class="headerlink" title="质疑：”更家族内更新的模型偏好更强”等跨模型概括存在混杂，且黑盒模型不可审计"></a>质疑：”更家族内更新的模型偏好更强”等跨模型概括存在混杂，且黑盒模型不可审计</h4><ul>
+<li><strong>原文依据</strong>：§4.1 第三点称 Qwen 与 Llama 家族内更新模型平均 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><msub><mi>τ</mi><mi>s</mi></msub><mi mathvariant="normal">∣</mi></mrow><annotation encoding="application/x-tex">|\tau_s|</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1132em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">s</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">∣</span></span></span></span> 更大；但这些模型在规模、训练数据、后训练流程上同时变化，论文未隔离变量；受测的多数模型（GPT、Gemini、GLM、DeepSeek、Llama-4）为闭源或无法审计训练数据的版本，具体 checkpoint 与日期部分来自未来版本号命名（如 GPT-5.4-nano、Gemini-3.7-Flash），可复现性依赖服务端快照。</li>
+<li><strong>为什么重要</strong>：跨模型比较（谁偏好更强、哪些来源被共同偏爱）是 §4 的主要叙事之一；如果”更新模型更强”来自规模&#x2F;数据配比而非”版本更新”本身，该观察的解读会变；此外所有偏好都绑定在特定服务时点，外部复现难以对齐。</li>
+<li><strong>当前能够得出的判断</strong>：论文只做了描述性陈述（”exhibit stronger”），没有因果声明，属于证据强度有限的观察；对方向一致性（多数模型同号）的证据不受此影响，因为那是同批时点内的比较。</li>
+<li><strong>如何验证或补强</strong>：在固定规模、固定数据配方下做受控缩放&#x2F;版本对比；公开或标明各服务模型的确切快照版本与访问日期。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现 LLM agent 在端到端网络搜索中对”来源”存在系统性偏好——在控制要求满足度与展示位置后，12 个模型在三个域都同时偏爱与回避特定来源，且少满足一个要求的条目来自 preferred source 时被选率中位数达 68%、反方向仅 2%——因此提出用 Bradley–Terry 评分量化来源偏好、并用隐藏&#x2F;恢复&#x2F;互换来源信息的受控实验、合成来源 DPO 训练与缺失信息干预来隔离其作用与缓解路径。实验在 4,822 个请求、12 个模型、三个域的条件下表明：来源身份本身能因果地改变选择（互换实验全正、多数显著），训练关联可以制造或拉回偏好（合成与 Amazon 对照），补全缺失信息与反向先验提示可以减轻偏好；其中”来源身份影响选择”的因果证据较强，但”野外偏好幅度完全由来源身份驱动”与”现实偏好由训练关联产生”仍缺少充分支持。本文最有价值的部分是把一个模糊的公平性担忧做成可重复测量的研究工具，并用多层控制实验把观测、因果与机制分开检验；最大的审稿风险是核心幅度数字（68% vs 2%）的归因依赖 LLM judge 判定的满足度匹配，而来源身份被单独隔离时测得的效应明显更小，以及缓解方案的现实可用性有限。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。把”来源偏好”与”条目质量&#x2F;位置”的混淆在 §1–§3 中拆解得很清楚（选择率不足够的原因、匹配与位置控制的设计动机），并给出了边界明确的子问题分解（§1、§3）。</li>
+<li><strong>创新性证据</strong>：中。度量、因果隔离与训练实验的组合是扎实增量，组件多为现成方法的组合；”首次在端到端搜索中量化来源偏好”的边界依赖本文 related work 的对比，机制链只到”can”（§2、§6.1、§I）。</li>
+<li><strong>方法可信度</strong>：中。位置轮转、内容固定互换、DPO 关联率三档、聚类 bootstrap+FDR 等设计严谨，接近效应的归因与 judge 依赖仍留残余风险（§3、§5.2、§E、Table E.2）。</li>
+<li><strong>实验支持力度</strong>：中。覆盖 12 模型×3 域、多样干预且披露了完整提示词；但单一搜索 API 时点、单 run 无多 seed 方差、部分单元样本量小（Gemini 39 次比较）、缓解实验仅 5 模型单域、无既有去偏基线（§B、§D、§7、Table F.5、Table H.1）。</li>
+<li><strong>可复现性</strong>：中。agent 提示、判定提示、DPO 超参、解码设置与顺序平衡细节均完整给出；但训练数据&#x2F;代码”将在发表时发布”（当前未发布）、若干服务依赖闭源 API 且输出非确定（§B、§J、Reproducibility statement）。</li>
+<li><strong>综合阅读价值</strong>：高。对”agent 推荐公平性”与”评测方法论”两个方向都提供了可直接复用的测量工具与实验范式，且对自身证据边界较诚实（§4.2 的例外、§7.2 的局限、§I 的描述性声明）。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Source Preference in the Wild: How LLM Agents Favor Items by Source, and How to Reduce It</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-05 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-05 14:25:37
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/05/2610.03195v1_Source_Preference_in_the_Wild_How_LLM_Agents_Favor_Items_by_Source_and_How_to_Reduce_It/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Agent/">#LLM Agent</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%9D%A5%E6%BA%90%E5%81%8F%E5%A5%BD/">#来源偏好</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%85%AC%E5%B9%B3%E6%80%A7/">#公平性</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/DPO/">#DPO</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E7%AB%AF%E5%88%B0%E7%AB%AF%E6%90%9C%E7%B4%A2/">#端到端搜索</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/05/2610.02826v1_Scaling_Trajectories_for_Complex_Tasks_through_Recursive_Self-Rewrite/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Scaling Trajectories for Complex Tasks through Recursive Self-Rewrite</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/05/2610.03632v1_World_Embedding_Benchmark/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">World Embedding Benchmark</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Source Preference in the Wild: How LLM Agents Favor Items by Source, and How to Reduce It</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 67 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
