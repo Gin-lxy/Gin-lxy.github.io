@@ -65,6 +65,18 @@ EXPECTED_TITLES.each do |route, title|
   found = contents[/<title>\s*(.*?)\s*<\/title>/m, 1] if contents
   errors << "expected tab title #{title.inspect} in #{route}, got #{found.inspect}" unless found == title
 end
+# Tag order contract: the tags page (list style) must be sorted by post count,
+# descending (ties by name), not by tag creation order.
+tags_page = PUBLIC.join("tags/index.html")
+if tags_page.file?
+  contents = File.binread(tags_page).force_encoding(Encoding::UTF_8)
+  weights = contents.scan(/data-weight="(\d+)"/).flatten.map(&:to_i)
+  errors << "missing tag weights in tags/index.html" if weights.empty?
+  weights.each_cons(2) do |a, b|
+    errors << "tags/index.html not sorted by post count: #{a} before #{b}" if a < b
+  end
+end
+
 Dir.glob(PUBLIC.join("**", "*.{css,html}")).sort.each do |source|
   contents = File.binread(source).force_encoding(Encoding::UTF_8)
   relative = Pathname.new(source).relative_path_from(PUBLIC).to_s.force_encoding(Encoding::UTF_8)
