@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/06/2503.22678v2_self-evolving_multi-agent_simulations_for_realistic_clinical_interactions/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MedAgentSim: Self-Evolving Multi-Agent Simulations for Realistic Clinical Interactions">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/06/2503.22678v2_Self-Evolving_Multi-Agent_Simulations_for_Realistic_Clinical_Interactions/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-06T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-06T06:02:57.123Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="LLM Agent">
+<meta property="article:tag" content="医学诊断">
+<meta property="article:tag" content="基准评测">
+<meta property="article:tag" content="多智能体仿真">
+<meta property="article:tag" content="自改进">
+<meta property="article:tag" content="视觉语言模型">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>MedAgentSim: Self-Evolving Multi-Agent Simulations for Realistic Clinical Interactions | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">235</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">73</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">MedAgentSim: Self-Evolving Multi-Agent Simulations for Realistic Clinical Interactions</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-06 12:00</span>
+        <span class="mobile">2026-10-06 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-06 14:02:57</span>
+            <span class="mobile">2026-10-06 14:02:57</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E4%BB%BF%E7%9C%9F/">多智能体仿真</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%8C%BB%E5%AD%A6%E8%AF%8A%E6%96%AD/">医学诊断</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-Agent/">LLM Agent</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%87%AA%E6%94%B9%E8%BF%9B/">自改进</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%A7%86%E8%A7%89%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">视觉语言模型</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">基准评测</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>Mohammad Almansoori、Komal Kumar、Hisham Cholakkal（Mohamed bin Zayed University of Artificial Intelligence，阿布扎比，UAE；前两位为共同第一作者，Mohammad Almansoori 为通讯作者）</p>
+<p>论文：2503.22678v2；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-06（Asia&#x2F;Shanghai）。</p>
+<ul>
+<li>Hugging Face 页面：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2503.22678" >https://huggingface.co/papers/2503.22678<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2503.22678v2%EF%BC%88%E5%85%A8%E6%96%87" >https://arxiv.org/abs/2503.22678v2（全文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2503.22678v2" >https://arxiv.org/html/2503.22678v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2503.22678v2" >https://arxiv.org/pdf/2503.22678v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ）</li>
+</ul>
+<p><strong>分析范围</strong>：以 v2（2025-10-01 修订，arXiv comments 标注 “presented in MICCAI (Oral)”）为准，完整读取了 arXiv HTML 全文与 PDF 全文（11 页，含全部 4 张图、4 张表、35 条参考文献），Table 1&#x2F;2&#x2F;3&#x2F;4 的每一个数字均在 HTML 与 PDF 两版间逐项交叉核对，一致。另读取 v1（2025-03-28）的 HTML 做版本比对：v1 标题无 “MedAgentSim:” 前缀，含独立的 §2 Related Work 与 §5 Ethical Considerations，v2（MICCAI 正式版）将这两节删除；arXiv comments 中 “14 page, 61 references” 系 v1 遗留元数据，v2 实际为 11 页、35 条参考文献；抽查两版实验数字（26.7 &#x2F; 28.3 &#x2F; 70.8 &#x2F; 72.0 &#x2F; 79.5、16.1 点、62.5% 等）完全一致，未发现 v2 审稿后新增实验或修改数字。官方项目页（<a class="link"   target="_blank" rel="noopener" href="https://medagentsim.netlify.app/%EF%BC%89%E4%B8%8E%E4%BB%A3%E7%A0%81%E4%BB%93%E5%BA%93%EF%BC%88https://github.com/MAXNORM8650/MedAgentSim%EF%BC%89%E6%9C%AC%E6%AC%A1%E5%9D%87%E5%8F%AF%E8%AE%BF%E9%97%AE%EF%BC%8C%E4%BB%85%E7%94%A8%E4%BA%8E%E6%A0%B8%E5%AF%B9%E5%AE%9E%E7%8E%B0%E4%B8%8E%E5%8F%91%E5%B8%83%E7%8A%B6%E6%80%81%EF%BC%9B%E8%AE%BA%E6%96%87%E5%A3%B0%E7%A7%B0%E4%BA%BA%E7%B1%BB%E7%A0%94%E7%A9%B6%22%E5%AE%8C%E6%95%B4%E7%BB%93%E6%9E%9C%E5%9C%A8%E9%A1%B9%E7%9B%AE%E9%A1%B5%22%EF%BC%8C%E4%BD%86%E9%A1%B9%E7%9B%AE%E9%A1%B5%E4%B8%8A%E6%9C%AA%E8%A7%81%E8%AF%A5%E7%BB%93%E6%9E%9C%EF%BC%8C%E5%85%B6" >https://medagentsim.netlify.app/）与代码仓库（https://github.com/MAXNORM8650/MedAgentSim）本次均可访问，仅用于核对实现与发布状态；论文声称人类研究&quot;完整结果在项目页&quot;，但项目页上未见该结果，其<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> supplementary_material.pdf 链接已失效（404，2026-10-06 访问）。配图 5 张：Fig. 1(a)&#x2F;(b)、Fig. 2(a)&#x2F;(b) 取自 arXiv HTML 原始图片，Fig. 3 由 v2 PDF 第 8 页 300 DPI 裁剪；均已逐张打开核对内容。</p>
+<p>标签：多智能体仿真、医学诊断、LLM Agent、自改进、视觉语言模型、基准评测。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>MedAgentSim 构建了一个开源的医院游戏化多智能体仿真（医生、患者、测量三类 agent），让医生 agent 在”没有病人完整档案、必须主动问诊并按需申请检查”的条件下做诊断，并叠加 kNN 经验检索、多医生 CoT 讨论与多数投票集成等免训练的自改进机制，同时把 NEJM &#x2F; MedQA &#x2F; MIMIC-IV 改造成该交互格式的评测基准。在论文自报实验中，这套管线把 5 个被测模型在 MedQA 与 MIMIC-IV 上的诊断准确率普遍大幅抬高（LLaMA 3.3 70B：54.7%→70.8%、36.8%→79.5%），但视觉任务（NEJM 26.7%、NEJM Ext. 28.3%）最好也仅 28.3%，且 NEJM 上 GPT-4o 基线（26.7%）与装完整管线的 GPT-4o（26.7%）完全打平。所有主结果都是单次运行、由未披露型号的 LLM 判分，无方差、无显著性检验，结论强度应限制在”作者自建仿真、自选模型、自定评分协议下观察到的增益”。</p>
+<h2 id="1-论文要解决什么问题"><a href="#1-论文要解决什么问题" class="headerlink" title="1. 论文要解决什么问题"></a>1. 论文要解决什么问题</h2><p><strong>研究背景与具体任务</strong>。LLM&#x2F;VLM 在静态医学 QA 基准上已达”人类水平”（§1），但这些基准一次性给全病历、答案多为选择题，无法反映真实诊断的动态性——真实问诊中患者表达不精确，医生必须迭代提问、按需开检查、在信息不全时推理。论文要评测与提升的，是 LLM agent 在<strong>多轮、上下文感知的诊断交互</strong>中的最终诊断能力（§1、Abstract，原文事实）。</p>
+<p><strong>现有方法的处理方式与缺陷</strong>（作者主张，§1）：AI Hospital [6] 只提出基准、不增强模型的多轮能力，且是纯文本聊天模拟，不要求 agent 导航环境或操作医疗工具；Agent Hospital [11]（另见 [4]）引入游戏化环境与记忆回放，但医生 agent 直接拿到<strong>预编译的完整病历</strong>，且不能接入 X-ray&#x2F;CT 等影像资源，并依赖闭源 GPT-4o、系统本身也闭源，妨碍复现。</p>
+<p><strong>需要区分的三层问题</strong>：</p>
+<ul>
+<li>“静态基准不反映真实诊断流程”是领域早已存在的共识问题（一般问题）；</li>
+<li>本文的实际子问题是：<strong>当初始信息被刻意扣留（医生必须先问诊、再申请检查）时，现有 agent 框架表现如何、如何提升</strong>；</li>
+<li>论文没有报告新的诊断性实验来证明”信息扣留是当前模型失败的主要原因”——它只观察到低分现象（如 NEJM 上多数配置 ≤20%）并直接提出工程化补救方案（审稿人判断）。</li>
+</ul>
+<p><strong>核心假设</strong>：把”主动问诊 + 按需测量（measurement agent）+ 双记忆缓冲检索 + 多医生 CoT&#x2F;多数投票集成”组合进该仿真，可显著提升最终诊断准确率，且正确经验可跨病例积累形成 progressive learning（§1 贡献 3、§2；作者主张）。论文<strong>未验证</strong>后一半的因果链条（见 §4.2、§5 质疑三）。</p>
+<h2 id="2-核心创新点"><a href="#2-核心创新点" class="headerlink" title="2. 核心创新点"></a>2. 核心创新点</h2><p>一句话概括：本文的增量不是某个新算法，而是一个<strong>开源的、可交互的临床多智能体系统与配套基准</strong>——把已有组件（Generative Agents 式游戏环境、CLIP + kNN 记忆检索、CoT、多数投票集成、失败反思）组装成”信息受限问诊”闭环，并把三个既有医学数据集改造成该闭环的输入；其中”医生无先验信息、检查结果仅在明确申请时提供”的交互约束是最接近研究思想的部分（审稿人判断）。</p>
+<p>逐项分析：</p>
+<ol>
+<li><strong>游戏化医院仿真环境 + 三类 agent（§2 “Simulation Environment”，Fig. 1）</strong>。基于 Generative Agents [21] 改造，用 Phaser（Web 游戏引擎）+ Tiled（地图编辑器）实现，NPC 可自由移动、发起对话、与医疗设备交互。新增点是把它落成医院场景并让测量 agent 只响应显式检查申请。这是工程实现改进 + 开源发布（论文明确强调 open-source 是对 [11] 等闭源系统的差异化卖点）。该设计没有对照实验证明”游戏化环境”本身比聊天式模拟带来更高评测效度（论文未报告，见质疑三）。</li>
+<li><strong>“无先验信息、按需测量”的问诊协议与三种交互模式（§2(a)(b)）</strong>。医生 agent 初始零信息，必须通过多轮对话采集病史，并显式申请体温、血压、ECG、X-ray、MRI 等检查后才由测量 agent 返回结果；模式上区分 Generation Mode（患者 agent 现场生成病例）、Dataset Mode（患者应答取自预定义数据集）与 Control Mode（真人接管医生或患者）。相对 AgentClinic [24] 与 Agent Hospital [11] 的差别（医生直接拿到完整报告）是本系统真正的行为学增量；但其评测价值没有独立消融（无从判断提升来自”信息受限”还是来自后续的记忆&#x2F;集成组件）。</li>
+<li><strong>免训练自改进管线（§2 “Memory and Self-Improvement”，Fig. 2）</strong>。两个动态增长的缓冲：Medical Records Buffer 存正确诊断的完整对话，Experience Records Buffer 存”先错后改对”的反思洞见；新病例用 kNN（基于 CLIP [23] 嵌入）检索历史案例作为 few-shot 注入对话，再由多个医生 agent 用 CoT [31] 独立诊断、多数投票集成 [17] 出最终答案；诊断错误时进入 reflection 阶段二次诊断，仅当第二次正确才入库（§2(c)）。这些组件（记忆回放、CoT、集成、反思）都是已有技术，创新属于”已有组件的新组合”；论文没有报告 k 值、医生 agent 个数、缓冲容量，也没有单独消融”信息受限协议”或”反思入库门槛”，因此各组件的作用边界只能从 Table 2 的增量消融间接推断（审稿人判断）。</li>
+<li><strong>把既有 QA 数据集改造成交互式基准（§3 “Experimental Details”）</strong>。用 GPT-4o 把 NEJM [24]、MedQA [8]、MIMIC-IV [9] 转成结构化 JSON，分别把病历、患者信息、检查结果分派给医生&#x2F;患者&#x2F;测量 agent。这不是新数据，而是<strong>既有基准的交互格式改造</strong>（作者主张其为 “evaluation benchmark”；审稿人判断：更准确的描述是”既有数据集的多 agent 化包装”）。</li>
+<li><strong>初步人类研究与偏见分析（§3、§3.1，Tables 3–4、Figs. 3–4）</strong>。四个视频、两位医生评审的”识别人机”小实验，以及一组偏见条件下的准确率&#x2F;波动分析。两者都是分析性附加实验，规模与协议均有明显缺口（见 §4、§5）。</li>
+</ol>
+<p>组件的出处归属：Generative Agents 环境与素材、CLIP、CoT、Medprompt 式集成、LLaVA 1.5 &#x2F; QwenVL 视觉编码、「Multi-Agent Clinic [24]」基线框架均非本文提出；本文自己的东西是仿真工程、交互协议、管线拼装与开源资源（原文事实 + 审稿人判断）。</p>
+<h2 id="3-方法"><a href="#3-方法" class="headerlink" title="3. 方法"></a>3. 方法</h2><p><strong>直觉</strong>：真实门诊里医生的诊断质量取决于”问得对不对、查得准不准、见过多少同类病例”。MedAgentSim 把这三点做成一个闭环：先让医生 agent 在信息受限下问诊（问不出来就没有数据）；允许它申请检查，但结果只在申请后产生（查了才有）；最后把对错都沉淀成可检索的经验，供后续病例参考（见过才会）。所有环节均为提示工程 + 记忆检索，<strong>全程不训练任何模型</strong>（原文事实，§2）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-06/2503.22678v2_fig1a.png"
+                      alt="图 1(a)：MedAgentSim 仿真环境截图（原文 Fig. 1a）。左侧是 Phaser 游戏化的医院地图，医生（DOC）与患者（PAT）两个 NPC 在诊室相遇；右侧是 Agent Convo 对话面板，展示医生 agent 正在多轮追问咳嗽的性质、痰液、咳血等病史信息。该图对应论文主张的&quot;信息通过多轮对话逐条采集，而非一次性给全&quot;的交互形态。"
+                ></p>
+<p><strong>整体流程（Fig. 1b、Fig. 2a）</strong>，按实际运行时序展开：</p>
+<ol>
+<li><strong>输入</strong>。评测时（推断为 Dataset Mode，论文未逐项点明各实验所用模式，属审稿人推断）患者 agent 持有该病例的结构化 JSON（症状、检查结果、金标准诊断）；医生 agent 初始无任何患者信息。</li>
+<li><strong>Conversation Phase（§2，Fig. 2a 左）</strong>。医生与患者 agent 多轮对话采集信息；每当医生申请检查（血检、X-ray 等），请求转给测量 agent，测量 agent 仅在<strong>被显式请求</strong>时返回该项结果（”If a medical test is not requested, its results remain unavailable”，§2）；医生认为信息足够后进入诊断阶段。该循环的停止条件由医生 agent 自行判断（”All information collected?” 分支，Fig. 2a）。</li>
+<li><strong>Experience Replay Phase（§2，Fig. 2a 右）</strong>。系统用 kNN 在 CLIP 嵌入空间中检索历史病例（Medical Records Buffer 提供完整对话+诊断，Experience Records Buffer 提供反思洞见），作为 few-shot 补充进当前对话；随后<strong>多个医生 agent</strong> 各自独立评估、用 CoT 推理给出诊断，再以多数投票集成得到最终诊断。论文未报告 k、医生数、采样温度或投票平局处理。</li>
+<li><strong>记录与反思（§2(c)，Fig. 2b）</strong>。最终诊断与金标准比对：正确则整个病例（对话、诊断、影像、化验）经 CLIP 嵌入写入 Medical Records Buffer；错误则进入 reflection，医生分析错误原因并二次诊断，只有第二次正确时，才把<strong>反思洞见</strong>（而非完整病例）写入 Experience Records Buffer，否则整例丢弃——作者的解释是”确保学习基于有意义的样例”（作者主张）。</li>
+</ol>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-06/2503.22678v2_fig1b.png"
+                      alt="图 1(b)：仿真时间线上的六个阶段（原文 Fig. 1b）。从医生在诊室开始一天、患者出现症状并在院区寻找医生，到双方开始对话、医生用设备做医学检查，最后多名医生 agent 聚集讨论。该图说明仿真不是&quot;一次对话&quot;，而是包含空间移动、设备交互与集会的完整工作流，各阶段由游戏引擎脚本与各 agent 的 LLM 决策共同驱动。"
+                ></p>
+<p><img src="/images/dailypaper/2026-10-06/2503.22678v2_fig2a.png" alt="图 2(a)：MedAgentSim 管线总览（原文 Fig. 2a）。左半 Conversation Phase：医生↔患者多轮对话，菱形分支判断&quot;是否需要检查&quot;（Yes 则经测量 agent 返回 Test Results）、&quot;信息是否收集完&quot;（未完成则继续问诊）；右半 Experience Replay Phase：对话经 Medical/Experience Record Buffer 的 kNN few-shot 补充后，由多个医生 agent 做 Chain-of-Thought 推理与 Majority Vote Ensembling，产出 Final Diagnosis。该图是理解方法的核心：两个阶段以&quot;诊断就绪&quot;为切换点，记忆在两阶段之间起桥接作用。"></p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-06/2503.22678v2_fig2b.png"
+                      alt="图 2(b)：记录存储模块（原文 Fig. 2b）。预测诊断与金标准比对：正确→写入 Medical Record Buffer；错误→进入 Reflection Phase 反思后二次诊断，若正确则把反思洞见写入 Experience Record Buffer，若再错则&quot;Don&#39;t log experience&quot;整例丢弃。该图对应论文的失败驱动学习设计——经验库只收&quot;改对过&quot;的案例。"
+                ></p>
+<p><strong>训练与推理</strong>。无 SFT、无 RL，全部依赖提示与检索（training-free；原文事实，§2）。推理阶段的变化点：每处理一个病例，缓冲可能增长，后续病例的 few-shot 上下文随之变化——这是”self-evolving”的字面含义。评测用量化指标为最终诊断的二元对&#x2F;错，由 LLM 判分器裁定（§3，细节未报告，见 §4、§5）。</p>
+<p><strong>成本与瓶颈（论文未报告的部分）</strong>：多医生投票 × CoT × 反思二次诊断意味着单病例至少 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>O</mi><mo stretchy="false">(</mo><msub><mi>n</mi><mtext>doctor</mtext></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">O(n_{\text{doctor}})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">n</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">doctor</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span> 倍于普通问答的 LLM 调用（n 未报告），论文没有给出 token、时延或金额成本，也没有与基线在等预算下的对比（审稿人判断）。</p>
+<p><strong>教学简化示例</strong>（非论文公式）：论文所述的多数投票可抽象为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>y</mi><mo>^</mo></mover><mo>=</mo><mi>arg</mi><mo>⁡</mo><msub><mrow><mi>max</mi><mo>⁡</mo></mrow><mi>y</mi></msub><msubsup><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></msubsup><mn mathvariant="double-struck">1</mn><mo stretchy="false">[</mo><msub><mi>y</mi><mi>i</mi></msub><mo>=</mo><mi>y</mi><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">\hat{y}=\arg\max_{y}\sum_{i=1}^{n}\mathbb{1}[y_i=y]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.104em;vertical-align:-0.2997em;"></span><span class="mop">ar<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop">max</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">y</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8043em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.2029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1</span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mclose">]</span></span></span></span>，其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">y_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 为第 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>i</mi></mrow><annotation encoding="application/x-tex">i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6595em;"></span><span class="mord mathnormal">i</span></span></span></span> 个医生 agent 的诊断；但 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">n</span></span></span></span>、采样策略与聚合细节原文均未给出。</p>
+<h2 id="4-解决得怎么样"><a href="#4-解决得怎么样" class="headerlink" title="4. 解决得怎么样"></a>4. 解决得怎么样</h2><h4 id="4-1-实验设计与主要结果"><a href="#4-1-实验设计与主要结果" class="headerlink" title="4.1 实验设计与主要结果"></a>4.1 实验设计与主要结果</h4><p><strong>设置（§3，原文事实）</strong>。基准与规模：NEJM [24] 15 例 + NEJM Extended 120 例（视觉任务，用 LLaVA 1.5 或 QwenVL 作视觉编码&#x2F;报告生成）、MedQA [8] 106 例 + MedQA Extended 214 例、MIMIC-IV [9] 288 例；数据经 GPT-4o 转换为结构化 JSON（做转换的模型本身也被评测，但金标准来自原数据集）。被测模型 5 个（ChatGPT-4o、LLaMA 3.3 70B、Mistral 24B、Qwen2 VL-7B、Qwen2.5 72B），基线 “Multi-Agent Clinic [24]” 侧另有 Claude 3.5、ChatGPT-4&#x2F;3.5、LLaMA 2&#x2F;3、Mixtral 等共 11 个配置。部署：vLLM，4×48GB NVIDIA RTX A6000。评分：最终诊断的二元真&#x2F;错，<strong>由 LLM 判分器裁定</strong>；论文称数据集转换与评分日志经人工复核。消融用 Table 2（两个模型 × 增量五档）；另有 4 视频 × 2 医生的识别人机实验（Tables 3–4）与偏见分析（Figs. 3–4）。</p>
+<p><strong>主要结果（Table 1，原文事实；数字经 HTML&#x2F;PDF 双版本核对）</strong>：</p>
+<ul>
+<li>MedQA：LLaMA 3.3 70B 54.7%→70.8%；GPT-4o 52.8%→66.0%；Mistral 45.3%→53.8%；Qwen2.5 72B 38.7%→55.7%；Qwen2 VL 20.8%→31.3%。基线最优 62.3%（Claude 3.5）。</li>
+<li>MedQA Ext.：LLaMA 53.3%→72.0%；GPT-4o 52.3%→67.8%；其余同向提升。基线最优 63.6%。</li>
+<li>MIMIC-IV：LLaMA 36.8%→79.5%（+42.7 点，全文最大提升）；GPT-4o 34.4%→75.3%；Qwen2.5 21.2%→66.0%；Mistral 21.9%→56.6%；Qwen2 VL 25.7%→38.2%。基线最优 42.7%（Claude 3.5，且 Claude 从未运行 MedAgentSim 管线）。</li>
+<li>NEJM（视觉）：LLaMA 20.0%→26.7%；Mistral 6.7%→13.3%；Qwen2.5 0.0%→6.7%；Qwen2 VL 0.0%→6.7%；<strong>GPT-4o 26.7%→26.7%（与基线完全打平）</strong>。基线最高即 GPT-4o 的 26.7%。</li>
+<li>NEJM Ext.：LLaMA 24.2%→28.3%（全表最高）；GPT-4o 25.8%→27.5%。</li>
+</ul>
+<p><strong>应同时看到的负面面</strong>：NEJM 全部配置绝对准确率 ≤28.3%，且 15 例的粒度意味着<strong>每一例值 6.7 个百分点</strong>——26.7% 与 20.0% 的差距只有 1 例；视觉任务上的”显著优于”实际上处在离散计数的噪声量级（审稿人判断）。论文正文 “models struggle to exceed 20.0%”（§3）与自家表格中基线 GPT-4o 的 26.7% 矛盾（原文事实核对）。所有数字均为单次运行，未报告方差、置信区间或显著性检验；MIMIC-IV 上 +42.7 点的跳跃未给出机制解释或复核实验（审稿人判断）。</p>
+<p><img src="/images/dailypaper/2026-10-06/2503.22678v2_fig3.png" alt="图 3：偏见条件对准确率的影响（原文 Fig. 3，PDF 第 8 页裁剪）。左图&quot;Model Sensitivity to Bias&quot;以准确率标准差度量四个模型（Mistral / LLaMA / Mixtral / GPT）对偏见条件的敏感度，Mistral 的波动最大（约 4.2 个百分点的标准差），GPT 最小（约 0.9）；右图&quot;Accuracy Change Due to Bias&quot;按四类偏见（Doctor/Patient × Implicit/Cognitive）给出各模型准确率相对无偏见条件的变化，多数条件造成 2–10 个百分点的下降。注意：正文对这两张子图的描述与图内实际变量不完全对应（详见 §5 质疑四）。"></p>
+<p><strong>人类研究（§3 末段、Tables 3–4，原文事实）</strong>：4 段视频（其中 3 段各含 1 名真人接管某一 agent、1 段全 AI）、2 位医生评审，共 8 次”谁是真人”判断，综合正确率 3&#x2F;8（37.5%），未识破率 62.5%；Table 4 另报”真人被误判为 AI”66.7%、”AI 被误判为真人”41.7%（分母未给出）。作者结论为 “indicating high behavioral realism”（作者主张）。</p>
+<h4 id="4-2-消融与机理分析"><a href="#4-2-消融与机理分析" class="headerlink" title="4.2 消融与机理分析"></a>4.2 消融与机理分析</h4><p><strong>Table 2（原文事实；论文未在表注写明基准，但数字与 Table 1 的 MedQA 列完全对应，可判定为 MedQA）</strong>：Mistral 24B 从 45.3% 起，逐项加 Measurement 47.2%（+1.9）、Memory 51.9%（+4.7）、COT 52.8%（+0.9）、Ensembling 53.8%（+1.0）；LLaMA 3.3 70B 从 54.7% 起，59.4%（+4.7）、65.1%（+5.7）、68.9%（+3.8）、70.8%（+1.9）。作者强调 LLaMA 最终 +16.1 点主要来自 memory 与 COT（§3.1）。</p>
+<p><strong>这组消融说明了什么、没说明什么</strong>：</p>
+<ul>
+<li>说明：四个组件在同一协议下逐项加入均带来正增益，没有出现”加回后变差”的负交互（原文事实）；记忆与 CoT 的贡献略大于测量与集成（在 MedQA 上）。</li>
+<li>没说明：<strong>没有任何”为什么有效”的机制证据</strong>。例如记忆增益是来自”检索到高度相似病例”还是仅来自”more context&#x2F;更长的提示”？两个缓冲的贡献是否相同（Experience Buffer 的反思洞见是否真的有用）？失败驱动学习 [34] 是否比随机选择历史病例更强？论文均未报告。集成 +1.0~+1.9 点的边际收益也没有对应成本报告（多医生调用量）。此外，”progressive learning（随病例积累持续进化）”只有”有记忆 buffer 比没有好”这一静态对照，<strong>没有学习曲线</strong>——准确率是否随处理病例数增长、在多少例后饱和，无从判断（审稿人判断；见 §5 质疑三）。</li>
+<li>偏见部分（§3.1、Figs. 3–4）是敏感性分析而非机理分析：它展示不同模型在不同偏见条件下的准确率波动差异，不能解释 MedAgentSim 为何在这些条件下更稳或更不稳。</li>
+</ul>
+<h4 id="4-3-局限性"><a href="#4-3-局限性" class="headerlink" title="4.3 局限性"></a>4.3 局限性</h4><p><strong>论文自身未单列 Limitations 章节</strong>（v1 曾有 Ethical Considerations，声明系统仅供研究、未做临床验证；v2 为会议篇幅删去该节——版本差异，原文事实）。审稿人补充判断如下：</p>
+<ul>
+<li><strong>绝对水平低</strong>：NEJM 最优 26.7%、NEJM Ext. 最优 28.3%，意味着视觉诊断场景下约 7 成病例判错；即使 MIMIC-IV 79.5%，也远未达到可部署水平，论文未讨论错误的类型分布与危险性（漏诊&#x2F;误诊比例）。</li>
+<li><strong>评测效度依赖未披露的 LLM 判分器</strong>：判分 LLM 型号、提示、与人工金标准的一致性全部缺失；自动判分对开放式诊断名的宽松&#x2F;严苛直接决定表格数字。</li>
+<li><strong>经验库的污染风险未讨论</strong>：CLIP 嵌入检索 + 只看”最终正确性”的入库门槛，无法排除检索到表面相似但关键信息相悖的病例；也没有记忆容量上限、淘汰策略、越用越差的失败模式分析。</li>
+<li>**人类研究只是”人机不可区分”**：判别人机 ≠ 判断交互临床真实性；4 段视频 2 位评审无法支撑 “high behavioral realism” 的结论；论文称完整结果在项目页但该材料不可达（见 §5 质疑五）。</li>
+<li><strong>闭源依赖与成本未报告</strong>：评测含 ChatGPT-4o&#x2F;4&#x2F;3.5（API），推理成本、token 数、时延全部未报告（规范要求检查的成本项在本文均为”论文未报告”）。</li>
+<li><strong>适用边界</strong>：系统是研究原型（v1 伦理章节自述），Dataset Mode 下患者应答来自数据集转换，Generation Mode 下病例由 LLM 现场编造——两种模式的实际表现差异论文未报告。</li>
+</ul>
+<h4 id="4-4-与相关工作的对比"><a href="#4-4-与相关工作的对比" class="headerlink" title="4.4 与相关工作的对比"></a>4.4 与相关工作的对比</h4><ul>
+<li><strong>与最接近的基线 AgentClinic（文中名为 Multi-Agent Clinic [24]）</strong>：架构上同属”游戏化 + 多 agent + 记忆回放”一系；本文的差异点是 (a) 医生初始无病历、须主动采集，(b) 测量 agent 按需返回检查，(c) 接入 VLM 处理影像，(d) 开源。Table 1 显示 MedAgentSim 在 5 个可比模型 × 4 个基准上不低于基线（NEJM GPT-4o 打平除外）。但<strong>基线数字的来源未被说明</strong>——是作者在自建仿真中重跑 “Basic” 配置，还是引 [24] 原文数字，无法确认（见 §5 质疑二）。</li>
+<li><strong>与 AI Hospital [6] &#x2F; Agent Hospital [11]<strong>：论文以”只做基准 &#x2F; 直接给完整病历 &#x2F; 闭源”三点做出差异化，但</strong>没有与它们做数值对比</strong>（基准不同、不可直接比，作者亦未构造可比设置）——这使”优于此二者”停留在定性主张（作者主张；审稿人判断：合理但未证实）。</li>
+<li><strong>与通用记忆&#x2F;推理技术</strong>：COT [31]、多数投票集成（Medprompt [17] 风格）、失败驱动学习 [34]、CLIP 检索均为既有技术；本文与它们的对比应以”组合体 vs 组件”的消融（Table 2）为准，而 Table 2 只证明组合有效，未证明组合方式优于其他组合（如把反思洞见也整例入库、或换更强的检索器）。</li>
+<li><strong>版本差异对定位的影响</strong>：v1 有独立 Related Work（涵盖医学 LLM 预训练、提示路线、医疗多 agent 等 61 条引用），v2 删去后，读者只能从引言里约 1 段的引用完成定位；本报告建议对照 v1 阅读相关工作部分（v1 HTML 可访问）。</li>
+</ul>
+<h2 id="5-审稿人质疑"><a href="#5-审稿人质疑" class="headerlink" title="5. 审稿人质疑"></a>5. 审稿人质疑</h2><h4 id="质疑：主结果的评分器是未披露的-LLM-且全部单次运行，MIMIC-IV-上-42-7-点的跳变没有方差、置信区间或复核实验支撑，无法排除判分宽松与采样波动"><a href="#质疑：主结果的评分器是未披露的-LLM-且全部单次运行，MIMIC-IV-上-42-7-点的跳变没有方差、置信区间或复核实验支撑，无法排除判分宽松与采样波动" class="headerlink" title="质疑：主结果的评分器是未披露的 LLM 且全部单次运行，MIMIC-IV 上 +42.7 点的跳变没有方差、置信区间或复核实验支撑，无法排除判分宽松与采样波动"></a>质疑：主结果的评分器是未披露的 LLM 且全部单次运行，MIMIC-IV 上 +42.7 点的跳变没有方差、置信区间或复核实验支撑，无法排除判分宽松与采样波动</h4><ul>
+<li><strong>原文依据</strong>：§3 “Model accuracy is evaluated using a binary true&#x2F;false metric for the final diagnosis, with an LLM serving as the evaluator to account for variability in generated responses”——判分 LLM 的型号、提示、与人工判断的一致性均未报告；Table 1 全表无标准差、运行次数或显著性检验；MIMIC-IV 上 LLaMA 3.3 36.8%→79.5%（Table 1）。</li>
+<li><strong>为什么重要</strong>：这是全部主张的度量基础。开放式诊断的二元判定极依赖判分器宽严（同义诊断名、含糊回答的判定），且 agent 系统解码采样带来的运行间波动在单次运行下不可见；百分比提升越大，越需要证明它超出噪声。</li>
+<li><strong>当前能够得出的判断</strong>：证据不足。论文声称”accuracy logs were manually reviewed”，但未公布日志、未报告复核规模与一致性，无法据现有材料确认提升幅度是真实的分布中心。</li>
+<li><strong>如何验证或补强</strong>：公布判分提示与判分模型；对随机抽样的病例（含错例）做 2–3 名临床人员双盲复核并计算 κ；报告多随机种子&#x2F;多次运行的均值±标准差，至少覆盖 MIMIC-IV 与 MedQA 两个基准。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：最强基线模型从未运行-MedAgentSim-管线，比较呈非对称；正文”基线不超-20-”的表述与自家表格矛盾，NEJM-上-GPT-4o-打平"><a href="#质疑：最强基线模型从未运行-MedAgentSim-管线，比较呈非对称；正文”基线不超-20-”的表述与自家表格矛盾，NEJM-上-GPT-4o-打平" class="headerlink" title="质疑：最强基线模型从未运行 MedAgentSim 管线，比较呈非对称；正文”基线不超 20%”的表述与自家表格矛盾，NEJM 上 GPT-4o 打平"></a>质疑：最强基线模型从未运行 MedAgentSim 管线，比较呈非对称；正文”基线不超 20%”的表述与自家表格矛盾，NEJM 上 GPT-4o 打平</h4><ul>
+<li><strong>原文依据</strong>：Table 1——Claude 3.5 在 MedQA 62.3%、MedQA Ext. 63.6%、MIMIC-IV 42.7%（均为基线最优），但 “MedAgentSim (Ours)” 区块没有 Claude，也没有 Mixtral、LLaMA 3 等基线模型的对照行；NEJM 行：基线 ChatGPT-4o &#x3D; 26.7% 与 MedAgentSim ChatGPT-4o &#x3D; 26.7% 完全相同；§3 正文却写 “a substantial improvement over the baseline Multi-Agent Clinic, where models struggle to exceed 20.0%”。</li>
+<li><strong>为什么重要</strong>：影响结论范围与公平性。(a) 若方法的价值是对任意 backbone 的增益，最强 backbone 缺席使”该方法把强模型推到多高”无法确认，且 42.7% 的 MIMIC 基线被 79.5% 的对比掩盖了对 Claude 不可比的事实；(b) 正文表述与表格数字矛盾属于事实性瑕疵，”across all benchmarks” 的全面性在 NEJM × GPT-4o 上已不成立。</li>
+<li><strong>当前能够得出的判断</strong>：表述被夸大（有原文自证）；非对称比较这一混杂因素无法排除。基线数字是否为自己重跑亦未说明，进一步削弱可比性声明。</li>
+<li><strong>如何验证或补强</strong>：补跑 Claude（或至少另 1 个最强可用模型）过完整管线并给出条件对齐说明；明确标注基线数字的出处（自跑&#x2F;引用）；修正正文表述，改为逐模型的诚实描述。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：自改进管线缺少关键超参数（kNN-的-、医生-agent-数、缓冲容量上限、CLIP-变体）与”渐进学习”的直接证据，标题级主张-self-evolving-progressive-只有静态对照支撑"><a href="#质疑：自改进管线缺少关键超参数（kNN-的-<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span>、医生-agent-数、缓冲容量上限、CLIP-变体）与”渐进学习”的直接证据，标题级主张-self-evolving-progressive-只有静态对照支撑" class="headerlink" title="质疑：自改进管线缺少关键超参数（kNN 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span>、医生 agent 数、缓冲容量上限、CLIP 变体）与”渐进学习”的直接证据，标题级主张 self-evolving &#x2F; progressive 只有静态对照支撑"></a>质疑：自改进管线缺少关键超参数（kNN 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span>、医生 agent 数、缓冲容量上限、CLIP 变体）与”渐进学习”的直接证据，标题级主张 self-evolving &#x2F; progressive 只有静态对照支撑</h4><ul>
+<li><strong>原文依据</strong>：§2 “the system uses k-nearest neighbors (KNN) to retrieve relevant past cases”、”A multi-agent system processes the updated input, where multiple doctor agents independently assess the case”——全文（含 Fig. 2 图注）未给 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span> 值、agent 数量、缓冲规模；Table 2 只报告”+Memory”与”+Ensembling”的终点差，无学习曲线；官方项目页与仓库 README 亦未列出这些参数（2026-10-06 核对）。</li>
+<li><strong>为什么重要</strong>：可复现性——检索强度与集成规模直接决定增益幅度，读者无法重建实验；机制主张——“随病例积累持续进化”是论文标题与摘要的核心卖点之一，但没有”准确率随病例序号变化”的曲线，就无法区分”记忆即上下文 RAG（一次性收益）”与”持续自进化”（增量收益），也看不到记忆饱和或污染的拐点。</li>
+<li><strong>当前能够得出的判断</strong>：存在替代解释（检索增强的上下文长度效应）。论文证明了”有记忆池可取”优于”没有”，未证明”越用越强”。</li>
+<li><strong>如何验证或补强</strong>：报告 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi></mrow><annotation encoding="application/x-tex">k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0315em;">k</span></span></span></span>、agent 数、缓冲上限与 CLIP 版本；给出按处理顺序的滚动准确率曲线（同分布病例流下通常前 10–20% 与后 80% 对比）；消融冻结记忆（固定初始 few-shot）vs 在线增长；消融 Experience Buffer 与 Medical Buffer 各自贡献。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：偏见分析（Figs-3–4）的方法完全不可核验，且-§3-1-正文、图表内容与图注三者相互错位"><a href="#质疑：偏见分析（Figs-3–4）的方法完全不可核验，且-§3-1-正文、图表内容与图注三者相互错位" class="headerlink" title="质疑：偏见分析（Figs. 3–4）的方法完全不可核验，且 §3.1 正文、图表内容与图注三者相互错位"></a>质疑：偏见分析（Figs. 3–4）的方法完全不可核验，且 §3.1 正文、图表内容与图注三者相互错位</h4><ul>
+<li><strong>原文依据</strong>：§3.1 “The right subfigure highlights the stabilization effect of enhanced reasoning strategies, which reduce variance and improve robustness across bias types”，但 Fig. 3 右图的轴标签是 “Accuracy Change Due to Bias”、图例是四个模型名（Mistral&#x2F;LLaMA&#x2F;Mixtral&#x2F;GPT），并不存在”策略”维度；同段左侧描述 “quantifies the baseline model’s susceptibility” 而 Fig. 3 左图测的是四个模型各自的准确率标准差；图注 “right figure illustrates bias reduction after incorporating additional features” 与实际绘制的变量（各模型在各偏见条件下的准确率变化）不符；Fig. 4 的雷达图使用未定义的 “Ratio” 指标（量程 50–100，No Bias 近 100）。全文没有任何一节描述偏见如何注入、每种偏见条件多少病例、在哪种管线配置下测量。</li>
+<li><strong>为什么重要</strong>：结论段把偏见分析列为两大贡献之一（”our bias analysis highlights disparities in model robustness”）。若该分析的方法不透明且图文对应关系混乱，则”Mixtral&#x2F;Mistral 更易受患者认知偏见影响、LLaMa&#x2F;GPT 更稳定”的判断无法被任何读者复核，这属于研究诚信层面的报告缺陷，而非单纯的排版问题。</li>
+<li><strong>当前能够得出的判断</strong>：当前材料无法确认。图与文的关系足以说明该部分在 v2 中处于”未完成打磨”状态（v1 与 v2 中均如此）。</li>
+<li><strong>如何验证或补强</strong>：补写偏见注入协议（谁、以什么文本注入、每种条件的病例数与随机化）；给出 “Ratio” 的数学定义与分母；重绘或改写 §3.1 使文字描述与图中变量一致；报告每格数值的灵敏度。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：人类研究仅-4-段视频、2-位评审（8-次判断），且论文承诺的”完整结果在项目页”实际不可达"><a href="#质疑：人类研究仅-4-段视频、2-位评审（8-次判断），且论文承诺的”完整结果在项目页”实际不可达" class="headerlink" title="质疑：人类研究仅 4 段视频、2 位评审（8 次判断），且论文承诺的”完整结果在项目页”实际不可达"></a>质疑：人类研究仅 4 段视频、2 位评审（8 次判断），且论文承诺的”完整结果在项目页”实际不可达</h4><ul>
+<li><strong>原文依据</strong>：§3 末段 “a preliminary human study … Doctors viewing the clips failed to identify the human in 62.5% of cases, indicating high behavioral realism. Full results are on the project page”；Tables 3–4（8 次判断，综合 3&#x2F;8 正确；Table 4 的 66.7%、41.7% 未给分母）。项目页（2026-10-06 访问）无人类研究结果，其补充材料 PDF 链接 404；仓库中亦无相关材料。</li>
+<li><strong>为什么重要</strong>：该实验是”行为真实感”这一定性卖点的唯一证据，而 n&#x3D;8、且”未识破人机”测量的是不可区分性，不是交互的临床真实性；承诺材料的失效直接影响可复现性与可信度。</li>
+<li><strong>当前能够得出的判断</strong>：证据严重不足，”high behavioral realism” 属于超出样本的推断；承诺的补充材料当前无法核实（不算作结论错误，但构成报告缺陷）。</li>
+<li><strong>如何验证或补强</strong>：公开视频与逐条评分、扩充评审人数与视频数并报告评分者间一致性；明确测量的构念与可推广范围；或将该结论降级为示例性观察。</li>
+<li><strong>严重程度</strong>：次要问题（论文自标 “preliminary”，且该实验不承载主结论）。</li>
+</ul>
+<h2 id="6-审稿式总评与六维评分"><a href="#6-审稿式总评与六维评分" class="headerlink" title="6. 审稿式总评与六维评分"></a>6. 审稿式总评与六维评分</h2><p>作者发现静态医学问答基准无法反映真实诊断的多轮、信息受限本质，因此提出 MedAgentSim：用开源游戏化仿真（医生&#x2F;患者&#x2F;测量 agent）+ 免训练自改进管线（kNN 记忆、反思、CoT、集成），把 NEJM、MedQA、MIMIC-IV 改造成交互式评测，并在自建协议下报告了大幅提升。实验在”5 个模型 × 4 个基准 + 增量消融 + 人工&#x2F;偏见附加研究”的广度上表明组合管线普遍有效；其中消融的逐项增益（Table 2）与开源资源（代码、数据集、环境）证据较强，但评分器不透明、单次运行、比较非对称、关键超参与偏见&#x2F;人类实验协议缺失，使”全面超越基线””高行为真实感””自进化”三类主张仍缺少充分支持。本文最有价值的部分是一个可运行、可扩展的开源临床多 agent 仿真与基准化数据集；最大的审稿风险是 26.7&#x2F;28.3 这类离散小样本数字与未披露判分器叠加后，主结果的可复核性不足。</p>
+<p><strong>六维评分</strong>：</p>
+<ul>
+<li><strong>创新性：5&#x2F;10</strong>。交互协议的差异点（医生零先验、按需检查）有真实想法，开源仿真+基准有实用价值；但所有增强组件均为已有技术的组合，无新算法、无训练方法层面的贡献。</li>
+<li><strong>技术严谨性：4&#x2F;10</strong>。LLM 判分器未披露、无重复运行与方差、关键超参数缺失、偏见分析图文错位不可核验，方法论披露不足以支撑其主张强度。</li>
+<li><strong>实验充分性：5&#x2F;10</strong>。三基准多模型覆盖面尚可、消融结构清晰；但缺方差&#x2F;显著性、缺成本与学习曲线、最强基线缺席、人类实验与偏见实验协议单薄。</li>
+<li><strong>清晰度：5&#x2F;10</strong>。管线叙述（Fig. 2）与主要表格易读；但存在正文—表格矛盾（NEJM 20% 表述）、正文—图错位（Fig. 3&#x2F;4）与大量未定义术语（Ratio、k、agent 数）。</li>
+<li><strong>可复现性：6&#x2F;10</strong>。代码仓库、HF 数据集、项目页、vLLM 部署说明齐备，是本文最强项；但提示词、判分细节、超参与人类研究材料缺失，完全复现实验数字仍不可行。</li>
+<li><strong>影响力：5&#x2F;10</strong>。作为开源评测资源，对有临床 agent 研究的组有直接使用价值；但绝对准确率低（视觉任务 ≤28.3%）、依赖未报告成本的多次 LLM 调用，短期对临床实践与方法界的实际影响有限。</li>
+</ul>
+<p><strong>总分：30&#x2F;60（5.0&#x2F;10）</strong>。录用建议式判断：以系统与基准资源类贡献衡量，本文达”弱接受（weak accept &#x2F; borderline）”水平——仿真与开源是明确的加分项，方法组合相对基线也确实带来一致的（虽未证明统计显著的）提升；但若作为”显著提升 LLM 动态诊断能力的方法论文”来评审，上述主要问题（判分与统计、比较对称性、机制证据）足以要求大修。按规范口径的简要判断：问题定义清晰度：强；创新性证据：中；方法可信度：中；实验支持力度：中（广度中、统计强度弱）；可复现性：中（资源强、细节弱）；综合阅读价值：中。</p>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> MedAgentSim: Self-Evolving Multi-Agent Simulations for Realistic Clinical Interactions</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-06 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-06 14:02:57
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/06/2503.22678v2_Self-Evolving_Multi-Agent_Simulations_for_Realistic_Clinical_Interactions/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93%E4%BB%BF%E7%9C%9F/">#多智能体仿真</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%8C%BB%E5%AD%A6%E8%AF%8A%E6%96%AD/">#医学诊断</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Agent/">#LLM Agent</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%87%AA%E6%94%B9%E8%BF%9B/">#自改进</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%A7%86%E8%A7%89%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">#视觉语言模型</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">#基准评测</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/06/2609.36659v1_On-Policy_Parameter_Update_Direction_Underlies_Generalization_in_LLM_Post-Training/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">On-Policy Parameter Update Direction Underlies Generalization in LLM Post-Training（精读报告）</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">MedAgentSim: Self-Evolving Multi-Agent Simulations for Realistic Clinical Interactions</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E8%A6%81%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-text">1. 论文要解决什么问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E6%A0%B8%E5%BF%83%E5%88%9B%E6%96%B0%E7%82%B9"><span class="nav-text">2. 核心创新点</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E6%96%B9%E6%B3%95"><span class="nav-text">3. 方法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7"><span class="nav-text">4. 解决得怎么样</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91"><span class="nav-text">5. 审稿人质疑</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84%E4%B8%8E%E5%85%AD%E7%BB%B4%E8%AF%84%E5%88%86"><span class="nav-text">6. 审稿式总评与六维评分</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 73 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
