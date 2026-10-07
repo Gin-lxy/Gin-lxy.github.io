@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/07/2610.04292v1_lmbuild_evaluating_llm_agents_for_generating_buildable_and_functional_structures/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LMBuild: Evaluating LLM Agents for Generating Buildable and Functional Structures">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/07/2610.04292v1_LMBuild_Evaluating_LLM_Agents_for_Generating_Buildable_and_Functional_Structures/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-07T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-07T05:58:53.679Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="3D 生成">
+<meta property="article:tag" content="CAD">
+<meta property="article:tag" content="LLM Agent">
+<meta property="article:tag" content="基准评测">
+<meta property="article:tag" content="物理仿真">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>LMBuild: Evaluating LLM Agents for Generating Buildable and Functional Structures | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">262</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">83</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">LMBuild: Evaluating LLM Agents for Generating Buildable and Functional Structures</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-07 12:00</span>
+        <span class="mobile">2026-10-07 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-07 13:58:53</span>
+            <span class="mobile">2026-10-07 13:58:53</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/LLM-Agent/">LLM Agent</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">基准评测</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E7%89%A9%E7%90%86%E4%BB%BF%E7%9C%9F/">物理仿真</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/3D-%E7%94%9F%E6%88%90/">3D 生成</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/CAD/">CAD</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Jiateng Liu、Rushi Wang、Cheng Qian、Xuejun Zhang、Sun Li、Jiayu Liu、Yifan Shen、Xu Cao、Jiarui Yao、Bingxuan Li、Ruhi Sarikaya、Heng Ji（University of Illinois Urbana-Champaign）。</p>
+<p>论文：2610.04292v1；Hugging Face 来源批次：2026-10-06；精读归档日期：2026-10-07（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.04292" >https://huggingface.co/papers/2610.04292<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.04292v1" >https://arxiv.org/abs/2610.04292v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>（全文 HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.04292v1" >https://arxiv.org/html/2610.04292v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>）</p>
+<p>分析范围：完整读取 arXiv HTML 全文（Abstract、§1–§5、Appendix A.1–A.6、Table 1–8、Figure 1–12 的图注与正文解释），并用官方 PDF（v1，64 页）逐表核对关键数字。HTML 仅内嵌 Figure 1、2 的位图，Figure 3–12 的图件不在 HTML 中，本报告所用 Fig 3、4、8 的图片取自 PDF 高分辨率渲染&#x2F;抽取，5 张配图均经目视核对与对应图号一致。参考文献条目未逐条阅读；论文声称开源的 GitHub 仓库、Hugging Face 数据集与项目页仅确认可访问（均返回 200），未逐行审查代码或数据。未发现不可达的关键材料。</p>
+<p>标签：基准评测、LLM Agent、3D 生成、物理仿真、CAD。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>LMBuild 把”LLM agent 能否生成可建造、可使用的真实结构”做成一个可复现的交互式装配评测框架：agent 在工具环境中检索&#x2F;创建部件、装配并声明关节、材料与装配序列，再由四层十二项指标（规则几何检查、Wikipedia 接地的部件&#x2F;材料检查、人类校准的 VLM 设计评审、MuJoCo 仿真操作测试）统一打分。在论文自建的 200 对象核心集上，30 个系统（6 闭源 API、13 开源模型、11 个专用生成器）的结果表明：前沿闭源模型在结构与视觉质量上已接近饱和，而功能可供性与物理可操作性普遍很差（仿真可操作性 R.3 最高分仅 22.1，Table 2）；但评测依赖大量启发式阈值、每任务仅一条生成轨迹，部分结论（尤其是开源&#x2F;闭源差距的归因）的稳健性与因果解释仍需更多证据，结论目前只适用于论文报告的这批对象与固定评测协议。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>研究背景和具体任务。</strong> 2026 年前后，LLM agent 已能操作复杂 3D 资产、把语言规格翻译为参数化&#x2F;程序化 3D 设计，甚至与机器人装配结合（”speech structures into existence”，§1）。论文提出的任务更激进：让 LLM agent 在交互式环境中<strong>端到端生成一个”像真实产品一样可建造、可运作”的结构</strong>——不只是几何外形，还包括有意义的部件分解、部件之间的关节与运动学、材料选择、以及可行的装配顺序（Abstract、§2.1）。评测对象是”agent 用工具造东西”的完整能力，而不是生成网格的视觉质量。</p>
+<p><strong>现有方法通常如何处理。</strong> 既有 3D 生成评测强调几何质量、视觉一致性与语义对齐（T3Bench、Eval3D 等，§1、§4）；part-aware 生成工作（PartCrafter、PartPacker、PhysX-Anything）输出部件或物理属性但评测停在单项指标；brick 装配系统（BrickGPT、LegoACE）与装配规划工作（Blox-Net 等）各自覆盖管道的一部分（§4、Appendix Table 3 给出了各系统”输入什么、产出什么”的信息覆盖对比）。作者的核心判断是：这些评测**不检验”能不能真的造出来、造出来能不能用”**——结构稳健性、功能可供性（affordance）、物理可实现性都被忽略（Abstract、§1）。</p>
+<p><strong>现有方法具体在哪些条件下表现不好。</strong> 论文没有说此前方法”失效”，而是指出两条缺口：(1) 评测维度缺口——现有指标无法回答”部件是否齐全、关节运动是否正确、材料是否合理、装配顺序是否可行”这类问题（§2.3、§4）；(2) 评测方式缺口——即使要测这些维度，也缺少一个统一的交互环境：agent 生成结构远比聊天评测昂贵，一个不到 20 个部件的对象单轮就可能需要 50 次以上交互，对 3D 数据集穷举评测”可能需要数百万轮 LLM 生成”（§2.2）。因此此前的 agentic 3D 评测要么规模很小，要么只看几何。</p>
+<p><strong>作者发现了什么新的现象、瓶颈或被忽略的问题。</strong> 通过 30 个系统的实测，论文报告了四个观察（§1、§3.2–3.5）：(a) 对前沿闭源模型，”结构稳健 + 视觉对齐”已不再是主要瓶颈（S、D 两层的水平分接近 88–89 与 ~72–74，§A.5）；(b) 功能可供性与可操作性才是最大能力缺口（关节与运动学 A.3 中开源模型普遍低于 25，最强系统也不到 43；仿真可操作性 R.3 全表最高 22.1，Table 2）；(c) 存在”<strong>强模型造、弱模型捡</strong>“的能力转变：允许创建新部件时强模型获益、弱模型反而退化（§3.3、Fig. 3）；(d) 把显式功能规格写进提示词可以大幅改善功能部件完整性与可操作性（+10.3 &#x2F; +12.0 分，§3.4、Fig. 4），而多轮修订只带来约 2% 的边际提升。</p>
+<p><strong>支撑问题判断的证据。</strong> 主要证据是 Table 2（30 系统 × 12 指标，200 对象核心集）、Fig. 3（三种部件获取设置，25 个对象）、Fig. 4（修订与提示的对照，带 Wilcoxon 检验）、Table 8 + §A.5（六家闭源 API 的失败模式分解：57% 的运动目标因所需运动部件根本没被造出而失败，54.5%–79% 的任务缺一半以上必需部件等）、Table 5–7（设计指标的人类校准与子样本稳定性检验）。</p>
+<p><strong>作者认为问题产生的原因。</strong> 论文把”外表像”与”功能对”的差距归因于：模型擅长生成可辨识的外部几何，但对<strong>内部部件结构、运动和机构</strong>的推理弱（§A.5：”recognizable external geometry… substantially weaker at recovering the internal component structure, articulation, and mechanisms”）；把开源模型的 part-creation 失败归因于”对工具约定和程序结构的遵守不足”（如多边形顶点顺序违反 CAD 内核约定、节点引用错误），而不是几何&#x2F;空间推理缺陷（§3.5）——注意这是作者根据错误类型分布的推断，论文没有做排除接口因素的对照实验（见 §5 质疑）。</p>
+<p><strong>论文最终要验证的核心假设。</strong> (1) “可建造、可运作”可以被分解为结构稳健性、功能可供性、设计质量、物理可实现四个可测维度，并用交互环境 + 结构化基线统一评测；(2) 当前模型体系在这些维度上存在系统性、可复现的能力差异（而不是对象采样的偶然）；(3) 部件获取方式（检索 vs 创建）的效果依赖模型能力水平；(4) 更丰富的规格说明能部分弥补模型的推理短板。</p>
+<p><strong>三类问题的区分。</strong> “3D 生成评测偏几何&#x2F;视觉”是<strong>领域早已存在的一般问题</strong>；”前沿模型结构已达标而功能&#x2F;可操作性差距巨大””创建 vs 检索的能力转变””显式规格 &gt; 多轮修订”是<strong>本文发现的新观察</strong>（作者主张，分别由 Table 2、Fig. 3、Fig. 4 支持）；本文<strong>实际解决的具体子问题</strong>是：构建一个可复现的交互式装配环境 + 证据化标注的 200 对象基准 + 四层十二指标评测，并完成 30 个系统的横评。至于”为什么功能能力差距存在”的因果机制，论文给出的是基于失败模式分类的解释性推断，并未通过干预实验证明因果。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的技术增量集中在三处：**(i) 一个面向”造物”的交互式 agent 环境<strong>（19 个工具、Tier A&#x2F;B&#x2F;C 三档部件获取协议、metered 的检查&#x2F;渲染、CSG 造件、多轮修订与结构化诊断反馈）；</strong>(ii) 一条证据约束的数据重制与知识接地流水线<strong>（把 6 类来源共 367,991 个原始 3D 资产筛成 200 对象核心集 &#x2F; 2,549 对象全集，并用 Wikipedia&#x2F;Wikidata&#x2F;WordNet 的可追溯证据自动标注部件、属性、子系统与运动学）；</strong>(iii) 四层十二指标的评测框架**（把规则几何检查、Wikipedia 接地的确定性匹配、经人类校准的 VLM 评审与 MuJoCo 物理仿真组合在一起，并配有跨子样本稳定性验证）。其馀贡献是这些基础上的实证发现。逐项分析如下。</p>
+<p><strong>创新点 1：交互式装配环境与工具协议（§2.1、§A.1、§A.2、Fig. 1）。</strong></p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-07/2610.04292v1_fig1_pipeline.png"
+                      alt="LMBuild 框架与交互流程（Figure 1，GPT-6 Astra 生成轮椅的真实案例）"
+                ></p>
+<p>图中每一栏都是一次真实的 agent 交互阶段：最上方”User Instruction + Agent Harness”是输入——用户只给目标类别标签与参考图（或加细粒度描述），harness 负责把环境语义与工具文档注入模型；左侧栏是检索与放置阶段（List_available_parts → Inspect_part → Place_part ×N，逐个选件、放件、调整位姿）；右侧栏是创建与收尾阶段（Create_part 补造目录里没有的部件 → Decide_joints 声明关节与运动学 → Decide_materials 选材料 → Decide_sequence 排装配顺序），底部渲染出最终结构的多个视角。之所以需要这两条并行的工具链，是因为真实造物既会”用现成零件”，也要”为特定结构造新零件”——评测必须能把这两种能力分开测量（对应 Fig. 3 的三种 Tier 对照）。图中间穿插的橙色部件与右侧图例（材料&#x2F;部件颜色映射）说明环境会把每个部件的角色、材料、位姿都作为可打分对象记录下来，这正是后面 R.2&#x2F;R.3 指标的数据来源。</p>
+<ul>
+<li>新增机制：stateful 纯 Python 环境（整集状态为一个可 JSON 序列化的字典，可检查点与回放，§A.2）；19 个工具（list_parts、place_part、attach、move_part、measure、create_part、add_joint、set_material、set_assembly_sequence、check、render、submit 等，§A.2 工具表）；<code>create_part</code> 接受声明式 CSG 程序（≤96 个节点，box&#x2F;cylinder&#x2F;sphere&#x2F;torus&#x2F;extrude&#x2F;revolve 原语，union&#x2F;difference&#x2F;intersection&#x2F;hull 等算子，经 manifold3d v3.5 编译保证水密流形，参数范围 0.5 mm–3 m，§A.2）；物理反馈来自与评测器共享的几何核（4 mm 体素化、接触&#x2F;碰撞&#x2F;稳定性检查）；渲染由 headless Blender（Cycles CPU，六固定视角）完成；预算硬约束：每集 ≤160 次工具调用（其中 check ≤6、render ≤4、放置部件 ≤80，Tier B 造件 ≤30 &#x2F; Tier C ≤60），最多 3 轮修订（§A.1）。</li>
+<li>与最接近已有方法的差异：SceneCraft 类工作把 LLM 接 Blender 代码生成场景；BrickGPT&#x2F;LegoACE 在离散砖格上生成；PartCrafter&#x2F;PartPacker 一次前向生成部件网格。LMBuild 的差异是<strong>带计量反馈与预算的多轮工具交互协议</strong>，且要求输出包含关节、材料、装配序列这些”制造信息”，而不只是几何。</li>
+<li>性质：组件（工具调用、CSG、体素物理）都是已有技术的<strong>新组合 + 大量工程实现</strong>，不是全新思想；但”把建造过程本身作为可评测对象”的评测设定有独立性。</li>
+<li>对应问题：解决”没有统一环境就无法公平比较 agent 造物能力”的问题；Tier A&#x2F;B&#x2F;C 与 K 轮修订、属性&#x2F;功能提示都是环境内的可切换协议，使机制实验成为可能。</li>
+<li>证据：30 个系统在同一环境完成评测（Table 2），专用生成器保持原生管线（§A.1.4）；预算与诊断反馈被实际使用（Fig. 1、§3.4）。</li>
+<li>移除该设计的对照：论文用 Tier 对照间接回答（去掉创建 → 弱模型获益、强模型受限；Fig. 3），但没有”去掉计量反馈&#x2F;去掉诊断报告”的直接消融——论文未报告。</li>
+</ul>
+<p><strong>创新点 2：数据重制与证据约束的知识接地（§2.2、§A.3、Table 1）。</strong></p>
+<ul>
+<li>新增数据构造方法：从 BrickNet&#x2F;BrickComposer（LEGO）、PartNeXt（静态结构）、Fusion 360 Gallery（机械装配）、Artiverse（日常铰接物）、27 个开源硬件项目的产品级 CAD 共 367,991 个资产出发，经五阶段筛选——结构有效性过滤（≥4 个可识别部件、网格可渲染、关节注解可解析，余约 74.7K）→ 源内多样性采样（按语义角色与关节类型描述子做最远点采样）→ Wikidata&#x2F;WordNet 概念接地 + VLM 视觉核验 → 六类运动学家族覆盖（静承重&#x2F;铰链&#x2F;滑动&#x2F;滚动旋转&#x2F;串联链&#x2F;多关节）→ 证据化知识标注（§A.3）。</li>
+<li>标注流水线是本点最有特色的部分：用 Wikipedia&#x2F;Wikidata（+WordNet，ConceptNet 仅作佐证）构造证据包；Qwen3.5-27B 提出候选断言（部件、属性、功能子系统、运动学关系），<strong>每条断言必须附逐字出处引文，引文无法逐字匹配即丢弃</strong>；再由 Gemma-4-31B 独立核验”是否有证据支持”与”是否是该类物体的典型属性”；失败的允许一次受限重检索（同证据包内至多 3 句）。示例中（§A.3 数据示例）一张办公桌的标注由 2 条 parts、6 条 attributes、1 条功能子系统与 1 条运动学组成，另有 6 条候选断言被验证器丢弃——说明该流程确实在过滤。</li>
+<li>与已有方法的差异：PartNeXt&#x2F;Artiverse 等数据集只带几何与部分关节标注；LMBuild 追加的是<strong>可追溯的常识知识层</strong>（每条约束保留 Wikidata statement ID 或 Wikipedia 版本与引文），用于支撑 A.2&#x2F;A.3&#x2F;R.2 的确定性检查——这是既有数据集没有的能力。</li>
+<li>性质：<strong>新数据构造流程</strong>（筛选 + 两模型抽取-验证协议），组合已有工具与来源，但标注协议本身是新的。</li>
+<li>对应问题：解决”评测功能正确性需要外部参照物”的问题——没有这类接地知识，”部件是否齐全、材料是否合理”就无法脱离参考网格来判。</li>
+<li>证据：Table 1 给出各来源的规模与保留下来的对象数、平均部件&#x2F;属性注解量；§A.3 给出完整筛选统计与示例。</li>
+<li>移除该设计的对照：论文未报告仅用参考网格、不加知识标注的指标对照。</li>
+</ul>
+<p><strong>创新点 3：四层十二指标评测框架（§2.3、§A.4、Fig. 2 右）。</strong></p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-07/2610.04292v1_fig2_examples_metrics.png"
+                      alt="生成示例与四层评测框架总览（Figure 2：左侧为各系统生成样例，右侧为指标-评测方式映射）"
+                ></p>
+<p>图的左半部分是不同系统（GPT-6 Astra、Claude 系列、Qwen、Gemma、Cube3D、PartPacker、PartCrafter、PhysX-Anything 等）在轮椅任务上的真实输出——颜色仅用于区分部件，方便观察分解粒度与形态差异；右半部分是把 12 项指标按四层分组、并标注各自的评测方式：S 层（连通&#x2F;碰撞&#x2F;稳定性）与 R.1 序列是<strong>规则几何检查</strong>；A 层（几何&#x2F;部件&#x2F;运动学）与 R.2 材料是 <strong>Wikipedia 接地的确定性检查</strong>；D 层（分解&#x2F;美观&#x2F;对齐）是<strong>人类校准过的 VLM + 规则</strong>；R.3 可操作性是 <strong>Wikipedia 接地的 MuJoCo 仿真</strong>。这张图解释了整个论文的方法论主张：不同性质的问题需要不同性质的评测器，且必须先把”用哪种证据判”定义清楚，指标才有可比性。</p>
+<ul>
+<li>新增目标与机制：Structural Soundness（S）用三个公式化指标——连通性 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>1.1</mn></msub><mo>=</mo><mfrac><mn>1</mn><mn>3</mn></mfrac><mrow><mo fence="true">(</mo><mfrac><mrow><mi>V</mi><mo stretchy="false">(</mo><msub><mi>C</mi><mn>1</mn></msub><mo stretchy="false">)</mo></mrow><mi>V</mi></mfrac><mo>+</mo><mrow><mo fence="true">(</mo><mn>1</mn><mo>−</mo><mfrac><mrow><mi>m</mi><mo>−</mo><mn>1</mn></mrow><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></mfrac><mo fence="true">)</mo></mrow><mo>+</mo><mi>min</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><mn>1</mn><mo separator="true">,</mo><mfrac><msub><mi>n</mi><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">t</mi></mrow></msub><mrow><mi>n</mi><mo>−</mo><mn>1</mn></mrow></mfrac><mo fence="true">)</mo></mrow><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tex">S_{1.1}=\frac{1}{3}\left(\frac{V(C_1)}{V}+\left(1-\frac{m-1}{n-1}\right)+\min\left(1,\frac{n_{\mathrm{fast}}}{n-1}\right)\right)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1.1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.8em;vertical-align:-0.65em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size2">(</span></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.01em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.2222em;">V</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.485em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.2222em;">V</span><span class="mopen mtight">(</span><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3173em;"><span style="top:-2.357em;margin-left:-0.0715em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size1">(</span></span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">m</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.4033em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size1">)</span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mop">min</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size1">(</span></span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7173em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.4159em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3488em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">fast</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1512em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.4033em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size1">)</span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size2">)</span></span></span></span></span></span> 融合最大连通分量体积占比、碎片化程度与有物理证据的紧固连接数；碰撞 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>1.2</mn></msub></mrow><annotation encoding="application/x-tex">S_{1.2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1.2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 用”绝对 1 cm³ + 相对 25%&#x2F;10% 重叠”双阈值；稳定性 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mn>1.3</mn></msub></mrow><annotation encoding="application/x-tex">S_{1.3}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1.3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 用临界倾角 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi><mo>=</mo><mi>arctan</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>d</mi><mi mathvariant="normal">/</mi><msub><mi>h</mi><mi>c</mi></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\theta=\arctan(d/h_c)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop">arctan</span><span class="mopen">(</span><span class="mord mathnormal">d</span><span class="mord">/</span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span> 与顶部推力比 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mo>=</mo><mi>d</mi><mi mathvariant="normal">/</mi><msub><mi>h</mi><mrow><mi mathvariant="normal">t</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi></mrow></msub></mrow><annotation encoding="application/x-tex">f=d/h_{\mathrm{top}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mord mathnormal">d</span><span class="mord">/</span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">top</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>，并按参考物体在 clip 区间内归一化（§A.4）。Functional Affordance（A）：A.1 是双向几何 F-score（20,000 采样点，四个 90° 朝向取最优）；A.2 把生成部件接地到规范部件（参考 + 至多 11 个同类实例估计期望数量 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>m</mi><mi>c</mi></msub></mrow><annotation encoding="application/x-tex">m_c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>），按”参与装配：1 分，浮动：0.5 分”计分，并允许匿名内部模块部分补偿；A.3 用召回&#x2F;精度的调和平均 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>A</mi><mn>2.3</mn></msub><mo>=</mo><mfrac><mrow><mn>2</mn><mi>R</mi><mi>P</mi></mrow><mrow><mi>R</mi><mo>+</mo><mi>P</mi></mrow></mfrac></mrow><annotation encoding="application/x-tex">A_{2.3}=\frac{2RP}{R+P}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2.3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2757em;vertical-align:-0.4033em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8723em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span><span class="mbin mtight">+</span><span class="mord mathnormal mtight" style="margin-right:0.1389em;">P</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span><span class="mord mathnormal mtight" style="margin-right:0.1389em;">P</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.4033em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span>，关节质量 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>q</mi><mi>j</mi></msub></mrow><annotation encoding="application/x-tex">q_j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 为类型×轴×位置×范围×运动集×无碰撞六个因子的乘积（乘法形式刻意让任一维失效即大幅降分）。Design Quality（D）：D.1&#x2F;D.3 用”校准-再评测”协议——两个 VLM 评审（Qwen2.5-VL-32B、Gemma-3-27B）在预声明的校准集（8 个对象 48 项）上拟合到 4 名人类标注者的评分尺度，比率与权重冻结后统用；D.2 纯 VLM、无参考（统一灰色”陶土”渲染，排除颜色&#x2F;材质干扰）。Physical Realization（R）：R.1 装配序列 &#x3D; <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>E</mi><mo>+</mo><mfrac><mn>1</mn><mn>2</mn></mfrac><mi>S</mi></mrow><annotation encoding="application/x-tex">\frac{1}{2}E+\frac{1}{2}S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.1901em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1901em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span>（可执行前缀占比 + 中间状态支撑&#x2F;稳定），插入检验要求扫描路径满足 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>O</mi><mi>t</mi></msub><mo>≤</mo><msub><mi>O</mi><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msub><mo>+</mo><mn>2</mn></mrow><annotation encoding="application/x-tex">O_t \le O_{\mathrm{final}}+2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">O</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">final</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">2</span></span></span></span>（体素）；R.2 材料用”文本证据 ∪ 群体统计 ∪ 参考重叠”的允许集合，同类家族给 0.5 分；R.3 可操作性用 MuJoCo 仿真（1 ms 步长、统一密度 1000 kg&#x2F;m³、PD 伺服 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>k</mi><mi>p</mi></msub><mo>=</mo><mn>100</mn><mi>M</mi><mi>g</mi><mi>L</mi></mrow><annotation encoding="application/x-tex">k_p=100MgL</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9805em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0315em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">p</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord">100</span><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="mord mathnormal" style="margin-right:0.0359em;">g</span><span class="mord mathnormal">L</span></span></span></span>、滚动测试施加 10% 体重的水平力），能力得分为最弱环节 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mi>c</mi></msub><mo>=</mo><msub><mrow><mi>min</mi><mo>⁡</mo></mrow><mrow><mi mathvariant="normal">ℓ</mi><mo>∈</mo><msub><mi mathvariant="script">L</mi><mi>c</mi></msub></mrow></msub><msub><mi>s</mi><mi mathvariant="normal">ℓ</mi></msub></mrow><annotation encoding="application/x-tex">w_c=\min_{\ell\in\mathcal{L}_c} s_\ell</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.918em;vertical-align:-0.2501em;"></span><span class="mop"><span class="mop">min</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">ℓ</span><span class="mrel mtight">∈</span><span class="mord mtight"><span class="mord mathcal mtight">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1645em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2501em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">ℓ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（§A.4）。</li>
+<li>与已有方法的差异：现有 3D 评测没有同时覆盖”可建造性 + 功能性 + 可 realizability”的层级化指标，也没有把人类校准、群体统计与物理仿真混合进同一评分体系。</li>
+<li>性质：<strong>评测框架的新组合</strong>——单个组件（F-score、IoU、MuJoCo、VLM 评审）都是现成技术，组合方式与接地数据是新的。</li>
+<li>对应问题：直接回答”如何在不依赖单一参考网格的前提下测量可建造与功能性”。</li>
+<li>证据：Table 2 的完整横评；D 层与人类评分的一致性（系统级 Spearman 0.77&#x2F;0.83&#x2F;0.94，Table 5）；跨对象子样本稳定性（Table 6&#x2F;7：互斥 50 对象样本间 Pearson 0.937–0.988，1000 次重采样均值 0.953–0.980，95% 区间下界 ≥0.91）。</li>
+<li>移除该设计的对照：论文未报告”用更简单的聚合&#x2F;阈值”的敏感性实验（作者在 §A.6 明确把阈值敏感性研究列为未来工作）。</li>
+</ul>
+<p><strong>创新点 4：实证发现（§3.2–3.5）。</strong> 作为”发现型贡献”：功能差距 &gt; 几何差距的维度结构；创建 vs 检索的能力转变；显式规格优先于修订轮数；开源模型的造件与状态跟踪失败模式。其余部分由证据支撑（见 §4.2&#x2F;§4.3），但”首次”类声明在文本中表述谨慎（”a first step toward systematically evaluating…”，§1），且相关工作中没有与最接近的 agentic 装配评测做直接实验对比，是否构成首次仍需更完整的文献检索。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>直觉上，论文把”生成可建造结构”拆成两个对称的问题：<strong>生成侧</strong>——让 agent 像装配工人一样工作，在一个有尺寸、材料、公差与预算约束的环境里检索&#x2F;造件、装配、声明运动与制造信息；<strong>评测侧</strong>——像质检一样，把”结构稳不稳、功能部件齐不齐、运动对不对、能不能造出来用起来”翻译成确定性检查、接地匹配与物理仿真。核心思路是：不训练任何模型（training-free 评测），而是用统一的环境与协议把 30 个异质系统的输出拉到同一套可验证的量纲上。</p>
+<p>按实际流程展开（§2.1–2.3、§A.1–A.4）：</p>
+<ol>
+<li><strong>输入</strong>：目标结构类别标签 +（可选）参考图；另有三种可选加强条件——属性描述、功能描述（含子系统与运动学要求）；以及部件获取档位 Tier A（仅检索）、Tier B（检索 + 创建，基线）、Tier C（仅创建）。文本模型收到”任务引用了你看不到的图”的显式声明而非降级为纯文本（§A.1.1）。</li>
+<li><strong>执行环境</strong>：闭源模型（Claude 系、GPT 系）经各自 CLI&#x2F;codex 外壳通过 shell 命令驱动会话语境（GPT 允许 3 次执行尝试）；开源模型经 vLLM 的 OpenAI 兼容接口走进程内 agent loop（文本协议 <code>&lt;tool_call&gt;{...}&lt;/tool_call&gt;</code>，temperature 0.6、seed 0，解析失败有受限修复与重试，连续 3 次无可执行调用则终止）（§A.1.2–A.1.3）。</li>
+<li><strong>关键步骤</strong>：list_parts&#x2F;list_materials&#x2F;view_catalog_sheet → place_part&#x2F;attach&#x2F;move_part（每次返回包围盒、接触、碰撞、地面穿透信息）→ 需要时 create_part（CSG 程序）→ add_joint（fixed&#x2F;revolute&#x2F;continuous&#x2F;prismatic&#x2F;cylindrical&#x2F;ball，声明轴、原点、limits）→ set_material → set_assembly_sequence → 计量使用 check（规则诊断：碰撞、悬空、稳定性、关节问题、缺失声明）与 render（六视角）→ submit 结束一轮；若还有修订轮，环境返回检查报告 + 四视图渲染，agent 在同一场景上修订后再提交（状态跨轮持久化）。</li>
+<li><strong>哪些由模型决定，哪些由固定流程控制</strong>：模型决定部件选择&#x2F;几何、放置、关节参数、材料、装配顺序；环境固定世界坐标系（+Z 向上、米制、真实尺寸）、连接判定阈值（表面间隙 &lt;4 mm 算接触、关节原点需在两侧表面 2 cm 内，§A.2）、预算与计量、反馈内容，并且<strong>从不替模型修复动作</strong>（无效调用只返回错误并被计数）。</li>
+<li><strong>是否需要训练</strong>：不需要。所有 LLM&#x2F;VLM 系统零样本运行；专用生成器用其原生管线（不接受工具的模型按其原生输入输出评估，必要时用 Particulate 反推关节）。</li>
+<li><strong>推理阶段变化</strong>：无模型侧变化；”推理变化”体现为协议变量——部件档位、修订轮数 K∈{1,2,3}、提示丰富度。</li>
+<li><strong>最终输出</strong>：一个包含部件几何（检索或 CSG 创建）、位姿、语义角色、材料、关节（类型&#x2F;轴&#x2F;原点&#x2F;范围）与装配序列的结构；以及 12 项 0–100 分指标（无法支持某指标的系统记 N&#x2F;A，不视为生成失败）。</li>
+</ol>
+<p>配图 Figure 8 展示了这套输出中”关节声明”到底长什么样：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-07/2610.04292v1_fig8_wheelchair_joints.png"
+                      alt="轮椅样例的关节声明与运动检验（Figure 8）"
+                ></p>
+<p>图中每一行是一个真实生成案例（上：Claude Opus 5；下：GPT-6 Astra），三列是固定相机下结构摆到不同位姿的渲染：橙色细杆是模型声明在<strong>世界坐标中的关节轴</strong>（位置与朝向都由模型给出，环境按”原点是否在两侧部件表面 2 cm 内”判定其有效性，§A.2），描边的部件是被声明会随关节运动的部分（moving set）。这张图之所以重要，是因为它把 A.3 运动学指标的检验对象直观化：评价一个关节不是”有没有声明”，而是要同时检查类型是否对（revolute 还是 prismatic）、轴是否与部件的对称&#x2F;主轴一致、原点是否落在部件中心或边缘、声明范围是否足够、运动集是否把不该动的部分也带走、以及<strong>在声明的运动范围内扫掠时是否会与静态几何深穿插</strong>（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>q</mi><mi>j</mi><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">e</mi></mrow></msubsup></mrow><annotation encoding="application/x-tex">q_j^{\mathrm{free}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.2439em;vertical-align:-0.3948em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-2.4413em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">free</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3948em;"><span></span></span></span></span></span></span></span></span></span>，§A.4）——这些都能在图中直接观察：三条位姿下橙色轴的稳定性与描边部件的一致性就是该关节通过与否的直观证据。</p>
+<p>瓶颈与开销：整个流程的最大开销来自长程工具交互——一个 &lt;20 部件的简单对象单轮就可能 &gt;50 次交互，复杂结构与多轮修订更多（§2.2）；因此论文只在 200 对象核心集上做全部实验，全集（2,549）留待公开后使用。评测侧开销来自渲染（Blender CPU）、体素几何核、MuJoCo 仿真、两个 VLM 评审与两类 LLM 标注&#x2F;验证模型（§A.2、§A.4）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><ul>
+<li><strong>任务与数据</strong>：全部实验在 LMBuild-Core 的 200 个对象上进行（Table 2 标题、Table 6 标题；但注意附录 §A.3&#x2F;§A.6 有”50-object core”的表述，见 §5 质疑 4）。数据来自六类来源（LEGO、静态结构、机械装配、日常铰接物、产品级 CAD），覆盖六种运动学家族；每类物体在核心集中至多出现一次；对象规模从 4 个部件到 417 个部件（§A.3）。核心集平均 7.62 个部件、9.25 条属性注解（Table 1）。</li>
+<li><strong>被评系统</strong>：30 个 &#x3D; 6 个闭源 API（GPT-6 Astra、GPT-5.6 Sol、Claude Opus&#x2F;Fable 5.1&#x2F;Sonnet 5&#x2F;Haiku 4.5）+ 13 个开源模型（Qwen3&#x2F;Qwen3-VL&#x2F;Qwen3.5 系列 4B–35B、GPT-OSS-120B、Gemma-4-31B、Ministral-3-8B、InternVL3.5-8B&#x2F;38B、MiniCPM-V-4.5、ERNIE-4.5-VL、Qwen3-4B 等）+ 11 个专用系统（BrickGPT、LegoACE、PartCrafter-15&#x2F;8、PartPacker、Cube3D+CubePart 及其 4 个 Particulate 增强变体†(P)、PhysX-Anything）（§3.1）。</li>
+<li><strong>协议与基线</strong>：所有通用 agent 走同一环境与预算；对比条件包括 Tier A&#x2F;B&#x2F;C（部件获取）、K 轮修订、属性&#x2F;功能提示；专用系统按其原生输入输出评估（Tier B 对其等同 Tier A），required 信息缺失的指标记 N&#x2F;A 而非零分（§A.1.4、§A.2）。</li>
+<li><strong>指标</strong>：四层十二项，均归一化到 0–100，主表为全对象均值（§2.3、§A.4）。</li>
+<li><strong>公平性安排</strong>：相同环境语义、工具定义、预算与提示模板；图像条件对无视觉模型保留但显式声明（不静默转文本）；D 层指标经统一人类校准；跨子样本稳定性做专门验证（Table 6&#x2F;7）。<strong>不完全对等的部分</strong>：闭源走 CLI&#x2F;codex 外壳（GPT 允许 3 次执行尝试、shell 中可直接读图）、开源走文本协议进程内循环（含解析 fallback 与重试）——接口机制不同（§A.1.2–A.1.3、§A.6 亦承认）。</li>
+<li><strong>各实验回答什么</strong>：Table 2 &#x3D; 能力画像（谁强在哪层）；Fig. 3 &#x3D; 检索 vs 创建依赖模型强度；(§3.4) Fig. 4 &#x3D; 修订与两种提示策略的边际贡献；§3.5 + Table 8 &#x3D; 失败模式归因；Table 5 &#x3D; 设计指标的效度（与人类相关性）；Table 6&#x2F;7 &#x3D; 指标对对象采样的稳健性。</li>
+</ul>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><ul>
+<li><strong>结构&#x2F;视觉近饱和、功能&#x2F;可操作性缺口大（Table 2、Table 6）</strong>：GPT-6 Astra 的四层均值（Table 6，200 对象）为 88.5 &#x2F; 50.0 &#x2F; 74.0 &#x2F; 53.5（S&#x2F;A&#x2F;D&#x2F;R）；其 S.2 碰撞 95.9、S.1 连通 83.0；但 A.3 运动学只有 41.7、R.3 可操作性仅 19.2。全表 R.3 最高是 Claude Opus 5 的 22.1；六家闭源 API 的 R.3 平均 18.3（§A.5）。开源最强（Qwen3.5-27B）在 S&#x2F;R 层有竞争力（82.9、57.2）但 A 层仅 28.3。闭源家族平均 63.4、开源平均 33.9（§A.5）。<strong>注意</strong>：正文 §3.2 称 R.3”最好只到 mid-30s”，与 Table 2 的最高值 22.1 不一致（见 §5 质疑 4）。</li>
+<li><strong>提升小或无提升的例子</strong>：闭源家族内部差异很小且互相反超——S.1 上 GPT-5.6 Sol（85.7）低于 Claude Opus 5（86.8）；R.1 上 Qwen3.5-27B（74.7）高于所有闭源 API（58.7–69.0）（Table 2）。部分”反超”被作者解释为表示约束或结构更简单所致（§A.5：Qwen3.5-27B 与 GPT-OSS-120B 生成的装配部件数明显少于 GPT-6 Astra 与 Opus 5，使 S.1&#x2F;R.1&#x2F;R.2 更易满足）。</li>
+<li><strong>创建 vs 检索（Fig. 3，25 个对象）</strong>：Qwen3-VL-32B 在 (S+D) 均值上从检索模式 61.7 降到创建模式 34.1；弱模型在使用创建工具后即使目录仍可用也退化（Qwen3-VL-30B-A3B 68.4 → 54.4 → 39.9）。前沿模型相反：GPT-6 Astra 81.9 → 86.3 → 84.0，Claude Fable 5.1 84.2 → 85.9 → 84.6。该实验为<strong>单轨迹、单样本点估计，无置信区间&#x2F;显著性标注</strong>，且 (S+D) 与 (A+R) 各是两层指标的合并均值（Fig. 3）。</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-07/2610.04292v1_fig3_part_access.png"
+                      alt="三种部件获取设置下的性能变化（Figure 3，25 个采样对象）"
+                ></p>
+<p>这张图是”创建 vs 检索”结论的全部证据，值得逐部分拆读：图例定义了三种协议——紫色菱形 A 为”仅检索子部件”（对应 Tier A）、金色菱形 B 为”检索 + 创建”（基线 Tier B）、红色方块 C 为”仅创建新部件”（Tier C）；每个横向区间连接同一模型在三档下的三个得分点，所以”点与点之间拉开的距离”就是该模型对创建工具的敏感度。左半图纵轴的得分是 Soundness 与 Design 两层的合并均值，右半图是 Affordance 与 Realization 两层的合并均值——之所以要分成两幅，是因为创建工具对”结构类”与”功能类”能力的影响可能不同方向（这正是审稿时需要看细节的原因）。虚线分隔闭源（上）与开源（下）系统。可以直观看到：下部弱模型的 C 点（仅创建）相比 A 点（仅检索）大幅左移（得分走低），说明它们失去目录零件后崩溃（对应正文 §3.3 的 61.7 → 34.1）；上部 GPT-6 Astra、Claude Fable 5.1 的 B&#x2F;C 点反而更靠右，说明强模型更愿意造件且不降反升。这张图同时也暴露了该实验的弱点：每个系统只有一个点、无误差棒，25 个对象的代表性无法从图上评估。</p>
+<ul>
+<li><strong>修订 vs 提示（Fig. 4，带 95% bootstrap 区间与 Wilcoxon 检验）</strong>：两轮额外修订的总增益约 2%（§3.4）；显式功能描述使 A.2 功能部件完整性 +10.3、R.3 可操作性 +12.0（均 p&lt;0.001）、A.3 运动学 +3.5（p&lt;0.01）。<strong>同一张图还显示负面变化</strong>：功能提示使 R.1 装配序列可执行性 −9.0、D.3 参考对齐 −2.9、S.3 稳定性 −3.5（绿色属性提示下 R.1 也 −5.8）；修订轮使 S.3 稳定性 −4.0（p&lt;0.01）。这些副作用在正文 §3.4 未被讨论。</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-07/2610.04292v1_fig4_revision_prompting.png"
+                      alt="修订轮数与两类提示策略对各指标的增益（Figure 4，相对于基线协议）"
+                ></p>
+<p>这张图把三种”低成本改进手段”放在同一坐标尺度上对比，是论文第二条因果主张（提示 &gt; 修订）的核心证据。三种颜色分别代表：蓝色 &#x3D; 相比基线多加两轮修订（取第 3 轮设计）、绿色 &#x3D; 在提示中加入显式属性描述、橙色 &#x3D; 在提示中加入显式功能描述（子系统 + 运动学）。每个横条是该条件下全体被测模型在各指标上的平均变化（单位：分），横条末端的数字与星号是差值及 Wilcoxon 符号秩检验的显著性（* p&lt;0.05，** p&lt;0.01，*** p&lt;0.001，区间为跨模型的 95% bootstrap CI）。左右两幅分别列出 S&#x2F;A 与 D&#x2F;R 层指标。读图要点有三：其一，蓝条（修订）普遍短且贴近零，印证”修订只提供重试机会、不解决推理短板”的解释；其二，橙条在 A.2（+10.3）与 R.3（+12.0）上显著拉长，说明显式功能规格直接命中了模型最弱的维度；其三，橙条在 R.1（−9.0）、D.3（−2.9）上显著为负——提示变详细后模型反而更难排出可执行、对齐参考的装配方案，这一”代价”在正文中未被讨论。该图的统计单元是”跨模型的均值变化”，因此它回答的是”平均而言提示是否有用”，而非”每个模型是否都受益”。</p>
+<ul>
+<li><strong>失败模式（Table 8、§A.5）</strong>：六家闭源 API 每任务都会提交设计；A.3 是最弱的 Affordance 指标（均值 37.9），失败的运动目标中 57% 是运动部件从未被生成、17% 是有部件但没有能驱动它的关节；54.5%–79% 的任务中至少一半必需部件缺失&#x2F;错位；48%–68% 的装配序列不能完整执行；R.3 中约 30%–40% 的任务没有任何能力可用（Haiku 4.5 达 51%）。按来源分层：产品级 CAD 与 Fusion 360 对象最难（81%、73% 缺件），Artiverse 家具家电 48%（§A.5）。工具层失败反而次要：仅 2%–7% 的 create_part 调用失败且多发能在同一集内恢复（§A.5；Table 8 显示 8.5%–27.5% 的任务至少出现过一次失败调用）。</li>
+<li><strong>失败模式（Table 8、§A.5）</strong>：六家闭源 API 每任务都会提交设计；A.3 是最弱的 Affordance 指标（均值 37.9），失败的运动目标中 57% 是运动部件从未被生成、17% 是有部件但没有能驱动它的关节；54.5%–79% 的任务中至少一半必需部件缺失&#x2F;错位；48%–68% 的装配序列不能完整执行；R.3 中约 30%–40% 的任务没有任何能力可用（Haiku 4.5 达 51%）。按来源分层：产品级 CAD 与 Fusion 360 对象最难（81%、73% 缺件），Artiverse 家具家电 48%（§A.5）。工具层失败反而次要：仅 2%–7% 的 create_part 调用失败且多发能在同一集内恢复（§A.5；Table 8 显示 8.5%–27.5% 的任务至少出现过一次失败调用）。</li>
+<li><strong>开源 vs 闭源的造件与状态跟踪差距（§3.5）</strong>：create_part 成功率闭源 95.7% vs 开源 51.7%（Qwen3.5-27B 89.4% 是唯一例外）；引用从未放置部件的错误率 7.2 vs 0.3 次&#x2F;100 调用；冗余重复添加实体 3.2 vs 0.5 次&#x2F;100 调用。</li>
+<li><strong>效度与稳定性</strong>：D 层与人类系统级相关性 Spearman 0.77（分解）&#x2F;0.83（美观）&#x2F;0.94（对齐），但条目级仅 0.52&#x2F;0.60&#x2F;0.64，人类-人类参考为 0.69&#x2F;0.52&#x2F;0.73（Table 5）——条目级的人类一致性本身就是短板。互斥 50 对象子样本之间的系统均值 Pearson 相关 0.937–0.988（Table 7），1000 次重采样均值 0.953–0.980；系统分数对全集的平均绝对偏差 1.0–1.7 分（§A.5）。<strong>但</strong>这些区间只覆盖对象采样方差，不覆盖模型运行随机性（§A.6 承认每对模型-任务仅一条轨迹）。</li>
+</ul>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><ul>
+<li><strong>“有效”层面的证据较强</strong>：模型分层（闭源 &gt; 开源，A&#x2F;R 层差距在所有子样本一致）在多个证据链上收敛（Table 2&#x2F;6&#x2F;7、Table 8、§A.5 的逐来源分析）；人类校准与失败模式分解把”分数低”还原为具体的缺失部件&#x2F;缺关节&#x2F;序列不可行，可信度高于单点分数。</li>
+<li><strong>“为什么有效”只被部分回答</strong>：Tier 实验对”创建工具是否帮助模型”给出了可控对照（同一环境只改部件获取），方向性结论（弱模型受益于检索、强模型受益于创建）有 12 个模型的跨系统一致性支撑；但(1) 无显著性检验、样本仅 25 对象；(2) 该实验用两层合并均值，(A+R) 面板上强模型 B→C 实际是混合的（GPT-6 Astra 60.8→57.8 下降，Opus 58.1→60.2、Fable 60.6→63.3 上升），正文”comparable or even stronger”的措辞平滑了这些方向差异；(3) 创建 vs 检索的失败归因（工具约定 vs 几何推理）是从错误类型分布的反推，没有接口对照，无法排除协议差异（见 §5 质疑 3）。</li>
+<li><strong>替代解释的排除程度</strong>：对象采样效应被 Table 6&#x2F;7 较好排除（指标主要由系统能力驱动）；但”任务提示长度&#x2F;信息量”效应未被控制（功能提示同时变长且塞入了部件名与运动学信息，§A.3 示例可见功能提示几乎复述了标注集），”运行噪声”未被任何实验覆盖（单轨迹）。修订增益小也可能部分因为 baseline 已是交互式协议（作者自己的解释），但没有”无交互一次生成”的对照。总体：论文证明了方法在报告条件下的<strong>有效性与区别度</strong>，机制性解释（为什么弱模型退化、为什么功能提示有效）目前是合理假设而非被隔离验证的因果结论。</li>
+</ul>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><ul>
+<li><strong>评测成本（论文报告的部分）</strong>：每集 ≤160 次工具调用、≤80 个放置部件、check ≤6 &#x2F; render ≤4（计量）；创建限制 Tier B ≤30 &#x2F; Tier C ≤60 次；最多 3 轮修订（§A.1）。一个 &lt;20 部件对象单轮可超 50 次交互；穷举大 3D 数据集”可能需要数百万轮 LLM 生成”，因此全部实验仅在 200 对象核心集上（§2.2，TABLE 1 注）。人工成本：4 名志愿者标注 90 个生成物（6 系统 × 3 维度 1–5 分），8 对象用于校准、7 对象留出验证（§A.4）。<strong>论文未报告</strong>：token 数、金额、单集墙钟时延、闭源 API 的具体调用费用。</li>
+<li><strong>依赖复杂度</strong>：环境侧依赖 manifold3d v3.5、trimesh、体素几何核（NumPy&#x2F;SciPy）、headless Blender（Cycles CPU）、MuJoCo（R.3）、两个开源 VLM 评审（Qwen2.5-VL-32B、Gemma-3-27B）、两个 LLM 用于标注&#x2F;验证、Particulate（为部分专用系统补关节）、23 种材料库（密度取自 5,510 条 Artiverse 标注）——系统复杂度高，但组件均为公开工具（§A.2、§A.4）。</li>
+<li><strong>改善了什么</strong>：提供了一个可复现、可扩展、四层可解释的 evaluator，把”建造+功能”从不可测变为可测；展示了基线模型与失败模式，为后续 agents 提供训练&#x2F;改进目标（§5）。</li>
+<li><strong>仍未解决&#x2F;不在范围</strong>：不建模制造公差、紧固件强度、弹性形变、断裂&#x2F;疲劳、工具可达性、线缆&#x2F;流体布线、执行器限制、长期载荷（§A.6）；稳定性只覆盖倾覆、装配只做离散插入扫描、可操作性只做刚体仿真；全集结果、重复运行方差、与人工实造（打印&#x2F;机器人装配）的验证都不在本文；结论只适用于论文的 200 对象、固定阈值与单一轨迹协议，不能外推为”普遍能力排序”或”可部署性认证”。</li>
+</ul>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：核心结论”功能与可操作性是最大缺口”的量级由启发式阈值和-weakest-link-聚合方式决定，缺少敏感性验证"><a href="#质疑：核心结论”功能与可操作性是最大缺口”的量级由启发式阈值和-weakest-link-聚合方式决定，缺少敏感性验证" class="headerlink" title="质疑：核心结论”功能与可操作性是最大缺口”的量级由启发式阈值和 weakest-link 聚合方式决定，缺少敏感性验证"></a>质疑：核心结论”功能与可操作性是最大缺口”的量级由启发式阈值和 weakest-link 聚合方式决定，缺少敏感性验证</h4><ul>
+<li><strong>原文依据</strong>：R.3 用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>w</mi><mi>c</mi></msub><mo>=</mo><msub><mrow><mi>min</mi><mo>⁡</mo></mrow><mrow><mi mathvariant="normal">ℓ</mi><mo>∈</mo><msub><mi mathvariant="script">L</mi><mi>c</mi></msub></mrow></msub><msub><mi>s</mi><mi mathvariant="normal">ℓ</mi></msub></mrow><annotation encoding="application/x-tex">w_c=\min_{\ell\in\mathcal{L}_c} s_\ell</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0269em;">w</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0269em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.918em;vertical-align:-0.2501em;"></span><span class="mop"><span class="mop">min</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">ℓ</span><span class="mrel mtight">∈</span><span class="mord mtight"><span class="mord mathcal mtight">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1645em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2501em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">ℓ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的最弱环节聚合（§A.4），任何单一缺失条件即令整条能力清零，导致六家闭源平均仅 18.3（§A.5）；A.2 的”必需部件”由 Wikipedia 标注 + 群体统计（出现率 ≥40%、下限四分位计数、上限 8）决定（§A.4）；论文自述指标是”practical proxies”并承认”不同参数化或更高保真模型可能改变分数”（§A.4、§A.6，敏感性研究被列为未来工作）。D 层有人类校准（Table 5），但 A 层与 R.3 没有任何人类&#x2F;仿真替代方案验证。</li>
+<li><strong>为什么重要</strong>：这是论文的头号发现，也是 benchmark 的核心卖点。若低分主要来自聚合方式（min）或知识覆盖不足（Wikipedia 缺罕见部件即低分），”能力缺口”的量级会被系统性放大，跨系统的相对排序也可能被聚合选择改变。</li>
+<li><strong>当前能够得出的判断</strong>：缺口的方向性证据较强（Table 8 的独立失败统计——57% 运动目标缺部件、48%–68% 序列不可执行——与指标同向）；但<strong>量级与排序</strong>目前不可靠地确立，缺乏排除聚合&#x2F;阈值效应的证据。</li>
+<li><strong>如何验证或补强</strong>：报告 R.3&#x2F;A.2 在替代聚合（均值、加权部分分、去掉 min）与阈值扰动下的排序稳定性；对 A&#x2F;R 层做小规模人工抽查（作者已为 D 层做过）；披露每个任务的必需部件表与 Wikipedia 覆盖情况（罕见部件是否被系统性漏标）。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：模型对比建立在每任务单条生成轨迹上，Fig-3-机制实验仅-25-个对象且无统计检验"><a href="#质疑：模型对比建立在每任务单条生成轨迹上，Fig-3-机制实验仅-25-个对象且无统计检验" class="headerlink" title="质疑：模型对比建立在每任务单条生成轨迹上，Fig. 3 机制实验仅 25 个对象且无统计检验"></a>质疑：模型对比建立在每任务单条生成轨迹上，Fig. 3 机制实验仅 25 个对象且无统计检验</h4><ul>
+<li><strong>原文依据</strong>：§A.6 明确”current results use one final generation trajectory per model-task pair”、”Confidence intervals… quantify variation across tasks, but not within-model stochasticity”；开源模型 temperature 0.6（§A.1.3）意味着运行间应有方差；Fig. 3 的部件档位实验（§3.3）仅 25 个采样对象、只给合并均值点、无区间或显著性；Table 6&#x2F;7 的稳定性只证明对象采样不引入伪差异，与运行噪声无关。闭源家族内多项指标差距仅 1–3 分（Table 2，如 S.1 上 82.4–86.8）。</li>
+<li><strong>为什么重要</strong>：所有”哪家更强””创建&#x2F;检索的能力转变””前沿模型不退化”的表述都依赖这些对比；若运行方差有 2–5 分，家族内排序与 Fig. 3 的部分方向性结论会翻转。</li>
+<li><strong>当前能够得出的判断</strong>：论文对差 20–30 分的大分层的结论（闭源 vs 开源、S&#x2F;D vs A&#x2F;R）稳健；对小差距排序与 Fig. 3 的具体数值差异，当前证据不足，属于”未量化不确定性”。</li>
+<li><strong>如何验证或补强</strong>：每模型-任务重复 ≥3 次并报告 run-level 置信区间&#x2F;方差分解；对 Fig. 3 的三档做按对象配对的显著性检验并公布逐对象结果；公布 Fig. 3 的 25 对象清单以评估代表性。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：开源-闭源的-part-creation-gap（95-7-vs-51-7-）无法与”工具接口差异”解耦，因果关系未经隔离"><a href="#质疑：开源-闭源的-part-creation-gap（95-7-vs-51-7-）无法与”工具接口差异”解耦，因果关系未经隔离" class="headerlink" title="质疑：开源&#x2F;闭源的 part-creation gap（95.7% vs 51.7%）无法与”工具接口差异”解耦，因果关系未经隔离"></a>质疑：开源&#x2F;闭源的 part-creation gap（95.7% vs 51.7%）无法与”工具接口差异”解耦，因果关系未经隔离</h4><ul>
+<li><strong>原文依据</strong>：§3.5 报告成功率差距并把原因归于”违反 CAD 内核约定、无效程序结构”等约定性错误；但 §A.1.2&#x2F;A.1.3 显示两组模型走<strong>不同接口</strong>——闭源经 CLI&#x2F;codex 外壳（GPT 有 3 次执行尝试、Claude 可用图像读取能力看图调试），开源经文本协议（有 fallback 解析、受限 JSON 修复、解析错误重发等机制，temperature 0.6）。论文没有做任何交叉对照（如让开源模型走结构化 function-calling，或让闭源模型走同一文本协议）。</li>
+<li><strong>为什么重要</strong>：它支撑三大发现之一（”Open Models Exhibit a Part-Creation Gap”）以及”创建工具对弱模型是负担”的解释；若差距部分源于接口鲁棒性&#x2F;解析容忍度，而非模型能力本身，该结论的归因即被夸大，也影响对开源模型的公平评价。</li>
+<li><strong>当前能够得出的判断</strong>：错误类型分布（约定性错误为主）是<strong>支持性但非决定性</strong>证据；因果归因当前无法确认，存在接口混杂因素。</li>
+<li><strong>如何验证或补强</strong>：在相同调用协议下重复两组模型的关键对比；报告因解析失败&#x2F;协议层重试导致的失败占比；对 create_part 失败做按模型族的错误类型统计（论文只给了定性分类，未给定量分布）。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：多组关键数字在正文与附录-表格之间不自洽，影响实验规模与结论的准确引用"><a href="#质疑：多组关键数字在正文与附录-表格之间不自洽，影响实验规模与结论的准确引用" class="headerlink" title="质疑：多组关键数字在正文与附录&#x2F;表格之间不自洽，影响实验规模与结论的准确引用"></a>质疑：多组关键数字在正文与附录&#x2F;表格之间不自洽，影响实验规模与结论的准确引用</h4><ul>
+<li><strong>原文依据</strong>：正文与 Table 1&#x2F;2&#x2F;6&#x2F;7 一致使用 <strong>200 对象核心集</strong>（Table 6 标题”full 200-object core set”，§A.5 也称 200），但 §A.3 写”the final 50 core objects””the 50-task LMBuild-Core”，§A.6 写”the 50-object LMBuild-Core split”与”<strong>2,399</strong>-object LMBuild-Full”，而 Table 1 的总集是 <strong>2,549</strong>（&#x3D;200 核心 + 2,349 额外）；§3.2 称 R.3”最好只到 mid-30s”（Table 2 实际最高 22.1）、A.3”最强系统刚过 50”（Table 2 实际最高 42.7）。</li>
+<li><strong>为什么重要</strong>：对 benchmark 论文，评估集规模与指标极值是最需要被准确统计的数字；矛盾会让读者无法确定实验到底跑了 200 还是 50 个对象，也提示图&#x2F;表可能混用了不同版本的结果。</li>
+<li><strong>当前能够得出的判断</strong>：以所有主表与 §A.5 的统计为准，实际评估集应为 200 对象核心集（2,549 全集含 2,349 额外对象）；§A.3&#x2F;§A.6 的”50”与 2,399 应为修订残留。这是<strong>审稿人根据交叉比对得出的判断</strong>，论文未澄清。</li>
+<li><strong>如何验证或补强</strong>：作者统一全文数字；发布数据时给出正式 split 清单与统计脚本；对 §3.2 的极值表述按 Table 2 修正。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h4 id="质疑：”显式功能规格带来大幅提升”的实验未控制提示长度-信息量，且负面效应未讨论"><a href="#质疑：”显式功能规格带来大幅提升”的实验未控制提示长度-信息量，且负面效应未讨论" class="headerlink" title="质疑：”显式功能规格带来大幅提升”的实验未控制提示长度&#x2F;信息量，且负面效应未讨论"></a>质疑：”显式功能规格带来大幅提升”的实验未控制提示长度&#x2F;信息量，且负面效应未讨论</h4><ul>
+<li><strong>原文依据</strong>：§3.4&#x2F;Fig. 4 中功能提示使 A.2 +10.3、R.3 +12.0，但功能提示同时(e)把部件清单、子系统连接与运动学要求全部写入提示（§A.3 示例中功能提示几乎复述了标注集，且论文指出 CubePart 的局部优势正来自”输入里已含期望部件表”，§A.5）；同一图的 R.1 −9.0、D.3 −2.9、S.3 −3.5 负面变化未在正文任何位置讨论。没有长度匹配的占位提示对照，也没有”仅属性&#x2F;仅部件”的析因消融。</li>
+<li><strong>为什么重要</strong>：这决定”规格提示能激发推理”与”提示直接把答案喂给了模型”两种解释孰是孰非，直接影响对 agent 真实推理能力的评价。</li>
+<li><strong>当前能够得出的判断</strong>：提示改善方向可信（有显著性检验与逐指标分解），但”激发推理”的机制解释未被隔离；装配序列与对齐的恶化说明收益伴随代价，当前证据不足以支持无保留的正面结论。</li>
+<li><strong>如何验证或补强</strong>：加入长度匹配控制（等长无关文本）、仅部件清单、仅运动学描述的分组实验；报告各条件 token 数；讨论并解释 R.1&#x2F;D.3&#x2F;S.3 的下降机制。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现 3D 生成评测长期以几何与视觉质量为中心，而”看起来对”与”能造出来、能用起来”之间存在系统性空白，因此提出 LMBuild：通过一个 19 工具的交互式装配环境（检索&#x2F;CSG 造件、计量式检查与渲染、多轮修订）、一条以逐字引文为门槛的 Wikipedia&#x2F;Wikidata 知识接地流水线，以及覆盖结构稳健、功能可供、设计质量、物理实现四层的十二项指标（规则几何 + 确定性接地匹配 + 人类校准的 VLM + MuJoCo 仿真）实现。实验在 200 对象核心集、30 个系统、单一轨迹条件下表明：前沿闭源模型在结构与视觉上接近饱和，而功能与可操作性普遍薄弱（R.3 全表最高 22.1）；创建 vs 检索存在与模型强度相关的能力转变（25 对象实验）；显式功能规格带来 +10.3&#x2F;+12.0 的提升但伴随装配序列 −9.0 的副作用。其中多子样本稳定性（Table 7）与失败模式分解（Table 8、§A.5）的证据较强，但运行级方差、接口混杂下的归因、指标聚合与阈值的敏感性仍缺少充分支持。本文最有价值的部分是”可建造 + 功能性”这一评测维度的完整落地与其诊断性发现，最大的审稿风险是这些低分中有多少来自模型能力、有多少来自评测构造与单轨迹协议。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强——把”可建造、可运作”明确分解为四层 12 指标，协议（Tier&#x2F;轮数&#x2F;提示）与边界（不建模制造公差等）都有显式声明（§2&#x2F;§A.4&#x2F;§A.6）。</li>
+<li><strong>创新性证据</strong>：中——环境、数据与指标均为已有组件的新组合与大量工程实现，未见单一全新机制；”first step”表述谨慎，但缺少与最接近 agentic 装配评测的直接实验对比。</li>
+<li><strong>方法可信度</strong>：中——流程透明、公式完整、人类校准与稳定性检验是加分项；但 weakest-link&#x2F;启发式阈值未做敏感性分析，接口不统一影响因果归因，若干数字自相矛盾。</li>
+<li><strong>实验支持力度</strong>：中——30 系统 × 200 对象 × 12 指标 + 失败模式分解覆盖广；但每任务单轨迹、Fig. 3 仅 25 对象无检验、无 run-level 方差、无人工上界基线。</li>
+<li><strong>可复现性</strong>：中——论文给出了完整工具表、预算、提示词、校准参数与阈值，仓库&#x2F;数据集&#x2F;项目页已可访问；但完整数据与轨迹标注为”将开源”，评测还依赖多个外部组件（Blender、MuJoCo、两个 VLM、Particulate），专用系统原生管线各异的复现成本高。</li>
+<li><strong>综合阅读价值</strong>：高——对研究 LLM agent 具身&#x2F;造物评测、3D 生成评测设计与 benchmark 构建的读者均有可复用价值，失败模式与负面结果对后续 agent 训练方向有直接参考意义。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> LMBuild: Evaluating LLM Agents for Generating Buildable and Functional Structures</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-07 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-07 13:58:53
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/07/2610.04292v1_LMBuild_Evaluating_LLM_Agents_for_Generating_Buildable_and_Functional_Structures/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Agent/">#LLM Agent</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">#基准评测</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E7%89%A9%E7%90%86%E4%BB%BF%E7%9C%9F/">#物理仿真</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/3D-%E7%94%9F%E6%88%90/">#3D 生成</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/CAD/">#CAD</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/07/2610.05162v1_Memadapter_Counterfactual_Adaptation_Against_Memory-induced_Sycophancy/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">MemAdapter: Counterfactual Adaptation against Memory-Induced Sycophancy</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/07/2610.05608v1_Kandinsky_6.0_Video_Foundation_Models_for_Synchronized_Video_and_Audio_Generation/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Kandinsky 6.0 Video: Foundation Models for Synchronized Video and Audio Generation</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">LMBuild: Evaluating LLM Agents for Generating Buildable and Functional Structures</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 83 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

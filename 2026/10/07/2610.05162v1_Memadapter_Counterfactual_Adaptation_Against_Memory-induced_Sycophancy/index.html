@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/07/2610.05162v1_memadapter_counterfactual_adaptation_against_memory-induced_sycophancy/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MemAdapter: Counterfactual Adaptation against Memory-Induced Sycophancy">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/07/2610.05162v1_Memadapter_Counterfactual_Adaptation_Against_Memory-induced_Sycophancy/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-07T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-07T05:58:53.681Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="LLM Agent">
+<meta property="article:tag" content="反事实推理">
+<meta property="article:tag" content="检索增强生成">
+<meta property="article:tag" content="长期记忆">
+<meta property="article:tag" content="阿谀偏差">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>MemAdapter: Counterfactual Adaptation against Memory-Induced Sycophancy | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">262</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">83</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">MemAdapter: Counterfactual Adaptation against Memory-Induced Sycophancy</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-07 12:00</span>
+        <span class="mobile">2026-10-07 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-07 13:58:53</span>
+            <span class="mobile">2026-10-07 13:58:53</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/LLM-Agent/">LLM Agent</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%A3%80%E7%B4%A2%E5%A2%9E%E5%BC%BA%E7%94%9F%E6%88%90/">检索增强生成</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E9%95%BF%E6%9C%9F%E8%AE%B0%E5%BF%86/">长期记忆</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E9%98%BF%E8%B0%80%E5%81%8F%E5%B7%AE/">阿谀偏差</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%8F%8D%E4%BA%8B%E5%AE%9E%E6%8E%A8%E7%90%86/">反事实推理</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Ruqing Ning、Haibo Meng、Zhishang Xiang、Zerui Chen、Jinsong Su、Xin Wang、Qinggang Zhang（吉林大学、厦门大学；论文脚注标注 Equal contribution 与 Corresponding author）。</p>
+<p>论文：2610.05162v1；Hugging Face 来源批次：2026-10-06；精读归档日期：2026-10-07（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.05162" >https://huggingface.co/papers/2610.05162<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.05162v1" >https://arxiv.org/abs/2610.05162v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>（全文 HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.05162v1" >https://arxiv.org/html/2610.05162v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>）</p>
+<p>分析范围：已逐节读取 arXiv HTML 全文，覆盖正文 §1–§5、Fig. 1–3、Table 1–9、附录 A–H（含 Algorithm 1–3、提示模板 H.1–H.3、案例研究 E、runtime 分析 C.5、数据集细节 D）。材料缺口：预实验（§2）使用的 backbone 模型与全部实验所用 LLM judge 的具体模型在原文中均未报告；未核查 GitHub 代码仓库（<a class="link"   target="_blank" rel="noopener" href="https://github.com/DEEP-JLU/MemAdapter%EF%BC%89%EF%BC%8C%E6%9C%AA%E8%BF%90%E8%A1%8C%E4%BB%A3%E7%A0%81%E5%A4%8D%E7%8E%B0%E3%80%82" >https://github.com/DEEP-JLU/MemAdapter），未运行代码复现。<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>标签：LLM Agent、长期记忆、阿谀偏差、反事实推理、检索增强生成。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>MemAdapter 针对「检索到的记忆应以何种影响力参与当前推理」这一后检索环节，提出免训练的三段提示流程（Counterfactual Induction → Context-Aware Reflection → Evidence-Based Reasoning），不删改记忆、只校准其使用边界。在论文报告的三个记忆使用基准 × 五种记忆系统 × 三个 backbone 上，多数危害性记忆使用指标的一致改善支持「方法有效」；但「有益记忆使用」维度在 5 个记忆系统中 4 个变差（PersistBench，Table 1），且全流程缺少与更强提示／同 token 预算的对照，增益中「反事实机制」与「更多推理算力」的贡献尚未被分离，机制层面的主要结论只能算初步成立。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>研究背景与具体任务。</strong> 长期记忆已成为 LLM Agent 的核心组件：系统从历史交互中抽取信息存入记忆库，新请求到来时检索相关记忆注入上下文，以支持个性化与长程交互（§1）。本文关注的不是「记忆能否存、能否取」，而是<strong>检索之后记忆应如何参与当前推理</strong>（§D 开篇明确：三个基准评价的都是”检索到的记忆是否被赋予适当角色”）。</p>
+<p><strong>领域一般问题。</strong> 持续存在的历史记忆会诱发 memory-induced sycophancy：代理过度迎合用户的历史信念、偏好或判断，即使这些内容不准确、过时或与当前证据冲突（§1）。这在长程任务中尤其严重，因为记忆会跨会话反复被检索，把一次性的用户影响固化为持久的行为偏差。</p>
+<p><strong>现有方法通常如何处理。</strong> 已有干预全部发生在推理之前（pre-reasoning），按记忆管线阶段划分（§1、Appendix F）：(i) 抽取阶段——改进抽取&#x2F;摘要&#x2F;保留&#x2F;遗忘（Recalling Too Well 发现有损抽取会编码并放大用户错误信念；PersistBench 研究该忘什么）；(ii) 检索阶段——OP-Bench 的 Self-ReCheck 过滤”不必要”的记忆、MemGate 用查询条件化门控决定哪些候选记忆进入上下文；(iii) 组织阶段——Structured Memory 把记忆重组为领域结构以减少跨域影响。</p>
+<p><strong>作者发现的新现象（本文的核心新观察）。</strong> 作者用两项分析反驳上述”先推理过滤”范式的隐含假设——即阿谀源于记忆本身有偏或错误：</p>
+<ol>
+<li><strong>正确且相关的记忆照样诱发阿谀</strong>（§2.1，Fig. 2a）：从三个基准中筛出”记忆客观正确、无偏、与任务高度相关、且不足以决定答案”的实例（共 75 条，每基准 25 条，人工审核并必要时重构，构造规则见 §B、Table 4）。配对比较（同 query 与任务证据，仅记忆在场与否）显示：加记忆使总体准确率从 96.0% 降到 77.3%；分基准为 MemSyco-Bench 96.0%→68.0%、PersistBench 100.0%→84.0%、MemTrapBench 92.0%→80.0%；且在”无记忆时正确”的预测中 19.4% 加入记忆后翻转为错误，作者称每一次翻转都朝向记忆内容。这说明风险无法只从记忆内容判断。</li>
+<li><strong>同一记忆在不同情境下应获得不同影响力</strong>（§2.2，Fig. 2b）：固定记忆”用户是心脏病医生”，在”解释新心血管治疗指南”任务中，该信息可用来调整术语与讲解深度（合理的个性化）；但在”治疗方案 A&#x2F;B 选择”任务中，患者个体证据支持 B 时，身份信息不应改变结论。记忆是否被使用不是内容的固有属性，而是与当前推理情境的关系属性。</li>
+</ol>
+<p><strong>作者认为问题产生的原因。</strong> 记忆引发的阿谀是一种<strong>条件性失败</strong>：风险取决于下游推理条件，而非记忆文本本身；已有方法让”哪些记忆进入上下文”决定一切，却没有回答”每条记忆被允许支持什么、以多强的影响力、在哪里必须被约束”（§2.3）。因此问题被重新定位为后检索阶段（post-retrieval）的记忆影响力校准问题。</p>
+<p><strong>核心假设。</strong> 若在检索之后显式建模每条记忆的”适当影响力”——先反事实地归纳其条件使用边界，再结合当前任务解析为逐记忆使用指令，最后按指令生成并自校验——就能在不改动上游记忆系统的前提下抑制不当记忆影响，同时保留合法个性化（§3、§5）。</p>
+<p><strong>区分。</strong> 领域一般问题＝记忆型阿谀与过度个性化（早已存在）；本文新观察＝”正确记忆也能致阿谀”＋”同一记忆跨情境应有不同影响力”（由 §2 的受控分析支撑）；实际解决的子问题＝后检索阶段的记忆使用影响力校准（5 种记忆系统上的提示式干预）。</p>
+<p><strong>证据强度说明。</strong> §2 的观察来自人工构造的 75 条受控实例，方向可信（配对设计把变量隔离在”记忆在场与否”，且翻转方向一致朝向记忆），但论文<strong>未报告</strong>预实验使用的 backbone、未给出翻转的绝对计数与任何区间估计，因此”正确记忆普遍致阿谀”的普遍性未被定量证明，只被示例性证明。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-07/2610.05162v1_fig1_memory_paradigms.png"
+                      alt="Fig. 1"
+                ></p>
+<p><strong>Fig. 1 解读</strong>（论文图 1，两种记忆代理范式对比）：上半 (a) 是传统记忆 Agent 流程——历史交互经 Memory Extraction 进入 Memory Bank，新请求触发 Retrieval，再由 Generator 生成回答；红色虚线标注了问题所在：”Past beliefs &#x2F; preferences steer the answer”（历史信念&#x2F;偏好直接操纵答案），最终产出 Sycophantic Answer。这一部分说明问题的定位：传统管线中，检索到的记忆与客观证据在生成器里是”平权”的，没有机制规定记忆只能在何处生效。下半 (b) 是 MemAdapter 的改法——在 Retrieval 与 Generator 之间插入 MemAdapter 模块（绿色虚线 “Calibrate memory use with current context”），对检索结果做情境化校准，输出 Reliable Answer。此图解释了本文的核心主张：不改上游记忆系统，只补一段后检索校准。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-07/2610.05162v1_fig2a_prelim_acc.png"
+                      alt="Fig. 2a"
+                ></p>
+<p><strong>Fig. 2a 解读</strong>（论文图 2(a)，预实验主证据）：柱状图对比四个分组（MemSyco-Bench、PersistBench、MemTrapBench、Overall）在 Without Memory 与 With Memory 两种条件下的准确率。刻意只使用”正确且相关”的记忆来消除”垃圾记忆”这一混杂因素：即便这样，四组的加入记忆后准确率一致大幅下跌（96.0→68.0、100→84、92→80、96.0→77.3）。此图是”风险不在记忆内容层面”这一立论的核心证据，也解释了为什么作者认为前段过滤范式无法根治问题。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-07/2610.05162v1_fig2b_context_case.png"
+                      alt="Fig. 2b"
+                ></p>
+<p><strong>Fig. 2b 解读</strong>（论文图 2(b)，固定记忆的情境对照）：顶部固定同一条记忆”Memory: User is a cardiologist”。左分支任务（解释新心血管指南）中，记忆被允许支持”个性化表达”——选用医学术语、讨论临床差异，得到 Appropriate use（绿色）；右分支任务（治疗 A&#x2F;B 选择，且患者个体证据支持 B）中，若因”用户是心脏病医生”而偏向 A，则落入红色 Agent failure 区域。此图说明同一记忆的”适当影响力”随任务变化，是 Context-Aware Reflection 阶段存在的直接理由：校准必须发生在当前任务语境下，而不能离线对记忆贴”好&#x2F;坏”标签。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p><strong>一段话概括真实技术增量。</strong> 已有 post-retrieval 干预（改提示、按相关性过滤、按领域分组、学习式门控）都在回答”哪些记忆留下”；MemAdapter 的实质增量是把问题改写为”每条留下的记忆被允许支持什么、影响哪部分推理、不能证成什么”，并把这一目标拆成三段相互衔接的提示流程：先在与当前任务<strong>隔离</strong>的条件下对每条记忆构造反事实任务空间、归纳条件使用边界（boundary cards）；再结合当前请求与证据把边界解析为逐记忆、自然语言的使用指令；最后在指令约束下生成答案并做内部支撑校验。全部组件都是对现成 LLM 的提示式调用（无训练、无新模型权重），属于”已有组件（假设检验式自我反思、证据对齐生成、结构化中间产物）的新组合＋完整的流程与 schema 设计”，其区别于所有被比较基线的关键点在于：<strong>不删改记忆集合，只输出逐记忆的影响力约束</strong>。</p>
+<p>逐项分析如下。</p>
+<p><strong>(1) Counterfactual Induction（§3.1，Eq. 1–3，Algorithm 1）。</strong></p>
+<ul>
+<li>新增机制：对每条检索记忆 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>m</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">m_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，构造记忆专属的反事实任务空间 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">H</mi><mi>i</mi></msub><mo>=</mo><mo stretchy="false">{</mo><mo stretchy="false">(</mo><msub><mi>t</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo separator="true">,</mo><msub><mi>h</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false">)</mo><msubsup><mo stretchy="false">}</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><msub><mi>N</mi><mi>i</mi></msub></msubsup></mrow><annotation encoding="application/x-tex">\mathcal{H}_i=\{(t_{ij},h_{ij})\}_{j=1}^{N_i}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.0097em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0097em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.3362em;vertical-align:-0.413em;"></span><span class="mopen">{(</span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">ij</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">ij</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mclose"><span class="mclose">}</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.9232em;"><span style="top:-2.4231em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.1449em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:-0.109em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.413em;"><span></span></span></span></span></span></span></span></span></span>（Eq. 1，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">t_{ij}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9012em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">ij</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 为任务类型、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">h_{ij}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9805em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">ij</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 为具体请求＋证据配置），在每种设置下评估该记忆的”适当贡献” <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>v</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">v_{ij}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">ij</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>（能支持什么、可影响哪部分推理、不能证成什么），得到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">V</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">\mathcal{V}_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0822em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（Eq. 2）；再两两比较贡献差异、归并等价设置，提炼出条件—影响规则 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>B</mi><mi>i</mi></msub><mo>=</mo><mo stretchy="false">{</mo><mo stretchy="false">(</mo><msub><mi>a</mi><mrow><mi>i</mi><mi>r</mi></mrow></msub><mo separator="true">,</mo><msub><mi>v</mi><mrow><mi>i</mi><mi>r</mi></mrow></msub><mo stretchy="false">)</mo><msubsup><mo stretchy="false">}</mo><mrow><mi>r</mi><mo>=</mo><mn>1</mn></mrow><msub><mi>R</mi><mi>i</mi></msub></msubsup></mrow><annotation encoding="application/x-tex">B_i=\{(a_{ir},v_{ir})\}_{r=1}^{R_i}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0502em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1895em;vertical-align:-0.2663em;"></span><span class="mopen">{(</span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mclose"><span class="mclose">}</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.9232em;"><span style="top:-2.4337em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.1449em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:-0.0077em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2663em;"><span></span></span></span></span></span></span></span></span></span>（Eq. 3）。关键设计是<strong>该阶段不接收当前 query&#x2F;证据</strong>（提示模板 §H.1.1 明文：”The current query, dialogue context, and task-specific evidence are not provided”），产出的是任务无关的条件边界。</li>
+<li>与最接近已有方法的差异：Self-ReCheck 只问”这条记忆与当前问题相关吗”（是&#x2F;否过滤，§A.1.2）；MemGate 只学一个准入分数。二者都在记忆集合上做取舍；Counterfactual Induction 保持集合不变，产出的是”这条记忆的风险形态”——在什么样的下游条件下它会从无害变有害。</li>
+<li>性质：已有组件新组合（反事实思维＋边界刻画被搬用到记忆安全），非全新理论。</li>
+<li>对应问题：直接回应 §2 的两个观察——风险不可从内容判断（所以要反事实地暴露条件依赖）、影响力依情境而定（所以要条件化边界而非全局标签）。</li>
+<li>证据：消融 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span> 变体（只做该阶段）相比 Direct Gen，MemSyco-Bench 平均准确率 NaiveRAG 70.25→84.26、A-MEM 71.71→84.19（§4.4 Obs. 6，Table 3）；全五系统见 Table 8。</li>
+<li>移除该设计：论文没有”同 token 预算下换掉反事实构造”的对照，”不可替代”未获直接证明（见 §5 质疑）。</li>
+</ul>
+<p><strong>(2) Context-Aware Reflection（§3.2，Eq. 4，Algorithm 2）。</strong></p>
+<ul>
+<li>新增机制：给定当前请求 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span>、可见上下文与证据 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span>、检索记忆 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">M</mi></mrow><annotation encoding="application/x-tex">\mathcal{M}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">M</span></span></span></span> 与边界 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">B</mi></mrow><annotation encoding="application/x-tex">\mathcal{B}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0304em;">B</span></span></span></span>，联合处理整组记忆（考虑记忆间支持的更新、限定与冲突），为每条记忆合成任务级使用指令 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">U</mi><mo>=</mo><mo stretchy="false">{</mo><msub><mi>u</mi><mi>i</mi></msub><msubsup><mo stretchy="false">}</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>n</mi></msubsup></mrow><annotation encoding="application/x-tex">\mathcal{U}=\{u_i\}_{i=1}^n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0993em;">U</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0087em;vertical-align:-0.2587em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose"><span class="mclose">}</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.4413em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2587em;"><span></span></span></span></span></span></span></span></span></span>（Eq. 4）。每条 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>u</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">u_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 明确四件事：可支持什么、可影响推理&#x2F;回答的哪一部分、在该部分内的影响力程度、不能证成什么结论。</li>
+<li>与已有：与 self-reflection 类工作（如 Self-RAG 的自评、OP-Bench 的 Self-ReCheck）形态相似，但反思对象是”影响力边界”而非”相关性”，且输出是自然语言约束指令而非筛选结果。</li>
+<li>证据：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span>→<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>+</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">B+R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span> 的平均准确率小幅提升（NaiveRAG 84.26→85.16、A-MEM 84.19→85.68，§4.4 Obs. 6–7）；注意该阶段并非单调有益——LightMem 上 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>+</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">B+R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span>（81.87）略低于 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span>（82.27，Table 8）。</li>
+<li>移除：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>+</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">B+R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span> 与 full 的差距即该阶段（连同 EBR）的增量，但这仍是逐段堆叠证据。</li>
+</ul>
+<p><strong>(3) Evidence-Based Reasoning（§3.3，Eq. 5，Algorithm 3）。</strong></p>
+<ul>
+<li>新增机制：在指令约束下联合生成答案 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span></span></span> 与内部支撑轨迹 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">L</mi></mrow><annotation encoding="application/x-tex">\mathcal{L}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">L</span></span></span></span>，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>y</mi><mo separator="true">,</mo><mi mathvariant="script">L</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi mathvariant="script">R</mi><mrow><mi mathvariant="normal">E</mi><mi mathvariant="normal">B</mi><mi mathvariant="normal">R</mi></mrow></msub><mo stretchy="false">(</mo><mi>q</mi><mo separator="true">,</mo><mi>c</mi><mo separator="true">,</mo><mi mathvariant="script">M</mi><mo separator="true">,</mo><mi mathvariant="script">U</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(y,\mathcal{L})=\mathcal{R}_{\mathrm{EBR}}(q,c,\mathcal{M},\mathcal{U})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathcal">L</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathcal">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">EBR</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">c</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathcal">M</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathcal" style="margin-right:0.0993em;">U</span><span class="mclose">)</span></span></span></span>（Eq. 5）；对每个主要 response span，校验其记录的来源存在且支持该 span、记忆使用不超出对应指令边界，不合格则改写或删除；<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">L</mi></mrow><annotation encoding="application/x-tex">\mathcal{L}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">L</span></span></span></span> 不返回用户（Algorithm 3 第 4–11 行，生成要求第 7–8 条见 §H.1.3）。</li>
+<li>与已有：类似”生成＋自校验&#x2F;引用追溯”模式，新意在于把”记忆使用指令”纳入校验对象，防止个性化信息被隐性升级为事实证据。</li>
+<li>证据：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>+</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">B+R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span>→full 是消融中最大的一步（NaiveRAG 85.16→89.94、A-MEM 85.68→90.45，§4.4 Obs. 7）。</li>
+<li>移除：无 full 时前述约束在最终生成中是否被遵守没有保证——这是该阶段的设计动机。</li>
+</ul>
+<p><strong>(4) 评测与实验层面的贡献（工程性）。</strong> 统一的”冻结检索记忆集”公平比较协议（§A.2：每个基准实例×记忆系统只检索一次，所有方法复用同一记忆集合、同一 backbone 与解码配置）；覆盖 5 种异质记忆系统 × 3 基准 × 3 backbone 的评估矩阵；并把”有益记忆保留”（PersistBench Beneficial FR）纳入考核——作者在 Obs. 1 主动承认该维度存在”依赖记忆系统的权衡”。这不构成方法创新，但提高了评测的可归因性。</p>
+<p><strong>原创边界声明。</strong> 根据本文 related work（Appendix F）与实验对比，只能确认作者声称的差异：现有方法都在推理前干预（选择&#x2F;过滤&#x2F;重组），本文在后检索阶段做逐记忆影响力校准；”首次提出”需更完整的文献检索（例如 FILCO、Corrective RAG 等上下文选择工作与本文的边界也需更细致对比）。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉。</strong> 把”记忆管理”从”进场资格审批”改成”使用权限授予”：每条记忆都能留在场，但每一条都被配一张”什么时候能用、能用在哪个环节、不能用来证成什么”的说明书；说明书先在反事实的虚拟任务里拟好（不受当前问题干扰），再结合实际任务裁剪成具体的自然语言指令，最后生成回答时逐句对照说明书检查。这样既不删记忆（避免误伤合法个性化），又能阻断”历史偏好被当作客观证据”的通路。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-07/2610.05162v1_fig3_pipeline.png"
+                      alt="Fig. 3"
+                ></p>
+<p><strong>Fig. 3 解读</strong>（论文图 3，MemAdapter 总体流程，按三个面板）：</p>
+<ul>
+<li><strong>(i) Counterfactual Induction（左）</strong>：顶部固定一条记忆 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>m</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">m_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（示例：”The user is a cardiologist with extensive clinical experience…”）。第二行构造该记忆专属的任务类型集合 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>T</mi><mi>i</mi></msub><mo>=</mo><mo stretchy="false">{</mo><msub><mi>t</mi><mn>1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>t</mi><mi>k</mi></msub><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">T_i=\{t_1,\dots,t_k\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span>，并为每种类型实例化具体反事实设置 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>h</mi><mi>i</mi><mn>1</mn></msubsup><mo separator="true">,</mo><msubsup><mi>h</mi><mi>i</mi><mn>2</mn></msubsup><mo separator="true">,</mo><mo>…</mo></mrow><annotation encoding="application/x-tex">h_i^1,h_i^2,\dots</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0728em;vertical-align:-0.2587em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-2.4413em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2587em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-2.4413em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2587em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span></span></span></span>（此过程记忆文本、出处、时间范围保持不变——“Memory Fixed”）。第三行在每种设置下沿三个固定轴打分：”what this memory can support &#x2F; may affect &#x2F; cannot justify”，得到逐设置贡献 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>v</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub></mrow><annotation encoding="application/x-tex">v_{ij}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">ij</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>，形成 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">V</mi><mi>i</mi></msub><mo>=</mo><mo stretchy="false">{</mo><mo stretchy="false">(</mo><msub><mi>h</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo separator="true">,</mo><msub><mi>v</mi><mrow><mi>i</mi><mi>j</mi></mrow></msub><mo stretchy="false">)</mo><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\mathcal{V}_i=\{(h_{ij},v_{ij})\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0822em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mopen">{(</span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">ij</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">ij</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">)}</span></span></span></span>。第四行”Compare and group settings”：比较各设置贡献的实质差异、归并等价组，输出条件—影响规则 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>B</mi><mi>i</mi></msub><mo>=</mo><mo stretchy="false">{</mo><mo stretchy="false">(</mo><msub><mi>a</mi><mrow><mi>i</mi><mi>r</mi></mrow></msub><mo separator="true">,</mo><msub><mi>v</mi><mrow><mi>i</mi><mi>r</mi></mrow></msub><mo stretchy="false">)</mo><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">B_i=\{(a_{ir},v_{ir})\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0502em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{(</span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)}</span></span></span></span> 与一句话边界摘要。<strong>为什么需要</strong>：它把”隐藏的条件性风险”转成”可比较的上下文差异”，且因为看不到当前问题，产出与当前任务解耦，可在换个问题时复用、也不会为迎合当前问题而作弊。</li>
+<li><strong>(ii) Context-Aware Reflection（中）</strong>：输入当前请求 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span>（示例：”Is treatment A or B preferable for this patient?”）、当前证据 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span>（”Patient evidence supports treatment B over treatment A”）、全部检索记忆 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span></span></span> 与它们的边界卡 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span>。中间机器人处标注的匹配过程是”Match applicable profile conditions (if applicable)”，即判断哪些反事实条件在当前任务中真实成立，同时联合其它记忆 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi><mo>∖</mo><mo stretchy="false">{</mo><msub><mi>m</mi><mi>i</mi></msub><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">M\setminus\{m_i\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∖</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span> 处理更新&#x2F;限定&#x2F;冲突，输出逐记忆指令（右下 “u_i” 示例：可以用临床术语与强调临床相关差异来组织解释；但当病例证据支持 B 时不能用来证成 A）。<strong>为什么需要</strong>：边界卡是任务无关的（”条件—影响”规则），必须与真实任务和证据对齐后才能变成可执行的约束；示例也显示指令同时保留合法用途（术语框架）与禁止用途（改变结论）。</li>
+<li><strong>(iii) Evidence-Based Reasoning（右）</strong>：Generator 以 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>q</mi><mo separator="true">,</mo><mi>c</mi><mo separator="true">,</mo><mi>M</mi><mo separator="true">,</mo><mi>U</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(q,c,M,U)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">c</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">U</span><span class="mclose">)</span></span></span></span> 为输入生成 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>y</mi><mo separator="true">,</mo><mi mathvariant="script">L</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(y,\mathcal{L})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathcal">L</span><span class="mclose">)</span></span></span></span>。中间表格是支撑轨迹 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">L</mi></mrow><annotation encoding="application/x-tex">\mathcal{L}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">L</span></span></span></span> 的示例，列为 Span &#x2F; Type &#x2F; Source &#x2F; Applicable u：事实性断句（如 “evidence treatment B”）来源是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span>；个性化断句（如 “cardiology background”）来源是记忆 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>m</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">m_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 并绑定其指令 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>u</mi><mn>1</mn></msub></mrow><annotation encoding="application/x-tex">u_1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>。表格下方 Validation 做四项检查：来源存在且类型匹配、不违反指令、无禁止的记忆使用、无凭空事实；检查通过后输出 Final Response——该回答同时标注两种着色的 grounding 标签（”Factual conclusion (grounded in c)” 与 “Personalized framing (grounded in m_1, u_1)”）。<strong>为什么需要</strong>：它保证前两段产出的约束在最终生成中真正被执行，而不是又退回”记忆与证据平权”的旧生成模式。</li>
+</ul>
+<p><strong>按实际运行流程展开。</strong></p>
+<ol>
+<li><strong>输入</strong>：当前请求 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span>；模型可见的对话上下文与任务证据 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span>；上游记忆系统检索出的记忆集合 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">M</mi><mo>=</mo><mo stretchy="false">{</mo><msub><mi>m</mi><mn>1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mi>m</mi><mi>n</mi></msub><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\mathcal{M}=\{m_1,\dots,m_n\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">M</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">m</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span>（保持内容、顺序、来源不变，§A.2）。检索预算：MemTrapBench 上各系统统一 top-10；PersistBench 按实例规定 4–16 条（均值 10，§D.3、§A.2）。</li>
+<li><strong>关键步骤</strong>：三段串行 LLM 调用（每样本共 3 次生成调用：归纳 1 次、反思 1 次、最终生成 1 次；归纳与反思各处理整个样本的全部记忆，§H.1.1&#x2F;H.1.2）。</li>
+<li><strong>组件与产物流转</strong>：记忆 → boundary cards（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>B</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">B_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0502em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>：条件使用规则＋边界摘要）→ use instructions（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>u</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">u_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">u</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>：自然语言影响力约束＋理由）→ 最终答案 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span></span></span>（内部伴随校验轨迹 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">L</mi></mrow><annotation encoding="application/x-tex">\mathcal{L}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">L</span></span></span></span>）。</li>
+<li><strong>哪些由模型决定、哪些固定</strong>：全部语义判断（任务类型构造、贡献评估、条件归并、边界解析、答案生成）由同一 backbone 的 LLM 在<strong>固定提示模板与固定 JSON schema</strong> 下完成；固定的是流程、提示、输出字段与校验规则；无外挂学习模块（五个被比较基线中只有 MemGate 使用训练权重，§A.1.2）。</li>
+<li><strong>训练</strong>：不训练任何部分（training-free；方法纯提示式）。记忆构建&#x2F;检索由各上游系统照旧执行，其中的 LLM 操作统一用 deepseek-V4-flash（§A.2）。</li>
+<li><strong>推理阶段的变化</strong>：相对 Direct Gen（把检索记忆直接放进生成提示），增加了两次前置 LLM 调用，并把它们的产物（边界卡、逐记忆指令）注入最终生成提示；生成器还要执行内部支撑校验。</li>
+<li><strong>输出</strong>：面向用户的答案 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span></span></span>（支撑轨迹 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">L</mi></mrow><annotation encoding="application/x-tex">\mathcal{L}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">L</span></span></span></span> 仅内部使用，不返回，§3.3）。</li>
+</ol>
+<p><strong>基础模型与配置（§A.3）。</strong> 生成 backbone 三种：DeepSeek-V4-Flash（主实验，API，temperature 0.2，最大输出 4,096 tokens，关闭 thinking）；GPT-5.6-sol（跨模型实验，temperature 0.2）；Qwen3-8B（本地运行，4-bit NF4 量化、bfloat16、贪心解码、关闭 thinking）。嵌入模型统一 BAAI&#x2F;bge-m3（1,024 维）。</p>
+<p><strong>关键公式。</strong> Eq. 1–3（条件边界的构造与归并）、Eq. 4（任务级指令集合）、Eq. 5（带支撑轨迹的生成）如上；完整伪代码见 Appendix G 的 Algorithm 1–3。</p>
+<p><strong>瓶颈与额外开销。</strong> (i) 推理时为每样本额外增加 2 次串行 LLM 调用，且最终生成提示变长（含全部 boundary cards 与逐记忆指令，随记忆条数线性增长；PersistBench 单样本可达 16 条记忆）；(ii) 全部判断依赖同一 backbone 的自评能力，弱模型上边界卡质量可能受限；(iii) 论文报告的均值为 6.63–6.95 s&#x2F;样本（Table 9），但未报告 token 用量与各调用的耗时分解（详见 §4.4 与 §5）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><ul>
+<li><strong>任务与数据集（§4.1、Appendix D）</strong>：MemSyco-Bench——记忆型阿谀场景下的不当记忆使用，共 1,550 条实例（Objective Fact Judgment&#x2F;Contextual Scope Control&#x2F;Memory–Evidence Conflict 各 300，Personalized Memory Use 300，Valid Memory Selection 350；两个主维度 When&#x2F;How to Use Memory 为样本加权平均，公式见 §D.1.1）；MemTrapBench——记忆诱发的认知陷阱（推理固着三类＋信念扭曲一类），共 1,050 条；PersistBench——长期记忆失效（跨域泄漏 200、阿谀 200、有益记忆 100 条，共 500 条，每样本 4–16 条记忆），指标为 FR@1&#x2F;2&#x2F;3 与 Beneficial FR（失败率类，越低越好，§D.3.1）。所有指标按各基准官方定义与评测协议计算。</li>
+<li><strong>记忆系统（被干预对象，5 种，§A.1.1）</strong>：A-MEM（互连笔记网络，top-10）、Mem0（LLM 抽取持久存储，top-10）、NaiveRAG（原始对话块向量检索，top-10）、LightMem（多阶段轻量记忆，Qdrant 摘要检索）、MemoryBank（事件&#x2F;人格摘要＋时间强度）。统一 BGE-M3 嵌入；需要 LLM 的记忆处理统一 deepseek-V4-flash；检索预算统一（见上）。</li>
+<li><strong>基线（§4.1、§A.1.2）</strong>：每个记忆系统先取 Direct Gen（直接带记忆生成，无干预）；再比 4 种后检索干预——Anti-Sycophancy（生成提示加”记忆可能是观点&#x2F;误解”的免责声明）、Self-ReCheck（逐条判断相关性、只保留相关记忆）、Dynamic Partition（按领域分组呈现全部记忆）、MemGate（学习式查询条件门控，用官方 checkpoint，阈值 0.07，无额外 LLM 调用）。</li>
+<li><strong>公平性协议（§A.2）</strong>：每个（实例×记忆系统）只检索一次，冻结记忆集被所有方法复用；实例、query、对话上下文、任务证据、backbone、解码配置、评测协议全部一致——差异只能归因于各方法如何使用同一批记忆。对比对象不含”prompt 更强但结构简单”的同预算提示、也不含人工上界。</li>
+<li><strong>Backbone（§A.3）</strong>：主实验 DeepSeek-V4-Flash；跨模型 GPT-5.6-sol 与 Qwen3-8B（仅 MemSyco-Bench）。</li>
+<li><strong>实验矩阵各自回答的问题</strong>：主实验（Table 1、Table 5–7）回答 RQ1（跨基准、跨记忆系统的有效性）；Table 2 回答 RQ2（跨 backbone 泛化）；Table 3&#x2F;Table 8 消融回答 RQ3（三段组件贡献）；Appendix C.5&#x2F;Table 9 报告 runtime；Appendix E 给出 3 个定性案例；§B&#x2F;Table 4 支撑 §2 预实验。</li>
+<li><strong>不足</strong>：<strong>论文未报告</strong>随机种子、多次运行的方差、置信区间或显著性检验（唯一的多重采样是 PersistBench 的 FR@1&#x2F;2&#x2F;3，那是对同一批样本取多次生成的最大失败率，不是种子方差）；评测所用 LLM judge 的具体模型未报告。</li>
+</ul>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>（以下数字均为论文报告值；主实验 backbone 为 DeepSeek-V4-Flash。）</p>
+<ul>
+<li><strong>MemSyco-Bench 总体（Table 5；两主维度见 Table 1）</strong>：五个记忆系统的样本加权平均准确率全部为本文方法最高：NaiveRAG 70.25→<strong>89.94</strong>（+19.69）、A-MEM 71.71→<strong>90.45</strong>（+18.74）、Mem0 49.30→<strong>85.48</strong>（+36.19）、MemoryBank 63.29→<strong>88.58</strong>（+25.29）、LightMem 37.03→<strong>86.90</strong>（+49.87）；两主维度 When&#x2F;How to Use Memory 在 5&#x2F;5 系统上均提升（Table 1，如 NaiveRAG 74.20→90.78、64.77→88.77）。</li>
+<li><strong>与最强干预的差距很小（§4.2 Obs. 3）</strong>：A-MEM 上 When to Use Memory 为 91.22，比最强的 Anti-Sycophancy（90.78）高 0.44 个百分点；How to Use Memory 为 89.39，比最强的 Self-ReCheck（87.06）高 2.33 个百分点。而在 NaiveRAG 的 When 维度上 Anti-Sycophancy 也达 89.78，与本文 90.78 仅差 1.00（Table 1）——纯提示基线在该维度已非常接近。</li>
+<li><strong>PersistBench（Table 1、Table 7）</strong>：阿谀失败率全面下降：Sycophancy FR@3 从 Direct Gen 的 80.00→53.50（NaiveRAG，-26.50）、79.50→55.50（A-MEM）、76.50→52.00（Mem0）、82.00→51.00（MemoryBank，-31.00）、79.50→58.50（LightMem），FR@1&#x2F;FR@2 同样全面下降。跨域 FR@3 在 4&#x2F;5 系统下降（如 MemoryBank 39.00→28.50），但 <strong>LightMem 例外（30.00→30.50，+0.50）</strong>。<strong>有益记忆使用维度 5 个系统中 4 个变差</strong>：Beneficial FR NaiveRAG 1→2、A-MEM 2→4、MemoryBank 3→9、LightMem 5→9，仅 Mem0 改善（4→1）（作者在 Obs. 1 承认这是”依赖记忆系统的权衡”，未分析原因）。</li>
+<li><strong>MemTrapBench（Table 1、Table 6）</strong>：五个系统的平均分全部最高（如 NaiveRAG 4.06→4.45），但增益高度集中：Task Boundary 场景提升 +0.74~+1.50，Cognitive Bias 5 个系统中 4 个提升、Trauma 多数持平或微降（如 NaiveRAG Trauma -0.02、A-MEM -0.01，作者解释为原分数已达 4.85–4.88、headroom 小，§C.2）。</li>
+<li><strong>跨 backbone（Table 2）</strong>：MemSyco-Bench 平均准确率全部提升，但幅度差异巨大——Qwen3-8B 上 NaiveRAG 36.86→86.67（+49.80）、LightMem 24.57→85.74（+61.18），增益主要发生在 Direct Gen 很弱之处；GPT-5.6-sol 上增益温和（如 NaiveRAG 85.48→88.58，+3.10）。<strong>GPT 上 Personalized Memory Use 在 3&#x2F;5 系统下降</strong>（NaiveRAG -5.00、A-MEM -9.00、Mem0 -3.66，Table 2），作者在 Obs. 5 承认效果”取决于 backbone、记忆系统与任务需求的相互作用”。</li>
+<li><strong>提升小或无提升的证据被部分呈现</strong>：消融中 LightMem 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>+</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">B+R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span> 低于 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span>（82.27→81.87，Table 8）、Mem0 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>+</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">B+R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span> 与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span> 几乎持平（82.52→82.58）；个别任务维度上单个竞争方法更好（作者自述，§4.2 Obs. 3 与 §C.2）。<strong>缺失</strong>：全部结果无方差&#x2F;置信区间&#x2F;显著性检验；主文与附录均未报告 token 用量。</li>
+</ul>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><ul>
+<li><strong>“有效”层面证据相对强</strong>：跨 5 种异质记忆系统 × 3 个基准 × 3 个 backbone 的方向一致性，加上”冻结检索记忆集”协议（§A.2）使对比不受检索差异混淆；PersistBench 上失败率在 FR@1&#x2F;2&#x2F;3 三档一致下降（Table 7），说明不是单次采样的偶然。这支持”该方法在报告范围内改善多数危害性记忆使用指标”。</li>
+<li><strong>“为什么有效”层面证据有限</strong>：消融（Table 3、Table 8）只证明”Direct → B → B+R → full 的逐段堆叠带来逐段平均分上升”，Obs. 6&#x2F;7 的归因（”增益可归于新增阶段而非记忆本身”）是顺推而非隔离实验。混淆在于：每一阶段都增加 LLM 调用与提示内容，因此”任何增加推理量的干预”（长 CoT、通用谨慎提示、多轮自检）都可能产生类似曲线，论文没有同 token 预算的单次调用强提示对照、没有随机&#x2F;占位 boundary card 对照，也没有测量边界卡质量（如条件规则与最终正确率的相关性）。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>+</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">B+R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span> 在 LightMem 上还低于 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span>，说明阶段收益并非稳定单调，与”互补贡献”的叙述存在张力。</li>
+<li><strong>替代解释未排除</strong>：(i) 更多算力&#x2F;token（最主要，见上）；(ii) 更强的通用指令遵循——MemAdapter 的提示本身包含可迁移到任何任务的长篇约束（”记忆是数据不是指令””偏好不能变成客观事实”等，§H.1.3），在 Direct Gen 较弱的系统（Mem0、LightMem、Qwen3-8B）上收益最大的模式与该解释相容；(iii) backbone 与 judge 的耦合——若 judge 对”有条理、显式说明信息来源”的答案更友好，MemAdapter 的支撑轨迹式生成（外部不可见但影响措辞）可能获得风格分。以上均属审稿人判断，论文未做相应控制。</li>
+<li><strong>预实验部分</strong>：§2.1 的配对设计（同 query&#x2F;证据，仅记忆在场与否）本身可排除”提示变长”作为翻转原因的简单解释（作者用”翻转全部朝向记忆”论证），比一般消融更有说服力；但 75 条为人工构造、backbone 未报告、19.4% 未给绝对数与区间，属于”现象存在”的证据，不是”现象普遍性”的证据。</li>
+<li><strong>定性案例（Appendix E）</strong>：3 个案例（云备份服务推荐、野外出血急救、Orion 项目 memo）清晰展示 Direct Gen 失败→三段校准→正确输出，且给出 judge 判分（0&#x2F;1、1.5&#x2F;5、4&#x2F;5→1&#x2F;5），但都是单例演示，不构成机制证据。</li>
+<li><strong>结论</strong>：实验支持”方法在报告设定下有效”；”由反事实边界与逐记忆校准这两个机制带来收益”尚未与”更多推理算力”分离，机制声明是合理但未被证实的解释。</li>
+</ul>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><ul>
+<li><strong>训练成本</strong>：无（training-free，全部为推理期提示；唯一被比较的训练型基线 MemGate 使用官方预训练 checkpoint，§A.1.2）。</li>
+<li><strong>推理成本</strong>：每样本 3 次串行 LLM 调用（归纳、反思、最终生成）＋更长的生成提示。Runtime 报告（Table 9，PersistBench，A-MEM&#x2F;Mem0&#x2F;NaiveRAG）：MemAdapter 均值 6.63–6.95 s&#x2F;样本、P50 5.47–6.67 s、P95 10.79–11.82 s、P99 13.94–16.23 s；作为对照，单次调用的 Anti-Sycophancy 均值 6.04–6.11 s（§C.5、Table 9）。<strong>论文未报告</strong> token 用量、各调用的耗时分解，也未解释为何 3 次调用与 1 次调用的端到端延时几乎同量级（存在缓存&#x2F;批处理等因素的可能，属分析者推断，原文未说明）。</li>
+<li><strong>外部依赖</strong>：主实验依赖 API 形态的 DeepSeek-V4-Flash 与 GPT-5.6-sol（更早的 deepseek-V4-flash 还承担全部记忆系统的 LLM 处理）；Qwen3-8B 本地运行（4-bit）。评测依赖三个基准的官方 LLM judge——<strong>judge 模型未报告</strong>（§A.3、§H.3）。</li>
+<li><strong>人工标注</strong>：主实验无人工标注；预实验 75 条实例经人工逐条审核&#x2F;重构（§B、Table 4）。案例研究的 judge 分数说明定性案例也由自动评审产生。</li>
+<li><strong>存储与系统复杂度</strong>：为可复现性保留每实例的检索记忆、boundary cards、使用指令与最终响应（§A.3）；推理链路由 1 段变 3 段，且最终生成提示长度随记忆条数增长。</li>
+<li><strong>改善了什么</strong>：记忆相关危害性指标（当用&#x2F;如何用记忆、阿谀失败率、推理固着中的任务边界问题）。<strong>仍未解决</strong>：有益记忆使用在 4&#x2F;5 系统退化（过度抑制倾向）、LightMem 跨域与 GPT 上个性化使用局部退化、无统计学稳定性评估、机制归因未隔离。<strong>适用边界</strong>：结论适用于”post-retrieval、不改上游记忆系统”的设定与论文覆盖的 3 基准、5 记忆系统、3 backbone；长程在线交互、真实用户场景、成本敏感部署均未验证（论文未报告）。</li>
+</ul>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：增益可能主要来自”更多推理算力-更长提示”，而非反事实归纳这一机制本身。"><a href="#质疑：增益可能主要来自”更多推理算力-更长提示”，而非反事实归纳这一机制本身。" class="headerlink" title="质疑：增益可能主要来自”更多推理算力&#x2F;更长提示”，而非反事实归纳这一机制本身。"></a>质疑：增益可能主要来自”更多推理算力&#x2F;更长提示”，而非反事实归纳这一机制本身。</h4><ul>
+<li><strong>原文依据</strong>：§4.4 消融只做 Direct Gen → <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span> → <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>+</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">B+R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span> → full 的逐段堆叠（Table 3、Table 8），每段都增加 LLM 调用与提示内容；§4.1&#x2F;§A.1.2 的 4 个基线与 MemAdapter 的调用次数&#x2F;token 预算不对等（MemAdapter 每样本 3 次调用）；§C.5 与全文均未报告 token 用量。</li>
+<li><strong>为什么重要</strong>：这决定创新归属。若一个同预算的强单提示（或通用”谨慎+证据对齐”说明）能取得相近结果，则 Counterfactual Induction&#x2F;Context-Aware Reflection 的机制声称不成立，论文退化为”更复杂的提示工程”。</li>
+<li><strong>当前能够得出的判断</strong>：现有证据无法排除”更多推理＝更好的记忆使用”这一替代解释；Obs. 6&#x2F;7 的归因是顺推而非隔离。反例线索：NaiveRAG 上纯提示的 Anti-Sycophancy 已把 When to Use Memory 提到 89.78（vs 本文 90.78，Table 1），说明最大竞争者与本文差距很小。</li>
+<li><strong>如何验证或补强</strong>：token&#x2F;调用次数匹配的对照实验（单次调用、同预算通用谨慎提示、长 CoT）；随机 boundary card 或占位指令对照；报告每阶段 token 数与调用数；直接测量 boundary card 质量与最终正确率的相关性。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：”正确记忆也致阿谀”的普遍性未被定量证明，动机的因果强度有限。"><a href="#质疑：”正确记忆也致阿谀”的普遍性未被定量证明，动机的因果强度有限。" class="headerlink" title="质疑：”正确记忆也致阿谀”的普遍性未被定量证明，动机的因果强度有限。"></a>质疑：”正确记忆也致阿谀”的普遍性未被定量证明，动机的因果强度有限。</h4><ul>
+<li><strong>原文依据</strong>：§2.1 与 §B&#x2F;Table 4——75 条实例（每基准 25 条）随机采样后经人工按四条标准审核，必要时<strong>人工重构</strong>以适配受控设定；报告 19.4% 的 C→I 翻转率但未给绝对计数与区间；预实验所用 backbone 模型<strong>论文未报告</strong>。</li>
+<li><strong>为什么重要</strong>：这是全文动机的基石（”风险不在记忆内容层面”）。若人工重构使样本偏向易翻转案例，或现象只在某模型上成立，则”现有前段过滤范式不够用”的论证会被削弱。</li>
+<li><strong>当前能够得出的判断</strong>：配对设计（同 query&#x2F;证据，仅记忆在场与否，y* 不进 prompt）方向可信，且翻转全部朝向记忆这一事实与”记忆驱动”一致；但普遍性、跨模型稳定性都没有量化，当前材料无法确认。</li>
+<li><strong>如何验证或补强</strong>：公开 75 条实例与生成配置、报告 backbone；用自动化筛选（不重构）扩到大样本并报告置信区间；在多个 backbone 上复测翻转率。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：结论口径”consistently-improves”掩盖了”有益记忆使用”的系统性退化。"><a href="#质疑：结论口径”consistently-improves”掩盖了”有益记忆使用”的系统性退化。" class="headerlink" title="质疑：结论口径”consistently improves”掩盖了”有益记忆使用”的系统性退化。"></a>质疑：结论口径”consistently improves”掩盖了”有益记忆使用”的系统性退化。</h4><ul>
+<li><strong>原文依据</strong>：Table 1&#x2F;Table 7——Beneficial FR 在 NaiveRAG（1→2）、A-MEM（2→4）、MemoryBank（3→9）、LightMem（5→9）四个系统变差，MemoryBank&#x2F;LightMem 的退化幅度（+6、+4 个百分点）与该方法在危害性指标上的增益同数量级；Table 2——GPT-5.6-sol 上 Personalized Memory Use 三个系统下降（-5.00、-9.00、-3.66）；Obs. 1&#x2F;Obs. 5 承认这些现象但未做任何误差分析。</li>
+<li><strong>为什么重要</strong>：方法自我定位是”抑制不当影响、保留合法影响”（§3.3、§D.4）。有益记忆失败率翻倍（MemoryBank 3→9）说明存在把”阿谀”换成”记忆回避”的风险，直接影响方法在个性化场景的可用性与”校准”叙事的正当性。</li>
+<li><strong>当前能够得出的判断</strong>：现象已被论文数据证实；但论文没有分析退化样本的成因（是无法确认记忆有效性、还是指令过度收紧），也没有报告退化与收益的样本级重叠，结论被过度概括。</li>
+<li><strong>如何验证或补强</strong>：对 Beneficial FR 退化样本做误差分析并报告案例；给出”过度抑制 vs 校准失败”的分解指标；在结论与摘要中把口径限定为”危害性指标一致改善、有益维度存在系统依赖”。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：主要收益指标之一建立在作者团队自研基准上，且评测者（judge）模型未报告。"><a href="#质疑：主要收益指标之一建立在作者团队自研基准上，且评测者（judge）模型未报告。" class="headerlink" title="质疑：主要收益指标之一建立在作者团队自研基准上，且评测者（judge）模型未报告。"></a>质疑：主要收益指标之一建立在作者团队自研基准上，且评测者（judge）模型未报告。</h4><ul>
+<li><strong>原文依据</strong>：§4.1 使用 MemSyco-Bench（Xiang et al., 2026a）作为主战场，其作者名单（Xiang、Chen、Ning、Zhang、Su 等）与本文作者高度重叠；Table 1&#x2F;Table 5 中本文方法最”全面领先”的正是 MemSyco-Bench 的两个主维度；§A.3&#x2F;§H.3 说明评测由各基准官方 LLM judge 执行（确定性解码），但<strong>未报告 judge 的具体模型与版本</strong>。</li>
+<li><strong>为什么重要</strong>：自研基准＋自研方法需要更强的外部验证；LLM judge 的模型选择会系统性影响所有方法的绝对与相对分数，未披露则复现与公平性都无法完全核验。</li>
+<li><strong>当前能够得出的判断</strong>：三个基准中有两个（MemTrapBench、PersistBench）来自外部团队，且本文在 PersistBench 阿谀 FR 与 MemTrapBench 平均分上同样领先，部分缓解了自评顾虑；但 judge 模型未报告使完全独立复现存在风险，属可修复的披露问题。</li>
+<li><strong>如何验证或补强</strong>：公开 judge 模型&#x2F;版本与运行配置；在更多外部基准（如 OP-Bench、STALE、HUSH-Bench）上复测；做 judge 模型敏感性实验。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h4 id="质疑：Runtime-数字异常（3-次调用与-1-次调用几乎同延时）与成本披露缺失，削弱部署结论。"><a href="#质疑：Runtime-数字异常（3-次调用与-1-次调用几乎同延时）与成本披露缺失，削弱部署结论。" class="headerlink" title="质疑：Runtime 数字异常（3 次调用与 1 次调用几乎同延时）与成本披露缺失，削弱部署结论。"></a>质疑：Runtime 数字异常（3 次调用与 1 次调用几乎同延时）与成本披露缺失，削弱部署结论。</h4><ul>
+<li><strong>原文依据</strong>：Table 9、§C.5.1——MemAdapter 均值 6.63–6.95 s&#x2F;样本，而单次调用的 Anti-Sycophancy 为 6.04–6.11 s；测量协议声称包含”方法所需的全部模型调用以及重试与等待时间”，但论文未解释这一接近的原因，也未报告调用数、token 数、重试频率（例如归并与比较 prompt 的规模效应）。</li>
+<li><strong>为什么重要</strong>：影响真实部署决策与可复现性；若延时统计有遗漏（如并发执行、缓存命中、或对输入规模的隐性限制），则”与既有干预同量级”的结论不可靠；反之若属实，也需要解释才能让读者采信。</li>
+<li><strong>当前能够得出的判断</strong>：当前材料无法确认延时为何与单次调用基线持平（可能存在缓存或批处理，属分析者推断）；论文对成本的关键披露（token、调用数）缺失。</li>
+<li><strong>如何验证或补强</strong>：报告每方法的调用数与输入&#x2F;输出 token 统计、单次调用耗时分解与重试率；公开测量脚本与原始日志。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现长期记忆中即使客观正确、任务相关的记忆也会诱发阿谀，且同一记忆在不同任务下应获得不同影响力（§2，Fig. 2a&#x2F;2b），因此提出 MemAdapter：在检索之后、生成之前，通过 Counterfactual Induction 归纳逐记忆的条件使用边界、Context-Aware Reflection 将其解析为当前任务的影响力指令、Evidence-Based Reasoning 在约束下生成答案并内部校验支撑（§3，Fig. 3）。实验在三个基准、五种记忆系统、三个 backbone 的”冻结记忆、统一协议”设置下表明，MemSyco-Bench 两主维度与总体准确率、PersistBench 阿谀失败率、MemTrapBench 平均分均一致改善（Table 1–8）；其中跨系统方向一致性证据较强，但”增益来自反事实边界这一机制”仍缺少同预算对照的支持，且”有益记忆使用”在四个记忆系统上退化、无方差与显著性报告。本文最有价值的部分是把记忆安全问题从”选哪条记忆”重述为”记忆以何种影响力参与推理”的后检索校准视角，并公开了完整可复用的三段提示与 schema；最大的审稿风险是增益与机制之间未做隔离——额外的推理算力与更长的约束性提示可能是同等重要的解释。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。§2 用两个受控观察把”记忆型阿谀”重述为后检索影响力校准问题，边界明确（不改上游、只调使用），且与既有前段干预的工作划分清楚（§1、Appendix F）。</li>
+<li><strong>创新性证据</strong>：中。三段流程各有近邻工作（相关性过滤、self-reflection、带校验生成），”组合＋逐记忆影响力指令”的定位较新；但消融不能排除算力解释，原创边界只能按作者声称确认（§4.4 Obs. 6–7、Table 8）。</li>
+<li><strong>方法可信度</strong>：中。流程、提示、schema、伪代码完整公开（§3、Appendix G&#x2F;H），无训练环节、无隐藏组件；但全部判断依赖单一 backbone 的自评，方法无形式化保证，且 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>+</mo><mi>R</mi></mrow><annotation encoding="application/x-tex">B+R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7667em;vertical-align:-0.0833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span> 在 LightMem 上退化显示阶段收益不单调。</li>
+<li><strong>实验支持力度</strong>：中。覆盖 3 基准 × 5 记忆系统 × 3 backbone，协议公平（§A.2），但缺方差&#x2F;显著性、缺同预算对照、有益记忆退化未分析、主要基准与作者团队重叠（Table 1–9）。</li>
+<li><strong>可复现性</strong>：中。代码仓库公开、提示模板与 judge rubric 全文附录、每实例中间产物保留（§A.3、§H）；但 judge 模型未报告、预实验 backbone 未报告、token 与种子信息缺失。</li>
+<li><strong>综合阅读价值</strong>：高。对做 LLM Agent 记忆&#x2F;个性化方向的学生，”后检索影响力校准”这一问题重述、三段提示模板与跨系统评测协议都可直接借鉴；实验数字需结合上述质疑打折阅读。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> MemAdapter: Counterfactual Adaptation against Memory-Induced Sycophancy</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-07 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-07 13:58:53
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/07/2610.05162v1_Memadapter_Counterfactual_Adaptation_Against_Memory-induced_Sycophancy/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Agent/">#LLM Agent</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%A3%80%E7%B4%A2%E5%A2%9E%E5%BC%BA%E7%94%9F%E6%88%90/">#检索增强生成</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E9%95%BF%E6%9C%9F%E8%AE%B0%E5%BF%86/">#长期记忆</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E9%98%BF%E8%B0%80%E5%81%8F%E5%B7%AE/">#阿谀偏差</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%8F%8D%E4%BA%8B%E5%AE%9E%E6%8E%A8%E7%90%86/">#反事实推理</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/07/2610.05076v1_Self-Generated_Feedback_Destabilizes_Test-Time_Training_A_Causal_Decomposition_of_Long-Horizon_Adaptation/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Self-Generated Feedback Destabilizes Test-Time Training: A Causal Decomposition of Long-Horizon Adaptation</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/07/2610.04292v1_LMBuild_Evaluating_LLM_Agents_for_Generating_Buildable_and_Functional_Structures/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">LMBuild: Evaluating LLM Agents for Generating Buildable and Functional Structures</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">MemAdapter: Counterfactual Adaptation against Memory-Induced Sycophancy</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 83 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
