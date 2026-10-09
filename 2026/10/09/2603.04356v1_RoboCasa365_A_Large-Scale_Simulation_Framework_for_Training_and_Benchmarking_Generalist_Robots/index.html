@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/09/2603.04356v1_robocasa365_a_large-scale_simulation_framework_for_training_and_benchmarking_generalist_robots/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RoboCasa365: A Large-Scale Simulation Framework for Training and Benchmarking Generalist Robots">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/09/2603.04356v1_RoboCasa365_A_Large-Scale_Simulation_Framework_for_Training_and_Benchmarking_Generalist_Robots/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-09T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-09T08:26:09.508Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="仿真基准">
+<meta property="article:tag" content="机器人基础模型">
+<meta property="article:tag" content="机器人学习">
+<meta property="article:tag" content="模仿学习">
+<meta property="article:tag" content="移动操作">
+<meta property="article:tag" content="终身学习">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>RoboCasa365: A Large-Scale Simulation Framework for Training and Benchmarking Generalist Robots | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">336</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">105</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">RoboCasa365: A Large-Scale Simulation Framework for Training and Benchmarking Generalist Robots</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-09 12:00</span>
+        <span class="mobile">2026-10-09 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-09 16:26:09</span>
+            <span class="mobile">2026-10-09 16:26:09</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E5%AD%A6%E4%B9%A0/">机器人学习</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E4%BB%BF%E7%9C%9F%E5%9F%BA%E5%87%86/">仿真基准</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E7%A7%BB%E5%8A%A8%E6%93%8D%E4%BD%9C/">移动操作</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/">机器人基础模型</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0/">模仿学习</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E7%BB%88%E8%BA%AB%E5%AD%A6%E4%B9%A0/">终身学习</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>Soroush Nasiriany、Sepehr Nasiriany、Abhiram Maddukuri、Yuke Zhu（The University of Texas at Austin；Yuke Zhu 另属 NVIDIA Research；前三位为共同第一作者）</p>
+<p>论文：2603.04356v1；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-09（Asia&#x2F;Shanghai）。</p>
+<ul>
+<li><p>Hugging Face 页面：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2603.04356" >https://huggingface.co/papers/2603.04356<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2603.04356v1%EF%BC%88%E5%85%A8%E6%96%87" >https://arxiv.org/abs/2603.04356v1（全文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2603.04356v1" >https://arxiv.org/html/2603.04356v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2603.04356v1" >https://arxiv.org/pdf/2603.04356v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ）</p>
+</li>
+</ul>
+<p><strong>分析范围</strong>：以 v1（2026-03-04 提交；arXiv 版本列表仅此一版，无 v2，PDF 标注 “Published as a conference paper at ICLR 2026”）为准，完整读取了 arXiv HTML 全文与 PDF 全文（PDF 共 25 页：正文 10 页、参考文献 3 页、附录 A–I 12 页；含 Fig. 1–10、Table 1–11），Table 1–11 与 Fig. 1–10 的关键数字均在 HTML 与 PDF 之间逐项交叉核对，一致；核查中发现若干论文内部数字与表述不一致（§3.4.3&#x2F;Table 7 的 404 小时 vs §4.2 的 411 小时；Table 5 脚注 18.1% vs 61.8→79.8 实际差 18.0；§3.4 “covering all of our tasks” 与 §3.4.1&#x2F;§3.4.2 的任务覆盖数相抵触；附录 E.2 正文写 “Tables 7, 8, and 9” 而实际为 Fig. 7–9，且与附录 F 的真 Table 7 撞号），已在正文标出并汇总于质疑五。官方项目页（<a class="link"   target="_blank" rel="noopener" href="https://robocasa.ai)本次可访问,仅用于核对论文明确指向的实现信息(发布版本与更新日志、资产来源、排行榜),未替代论文原文.未读取代码仓库与数据集本体、未运行基准,因此关于" 数据与模型实际可下载性、许可证、真实复现难度"的判断标注为无法确认;论文未报告统计方差、随机种子、数据采集与/">https://robocasa.ai）本次可访问，仅用于核对论文明确指向的实现信息（发布版本与更新日志、资产来源、排行榜），未替代论文原文。未读取代码仓库与数据集本体、未运行基准，因此关于&quot;数据与模型实际可下载性、许可证、真实复现难度&quot;的判断标注为无法确认；论文未报告统计方差、随机种子、数据采集与<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> MimicGen 生成的成本，这些缺口在 §4、§5 中标明。配图 6 张：Fig. 1、Fig. 2、Fig. 3、Fig. 6 直接取自 arXiv HTML 原始图片；Fig. 4(a)(b) 与 Fig. 5 由 HTML 内嵌原始 SVG 以 3× 渲染（Fig. 4 两子图纵向拼接）后保存；六张均已逐张打开核对内容。</p>
+<p>标签：机器人学习、仿真基准、移动操作、机器人基础模型、模仿学习、终身学习。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>RoboCasa365 在 RoboCasa 仿真平台之上把厨房移动操作（mobile manipulation）基准扩展到 365 个任务（65 个 atomic tasks（原子任务）+ 300 个 composite tasks（复合任务））、2,500 个厨房场景（50 个 layout（布局）× 50 个 style（风格）的组合）、612 小时人类演示与 1,615 小时 MimicGen 合成演示，并配套三套评测协议（massively multi-task training（大规模多任务训练）、robot foundation model（机器人基础模型）预训练+微调、lifelong learning（终身学习））；在论文自报的仿真实验中，多任务训练下复合任务平均成功率最高仅 9.6%（GR00T N1.5，Table 1），预训练带来约 3× 的数据效率（Table 2、Fig. 5），终身学习出现严重灾难性遗忘（atomic 任务 41.5%→10.6%，Table 3，原文事实）。这些证据足以支撑”该基准可运行、任务尚未被现有方法解决”的结论，但全部主结果均为单次训练、无方差与置信区间，且论文自家消融显示占比约 73% 的 MimicGen 合成数据反而拉低下游性能（Table 4），因此”规模与多样性带来的泛化增益”目前只在该仿真、该套配置与厨房域内成立（审稿人判断）。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>研究背景与具体任务</strong>。机器人学习（robot learning）正走向能在人类环境中完成日常任务的 generalist robots（通用机器人），主流路线是用大规模真机数据训练高容量策略（Black et al., 2024；Gemini Robotics Team et al., 2025；NVIDIA et al., 2025；Physical Intelligence et al., 2025，§1，原文事实）。作者认为这条路留下两个未解难题（§1，作者主张）：其一，训练通用机器人需要海量机器人经验数据，现有数据集无论在多样性还是任务覆盖上都不足；其二，真机评测与基准测试资源密集、耗时，且受实验噪声影响，难做可复现的系统性比较。本文要交付的任务因此是：<strong>构建一个大规模、可复现的仿真基准，使”任务多样性、环境变化、数据规模各自如何影响策略泛化”成为可以系统实验的问题</strong>（§1、Abstract）。</p>
+<p><strong>现有方法的处理方式与具体短板</strong>（§1–§2，作者主张）。仿真被视为出路：可低成本生成近乎无限的任务与环境交互数据（Mandlekar et al., 2023；Jiang et al., 2025），并支持受控、可复现的评测（Saxena et al., 2025）。但现有仿真框架”大多数只支持有限任务与环境，常聚焦简单物体操作或单一房间”（§1），数据集规模相对真实挑战偏小，基准评测也局限于这些窄条件。相关工作中给出的量化对比是：BEHAVIOR-1k（Li et al., 2023）环境与任务多样性大，但缺少覆盖全部任务的大规模配套数据集；RoboCasa 原版（Nasiriany et al., 2024）只有 100k 演示、30 个任务、100 个场景；LIBERO（Liu et al., 2023）聚焦终身学习但任务分布窄（§2）。</p>
+<p><strong>三层问题的区分</strong>（审稿人判断）：</p>
+<ul>
+<li>“仿真基准任务&#x2F;环境太窄，无法评估通用性”是领域早已存在的共识问题（一般问题）；</li>
+<li>本文实际解决的具体子问题是：<strong>把一套厨房移动操作仿真在资产、场景、任务、数据四个维度整体放大，并把三类学习设定（多任务、基础模型、终身学习）固化为可复现协议</strong>；</li>
+<li>论文没有报告新的诊断实验来证明”基准窄是当前模型无法被正确评估的原因”——gap 论证主要依靠规模对比（30 任务&#x2F;100 场景&#x2F;100k 演示 vs 365 任务&#x2F;2,500 场景&#x2F;&gt;500k 轨迹），而不是因果实验（§2）。</li>
+</ul>
+<p><strong>作者认为问题产生的原因</strong>（作者主张）：仿真工具的任务、环境与配套数据集规模不足，导致社区无法系统研究 task diversity、environment variation 与 dataset scale 对泛化的影响（§1、§4 开头的四个问题）。<strong>论文最终要验证的核心假设</strong>是：提供这样一个大规模基准后，可以在其内部被复现地量出（1）大规模多任务训练的效果、（2）预训练数据对下游任务的作用、（3）终身学习设定下学新任务与保旧技能的权衡、（4）预训练数据组成的影响（§4 开头的四个问题，原文事实）。</p>
+<p>需要说明：论文<strong>没有验证</strong>“规模扩大本身必然带来更强泛化”这一隐含假设——实验反而在合成数据部分给出反例（§4.4、Table 4；见质疑一）。另外，”首个满足全部标准的仿真框架”是作者主张（§2：”To our best knowledge, our work is the first simulation framework to satisfy all of these criteria”），未见穷尽式文献比对支持（审稿人判断）。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>一句话概括：本文的增量不是新算法，而是一套<strong>资源型 + 基准型</strong>贡献——在 RoboCasa 之上把资产、场景、任务与数据整体放大一个量级，并把三种学习设定连同组成分析、鲁棒性、真机验证固化成标准化评测套件；其中最接近”新研究思想”的部分是场景的组合式生成与预训练&#x2F;目标场景的分离协议，其余多为大规模工程实现与数据采集（审稿人判断）。</p>
+<p>逐项分析：</p>
+<ol>
+<li><p><strong>资产与场景扩展（§3.1、§3.2，Fig. 2）。</strong> 复用 RoboCasa 既有 2,509 个 3D 对象（153 个类别），新增 57 个类别的高质量 3D 资产；可交互设施与电器从 RoboCasa 的 20 个实例、4 个类别（sink、coffee machine、stove、microwave），扩展到 456 个实例、12 个类别（新增 toaster、toaster oven、stand mixer、blender、electric kettle；冰箱、烤箱、洗碗机首次做成可开合关节，每个类别 20–50 个实例，Table 6）。场景采用 layout × style 组合：预训练场景为 50 个<strong>新布局</strong>加 50 个<strong>新风格</strong>，组合出 2,500 个场景，其中 50 个布局是按 50 套 Zillow.com 在售真实房源复刻的 digital cousin（数字表亲，Dai et al., 2024 的协议），房源分布在 Bay Area、Austin、Denver、Boston、Atlanta 五个都市区（Appendix D）；目标（target）场景保持 RoboCasa 原版的 10 个（10 layout 与 10 style 一一配对）。论文声明两套体系的风格（fixtures、appliances、textures 的选择）不重叠（§3.2）。与最接近的 RoboCasa 相比，这是数量级扩展（100→2,500 场景）；与 BEHAVIOR-1k 相比，差别在于为全部任务配套了大规模数据集。该设计的证据是规模数字本身，而非”组合式场景比手工场景更有利于泛化”的对照实验。</p>
+</li>
+<li><p><strong>任务集扩展与半自动化任务生成（§3.3，Fig. 3，Appendix E）。</strong> 65 个 atomic 任务 &#x3D; 25 个 RoboCasa 原有 + 40 个新增；300 个 composite 任务 &#x3D; 83 个原有 + 217 个新增。任务由 LLM 两阶段生成蓝图：先生成 60 个 kitchen activities（厨房活动，如 boiling water、brewing coffee），再为每个活动生成任务蓝图（任务名、描述、涉及物体与设施、技能序列），然后人工写代码实现（沿用 RoboCasa 的流程；Appendix A 声明使用 LLM 生成 activity 标签与任务蓝图）。65 个原子任务基于 8 类基础技能（pick-and-place、开关门、开关抽屉、转杠杆、转旋钮、按按钮、插入、导航）；365 个任务中 220 个需要移动操作、145 个不需要（§3.3）。这不是新的任务生成方法（流程沿用 RoboCasa），增量在规模与覆盖（60 个活动、6 个活动族，Fig. 3）。</p>
+</li>
+<li><p><strong>数据规模化（§3.4，Table 7）。</strong> 预训练数据覆盖 300 个任务（65 atomic + 235 composite），每任务 100 条人类演示（robot teleoperation，机器人遥操作），共 30k 条、404 小时；再用 MimicGen（Mandlekar et al., 2023）以每任务 100 条人类演示为种子，对 60 个 atomic 任务各生成 10,000 条演示（放大 100×，合计 600k 轨迹、1,615 小时）；目标数据覆盖 50 个任务（18 atomic + 16 Composite-Seen + 16 Composite-Unseen），每任务 500 条人类演示，共 25k 条、208 小时。合计超过 50 万条轨迹、超过 2,200 小时数据，相对 RoboCasa 原版（100k 演示）放大 5 倍以上。数据内容为语言指令 + 本体感受（base pose、end-effector pose、gripper state）+ 三路相机图像 + 动作（Appendix F）。规模数字是论文引用的核心卖点，但哪些设计使合成数据不损害性能并未解决（Table 4 显示反而有害，见质疑一）。</p>
+</li>
+<li><p><strong>评测协议与系统实验（§4）。</strong> 把三类学习设定固化为协议：(a) massively multi-task training（§4.1）；(b) foundation model training，即”预训练 + 目标微调”两段式（§4.2）；(c) lifelong learning，四阶段递进加长任务（§4.3）。附加组成研究（§4.4：Human50&#x2F;Human300&#x2F;Human300+MG60&#x2F;无预训练）、真机验证（§4.5），以及附录中的场景多样性（H.1）、鲁棒性扰动（H.2）、预训练与目标联合共训（H.3）、LoRA 微调对照（H.4）、逐任务分析（I.1）。论文声明开源全部模型供社区对比（§4.2）。这在同类工作中是更完整的评测套件——RoboCasa 原版主要只做多任务训练评测，LIBERO 聚焦终身学习（§2，原文事实）。</p>
+</li>
+<li><p><strong>方法学边界（审稿人判断）。</strong> 控制器、动作空间（Appendix B.2 明确 “We adopt the underlying controller from RoboCasa”）、10 个目标场景、25+83 个任务、2,509 个对象库等均继承自 RoboCasa；四个被评测模型（Diffusion Policy、π0、π0.5、GR00T N1.5）均为已有方法（π0 系与 GR00T 使用公开预训练检查点微调）。因此本文的创新属于”已有平台的新组合 + 大规模工程与数据建设”，不构成算法层面的新思想；”首次”类主张只能视为作者声明，是否成立需要更完整的文献检索（§2 只对比了三类代表性工作）。</p>
+</li>
+</ol>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉</strong>：基准类论文的”方法”不是一种新模型，而是一条<strong>世界—任务—数据—评测</strong>的生产线。先把厨房世界造出来（场景与可交互资产），再把”机器人该会做什么”定义出来（原子技能与复合任务），然后用两条数据生产线把少量人类演示放大成大规模语料（人工遥操作 + MimicGen 自动生成），最后固定一套评测协议与任务划分，让不同方法在同一标尺上可比。理解 RoboCasa365 的关键，是理解每一段流水线的<strong>口径</strong>（多少任务、多少演示、什么条件下评测），因为所有实验数字都由这些口径决定。</p>
+<p><strong>整体运行流程</strong>（按构建与实验时序展开；论文提出的组件与继承组件分别标注）：</p>
+<ol>
+<li><p><strong>输入与世界构建（§3.1–§3.2，Fig. 2）。</strong> 每个场景 &#x3D; layout（户型平面）× style（设施、电器与纹理的选择），这是继承自 RoboCasa 的术语与生成方式。预训练侧：50 个新布局（Zillow 房源 digital cousin 复刻）+ 50 个新风格 → 2,500 个场景；目标侧：RoboCasa 原版 10 个场景（10 layout × 10 style 一一配对）。<strong>为什么需要这种分离</strong>：预训练场景用于大规模采数据，目标场景用于定向数据采集与大多数实验评测（§3.2），两套风格不重叠使”目标评测”成为对未见场景的测试。资产侧：可交互设施按 MJCF 格式建模并标注可交互区域（继承 RoboCasa 格式），每个类别 20–50 个实例，用于支撑”对未见实例泛化”的测试（§3.1）。</p>
+</li>
+<li><p><strong>任务定义（§3.3，Fig. 3）。</strong> atomic 任务 &#x3D; 单技能执行（8 类基础技能）；composite 任务 &#x3D; 技能序列。任务创建流程：LLM 生成 60 个 activities → 每个活动生成 task blueprint → 人工按蓝图写代码。<strong>为什么需要 LLM 蓝图</strong>：人工枚举 300 个复合任务成本高，LLM 负责提出”厨房里合理的长程任务组合”，人工负责可执行性（Appendix A 明确此为 LLM 用途之一）。</p>
+</li>
+<li><p><strong>数据采集与放大（§3.4，Table 7）。</strong> 机器人平台为 Franka Panda Emika 机械臂 + Omron 移动底盘（Haviland et al., 2022）；人类演示经遥操作采集（预训练 30k 条&#x2F;404 小时；目标 25k 条&#x2F;208 小时）。合成数据由 MimicGen 从每任务 100 条人类种子演示出发、每任务再生成 10,000 条（60 个 atomic 任务，1,615 小时）。<strong>为什么只对 atomic 任务做 MimicGen</strong>：论文未解释（审稿人指出，见质疑一）。</p>
+</li>
+<li><p><strong>观测与动作接口（Appendix B、G.1）。</strong> 策略输入 &#x3D; 语言指令 + 本体感受（base pose、end-effector pose、gripper state）+ 三路 256×256 相机图像（腕部相机 + 左右第三人称相机）；动作 &#x3D; 12 维：7 维机械臂（3 平移 + 3 旋转 + 1 夹爪）加 5 维用于移动底盘平移与旋转、躯干高度控制以及门控底盘控制的动作模式（Appendix B.2），由 20 Hz 的 Operational Space Controller（操作空间控制器，OSC，Khatib, 1995）执行。仿真栈为 robosuite + MuJoCo，20 Hz，GPU 渲染，支持多环境异步并行（Appendix B.1）。注意控制器与动作空间均为继承组件，非本文提出。</p>
+</li>
+<li><p><strong>评测协议一：多任务训练（§4.1）。</strong> 在 300 个预训练人类数据集（30k 演示）上训练语言条件策略；在<strong>预训练厨房</strong>中评测 50 个目标任务，分三个 split：Atomic（18 任务）、Composite-Seen（16 任务，预训练见过）、Composite-Unseen（16 任务，预训练完全未见，评测为零样本 zero-shot）。<strong>为什么这样划分</strong>：把”已见任务能力”与”组合泛化能力”分离。</p>
+</li>
+<li><p><strong>评测协议二：基础模型训练（§4.2，Fig. 5）。</strong> 先在全量预训练数据（人类 300 任务 + MimicGen 60 任务）上预训练，再分别对三个 target split（Atomic &#x2F; Composite-Seen &#x2F; Composite-Unseen）独立微调，目标数据量取每任务 50 &#x2F; 150 &#x2F; 500 条演示（即 10% &#x2F; 30% &#x2F; 100%）；在<strong>目标厨房</strong>中评测 50 个任务。对照三类设置：只预训练、只学目标任务、预训练+微调。<strong>为什么需要两类厨房分开</strong>：目标厨房对预训练完全未见，可以把”跨场景泛化”纳入评测。</p>
+</li>
+<li><p><strong>评测协议三：终身学习（§4.3）。</strong> 四个阶段依次学习：Phase 1 学 65 个 atomic 任务（用全部人类 + MimicGen 数据）；Phase 2 学 20 个 2–3 阶段的新复合任务；Phase 3 学 20 个 4–5 阶段任务；Phase 4 学 20 个 6+ 阶段任务（后三阶段只用人类数据）。每阶段以上一阶段模型为起点微调，训练完后评测<strong>当前及此前全部阶段</strong>的任务，用以暴露遗忘。</p>
+</li>
+<li><p><strong>训练哪些部分（Appendix G.1）。</strong> 全部为监督式模仿学习（imitation learning），无强化学习。Diffusion Policy 用开源代码加 CLIP 语言嵌入与 FiLM 条件（12 层 transformer、嵌入维 512、batch 192、多任务 250k 步）；π0 &#x2F; π0.5 用官方仓库全量微调（batch 64、75k 步，单块 GH200 上 48 小时）；GR00T N1.5 冻结视觉与语言编码器（batch 128；多任务 120k 步；基础模型实验先预训练 80k 步再微调 60k 步；终身学习首阶段 100k 步、后续每阶段 60k 步）。评测协议为每任务 30 次试验、二值成功判定、任务间取平均（Appendix G.2，原文事实）。</p>
+</li>
+</ol>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-09/2603.04356_fig1.png"
+                      alt="图 1：RoboCasa365 总览（原文 Fig. 1）。该图把基准的场景、资产与能力画成一张&quot;能力地图&quot;：上排是 Diverse Scenes（多样场景）、Rich Object Library（对象库）、Interactive Fixtures（可交互设施）——说明&quot;世界&quot;的构成；下排是 Wide-Ranging Skills（广泛技能）、Long-Horizon Mobile Manipulation（长程移动操作）、Semantic Reasoning（语义推理）——说明&quot;任务&quot;覆盖的能力维度；中央横幅给出核心规模：365 Everyday Tasks、2500 Kitchen Scenes、3200+ Objects、2200+ Hours of Data（600+ Human、1600+ Synthetic）、500K+ Trajectories、Systematic Benchmarking。图中&quot;3200+ Objects&quot;是图示数字，正文只给出复用的 2,509 个对象与新增 57 个类别，未给新增对象总数（见质疑五）。"
+                ></p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-09/2603.04356_fig2.png"
+                      alt="图 2：厨房场景（原文 Fig. 2）。上半部分为预训练场景的代表性样例：每格是一个由&quot;布局 × 风格&quot;组合出来的完整厨房渲染，2,500 个预训练场景即 50 种布局与 50 种风格的组合；下半部分是全部 10 个目标场景（10 种布局与 10 种风格一一配对），它们是评测发生的固定环境。该图的作用是让读者直观看到&quot;预训练分布宽、评测分布窄且固定&quot;这一协议设计——所有泛化结论都相对于这 10 个目标场景成立。"
+                ></p>
+<p><img src="/images/dailypaper/2026-10-09/2603.04356_fig3.png" alt="图 3：复合任务与活动族（原文 Fig. 3）。中间栏是六个 Activity Families（活动族）及隶属活动：Beverage Preparation（饮品制备）、Cleaning and Sanitizing（清洁消毒）、Cooking（烹饪）、Food Preparation（备餐）、Organizing and Storage（收纳存储）、Serving（上菜/摆台），共 60 个活动——它们由 LLM 生成、是 300 个复合任务的语义骨架；左右两栏是代表性复合任务的分镜（如 BlendIngredients、GetToastedBread、EmptyDishRack、LoadDishwasher、GatherProduceWashing、AlignSilverware），配语言指令，说明复合任务 = 若干技能调用按语义目标串联。该图对应论文&quot;任务有多样性且部分带语义推理/长程结构&quot;的主张，但注意这些示例属于展示，不构成覆盖率证据。"></p>
+<p><img src="/images/dailypaper/2026-10-09/2603.04356_fig4.png" alt="图 4：任务长度与演示时长分布（原文 Fig. 4(a)(b)，两子图纵向拼接）。(a) 上部：365 个任务所需子任务数的分布——多数任务只需 1–2 个子任务，但有少数任务需要 15–16 个子任务，形成长尾；(b) 下部：55k 条人类演示（30k 预训练 + 25k 目标）的时长分布——多数在 10–60 秒，尾部超过 3 分钟。该图回答&quot;这个基准的难度结构&quot;：绝大多数数据对应短程任务，长程任务数量少但真实存在，这解释了为什么论文反复报告复合/长程任务成功率极低（Table 1、Table 3）。"></p>
+<p><img src="/images/dailypaper/2026-10-09/2603.04356_fig5.png" alt="图 5：基础模型训练结果（原文 Fig. 5）。横轴是每任务目标演示数（50/150/500，即 10%/30%/100%），纵轴是平均任务成功率；橙色点是&quot;只预训练&quot;（15.1%，不随目标数据变化），蓝色线是&quot;只学目标任务&quot;（21.0→34.3→43.7），绿色线是&quot;预训练+目标微调&quot;（35.9→42.2→51.1）。该图是&quot;预训练带来约 3× 数据效率&quot;这一核心主张的载体：绿色线在 10% 目标数据时（35.9%）已经超过蓝色线 30% 时（34.3%），即少 3 倍目标数据即可达到相当水平；但曲线只有三个数据点、无误差棒（见质疑三）。"></p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-09/2603.04356_fig6.png"
+                      alt="图 6：真机实验平台（原文 Fig. 6）。真实厨房中的 DROID Panda 机械臂，配三路相机（对应仿真中的观测配置）；论文在该平台上用 140 条真机演示（4 个任务）比较&quot;只用真机数据&quot;与&quot;仿真数据中训 + 真机共微调&quot;两种设置，并在仿真数据重渲染以对齐真机相机视角（Maddukuri et al., 2025）。该图的意义是说明基准声称的下游价值存在一条真机通路，但每个任务仅 20 次试验、任务数仅 4 个，结论范围有限（§4.5）。"
+                ></p>
+<p><strong>训练与推理</strong>。整个基准本身不需要训练模型；训练发生在被评测的策略上（上述四种方法）。推理阶段无特殊变化：策略以 20 Hz 接收观测并输出 12 维动作。<strong>教学简化示例</strong>（非论文公式）：论文报告的平均成功率可写成 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">R</mi></mrow><mo>=</mo><mfrac><mn>1</mn><mrow><mi mathvariant="normal">∣</mi><mi>T</mi><mi mathvariant="normal">∣</mi></mrow></mfrac><msub><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><mi>T</mi></mrow></msub><mfrac><mn>1</mn><mn>30</mn></mfrac><msubsup><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mn>30</mn></msubsup><mn mathvariant="double-struck">1</mn><mo stretchy="false">[</mo><msub><mtext>success</mtext><mrow><mi>i</mi><mo separator="true">,</mo><mi>t</mi></mrow></msub><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">\mathrm{SR}=\frac{1}{|T|}\sum_{i\in T}\frac{1}{30}\sum_{t=1}^{30}\mathbb{1}[\text{success}_{i,t}]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord"><span class="mord mathrm">SR</span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.474em;vertical-align:-0.52em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∣</span><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span><span class="mord mtight">∣</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.52em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1786em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">∈</span><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3271em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8451em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.954em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.2029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">30</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1</span><span class="mopen">[</span><span class="mord"><span class="mord text"><span class="mord">success</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">]</span></span></span></span>——每个任务 30 次试验的二值成功率，再对任务取平均（依据 Appendix G.2 的描述整理；论文未给出公式，且未报告该平均的方差）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p><strong>测试对象与数据（§3.4、§4，原文事实）</strong>。训练数据：300 个任务的 30k 条人类演示（多任务实验）或全部预训练数据（人类 300 任务 + MimicGen 60 任务，基础模型实验）。评测数据：50 个目标任务（Atomic 18 + Composite-Seen 16 + Composite-Unseen 16），其中多任务实验在<strong>预训练厨房</strong>评测、基础模型实验在<strong>目标厨房</strong>评测；终身学习在预训练厨房按四阶段评测所有已见任务。真机实验（§4.5）：DROID Panda 机械臂 + 三路相机，真实厨房，4 个任务（CloseElectricKettleLid、PickPlaceToasterOvenToCounter、PickPlaceCounterToCabinet、PlaceOnDishRack），共 140 条真机演示（30&#x2F;30&#x2F;30&#x2F;50），每任务 20 次试验。</p>
+<p><strong>被比较的方法与基线（§4.1、Appendix G.1）</strong>。四个已有方法：Diffusion Policy（从零训练；自加 CLIP 语言嵌入 + FiLM 条件）、π0、π0.5（官方仓库全量微调公开检查点）、GR00T N1.5（公开检查点，冻结视觉&#x2F;语言编码器）。基础模型实验的主模型为 GR00T N1.5，并自带三类对照（只预训练 &#x2F; 只学目标任务 &#x2F; 预训练+微调）。数据组成实验（Table 4）另加 No Pretraining、Human50、Human300、Human300+MG60 四档。</p>
+<p><strong>评价指标与公平性（原文事实 + 审稿人判断）</strong>。指标为平均任务成功率（%）：每任务 30 次试验、二值成功、任务间取平均（Appendix G.2）。四种方法的训练预算<strong>并不对等</strong>：batch size 分别为 192 &#x2F; 64 &#x2F; 64 &#x2F; 128，步数 250k &#x2F; 75k &#x2F; 75k &#x2F; 120k，只有后三者带公开预训练检查点，GR00T 还冻结了视觉与语言编码器；作者在 §4.1 主动声明 “we do not claim that it is conclusively the superior method”，并列出算力、数据组成、是否微调骨干等混杂因素（原文事实）。全部表格未报告方差、置信区间或随机种子（论文未报告，审稿人判断）。</p>
+<p><strong>主实验与附录实验的分工</strong>。主实验（Table 1–5）：多任务训练、基础模型训练、终身学习、数据组成、真机五组，回答 §4 开头的四个问题及部署价值；附录实验回答附加问题：场景多样性（H.1&#x2F;Table 8，5 场景 vs 25 场景 vs 2,500 场景）、输入扰动鲁棒性（H.2&#x2F;Table 9）、预训练与目标数据联合共训（H.3，单阶段 vs 两阶段）、LoRA 与全量微调对照（H.4&#x2F;Table 10，直接回应多任务实验用哪种微调的疑点）、逐任务表现与失败模式（I.1&#x2F;Table 11）。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p><strong>多任务训练：难度排序明确，但最优方法平均成功率仅 20.0%（Table 1，原文事实）</strong>。GR00T N1.5 平均 20.0%，π0.5 16.9%，π0 15.0%，Diffusion Policy 6.1%。分 split 看：Atomic 为 43.0 &#x2F; 39.6 &#x2F; 36.3 &#x2F; 15.7；Composite-Seen 断崖式下降到 9.6 &#x2F; 7.1 &#x2F; 5.2 &#x2F; 0.2；Composite-Unseen（零样本）为 4.4 &#x2F; 1.2 &#x2F; 0.7 &#x2F; 1.25。注意 Diffusion Policy 在 Composite-Unseen 上的 1.25% 反而高于 π0（0.7%）与 π0.5（1.2%）——在 30 次试验折算下这些都是每次任务不足 0.4 次成功的量级，无统计意义可言（审稿人判断；论文未报告方差）。作者对这一结果的解释是原子任务更短程、模仿学习更容易，未见任务分数低是因为从未训练（§4.1，作者主张）；论文也明确 Composite 任务上的弱表现是”未来方法的机会”（作者主张）。</p>
+<p><strong>基础模型训练：预训练带来约 3× 数据效率（Table 2、Fig. 5，原文事实）</strong>。只预训练：平均 15.1%。只学目标任务（10%&#x2F;30%&#x2F;100% 目标数据）：21.0 &#x2F; 34.3 &#x2F; 43.7。预训练+目标微调：35.9 &#x2F; 42.2 &#x2F; 51.1。最显眼的一对数字是 Composite-Unseen 在 100% 目标数据下从”只学目标任务”的 33.3% 提升到 42.1%。论文据此声称约 3× 数据效率提升：以 10%（每任务 50 条）预训练+微调的 35.9% 已超过 30%（每任务 150 条）只学目标任务的 34.3%（§4.2、Fig. 5；该结论建立在这三个数据点上，无拟合与误差棒，见质疑三）。</p>
+<p><strong>终身学习：灾难性遗忘显著（Table 3，原文事实）</strong>。原子任务成功率从 Phase 1 的 41.5% 依次降到 13.9%（Phase 2）、13.9%（Phase 3）、10.6%（Phase 4）；各阶段新学任务的”对角线”成功率随任务变长递减：2–3 阶段任务 24.5%（Phase 2）、4–5 阶段任务 11.3%（Phase 3）、6+ 阶段任务 4.3%（Phase 4）。论文将前一条定性为 catastrophic forgetting（灾难性遗忘）（§4.3，作者主张；数据支持该定性，但论文没有做任何缓解实验）。</p>
+<p><strong>数据组成：增加任务多样性有效，加入 MimicGen 合成数据反而有害（Table 4，原文事实）</strong>。在 10% 目标数据下，平均成功率：无预训练 21.0 → Human50 34.7 → Human300 40.0 → Human300+MG60 35.9；100% 目标数据下为 43.7 → 50.0 → 52.5 → 51.1。即在两种目标数据预算下，Human300（不加合成数据）都比论文默认的全量组合 Human300+MG60 更好；差距最大的一项是 10% 目标数据下 Composite-Unseen：32.3%（Human300）vs 22.7%（Human300+MG60）。论文承认 “the resulting demonstrations vary in quality”（合成演示质量参差），并把”更有效地利用这种大规模混合质量数据”列为未来方向（§4.4，作者主张）。</p>
+<p><strong>真机验证：仿真+真机共训提升平均成功率 18 个百分点量级（Table 5、Fig. 6，原文事实）</strong>。4 个任务上 Real Only 平均 61.8%，Sim-and-Real（论文自己的做法）79.8%；分任务为 70→70、70→100、52→84、55→65。Table 5 脚注写 “by an average task success rate of 18.1%”，而 79.8−61.8&#x3D;18.0（逐任务差均值也是 18.0），属轻微的表述不一致（见质疑五）。此外第一个任务两者完全打平（70 vs 70），提示增益并非全任务一致。</p>
+<p><strong>附录关键数字（原文事实）</strong>。(a) 场景多样性（Table 8，H.1）：用 MimicGen 在 17 个 atomic 任务上生成数据，预训练场景数 5&#x2F;25&#x2F;2,500 对应零样本成功率 29.6 &#x2F; 39.6 &#x2F; 44.7，追加 10% 原子目标数据微调后为 53.3 &#x2F; 56.7 &#x2F; 62.4——场景数增加有稳定收益，但 25→2,500（100 倍）只带来约 5 个点的零样本提升，收益递减。(b) 鲁棒性（Table 9，H.2，GR00T N1.5 全量训练后）：语义相似的新语言指令影响很小（Composite-Seen 40.6→38.3；Composite-Unseen 42.1→39.2），而相机位姿、初始关节噪声、初始底盘位姿扰动分别把 Composite-Seen 降到 28.8 &#x2F; 27.9 &#x2F; 31.2，Composite-Unseen 降到 31.5 &#x2F; 32.1 &#x2F; 30.2——对视觉与状态分布偏移明显更敏感。(c) 联合共训（H.3）：把预训练与目标数据一次性混合训练 120k 步，平均仅 22.5%（Atomic 44.1 &#x2F; Composite-Seen 9.0 &#x2F; Composite-Unseen 11.7），远低于两段式的 51.1%，作者据此强调专门微调阶段的必要性。(d) LoRA 对比（Table 10，H.4）：同等步数与 batch 下，GR00T N1.5 全量微调平均 20.0%，LoRA 仅 1.2%（Atomic 2.4 &#x2F; Composite-Seen 0.2 &#x2F; Composite-Unseen 0.8），结论是全量微调对性能关键。(e) 逐任务分析（Table 11，I.1）：最佳配置（预训练+100% 目标数据微调）在 50 个任务上的成功率从 0% 到 93% 极不均匀——TurnOnElectricKettle 93%、OpenStandMixerHead 90% 属最好之列，而 GetToastedBread 0%、DeliverStraw 3%、GatherTableware 7%、CategorizeCondiments 10%、SeparateFreezerRack 10% 垫底；论文列出常见失败模式（如 SteamInMicrowave 放碗不稳、SearingMeat 拧错灶眼、GatherTableware 导航与远距离放置不可靠），说明低均值主要由长程&#x2F;高精度任务拖累。</p>
+<p><strong>未提升或收益受限的情形（审稿人整理，均基于上表原文数字）</strong>：合成数据加入后各 split 普遍不升反降（Table 4）；真机第一任务 70 vs 70 无提升（Table 5）；场景多样性收益随规模递减（Table 8）；LoRA 与联合共训两种”省成本”路线都大幅劣于默认路线（Table 10、H.3）。论文没有报告任何一次多随机种子的重复实验，也没有给出失败任务之外的负面结果分析。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>这一节区分”方法有效”（效果证据）与”为什么有效”（机制证据）。RoboCasa365 是基准论文，没有提出待验证的机制假设，其证据主要回答”哪些因素与泛化相关”，而非”哪个机制导致提升”。逐项判断（审稿人判断）：</p>
+<ol>
+<li><strong>数据组成研究（Table 4）提供了接近受控的比较，但存在两处混淆。</strong> Human50 vs Human300 的两组都只用人类数据，方向干净：任务数 50→300（演示量 5k→30k）带来系统性提升，且对 Composite-Unseen 增益最大——这支持”任务多样性有利于新任务迁移”的结论。但该比较没有把”任务数”与”数据总量”分开（两者同时增加了 6 倍）；另外 Human300 vs Human300+MG60 增加了合成数据但同时也增加了 4 倍以上数据小时数，作者把下降归因于”合成数据质量参差”，这更像附会的解释而不是被隔离验证的机制——没有逐条演示的质量评分、没有质量分层的筛选实验、也没有控制总预算（等小时或等梯度步）的对照，因此”质量差导致变差”只是合理假说，论文未证明（§4.4，作者主张）。</li>
+<li><strong>场景多样性研究（Table 8）结论干净但适用范围窄。</strong> 5&#x2F;25&#x2F;2,500 场景的三档对比是明确的单变量实验（同为 MimicGen 生成的 17 个 atomic 任务数据），其局限是：只用合成数据、只覆盖原子任务，无法说明同样的场景多样性效应对复合任务或人类数据成立。</li>
+<li><strong>预训练的数据效率结论（Fig. 5）是效果证据，不是机制证据。</strong> 论文展示了预训练+微调曲线高于只微调曲线，但没有分析”预训练究竟给了什么”（表征？语言对齐？动力学先验？），也没有消融预训练数据的哪一部分（人类 vs 合成、哪些任务族）贡献了收益——Table 4 恰好显示数据组成的效果不是单调的。</li>
+<li><strong>鲁棒性实验（Table 9）刻画了失败边界，但因果解释弱。</strong> 相机&#x2F;初始状态扰动导致大幅下降，说明策略依赖精确的视觉与初始状态分布；但论文没有做任何归因实验（例如固定相机随机化重训是否能恢复），因此只能得出”对分布偏移敏感”这一相关性结论。</li>
+<li><strong>终身学习（Table 3）是”现象证据”。</strong> 遗忘现象被清晰展示，但论文没有分析原因（数据不平衡、无回放、任务长度差异各占多少），也没有尝试任何缓解方法，只能作为诊断性基准使用。</li>
+<li><strong>微观标尺方面的问题</strong>：所有比较都没有方差、置信区间或种子数；Composite-Unseen 上方法间的差异常在 1 个百分点以内（30 次试验下不足半次成功），却参与排序叙述。没有这些统计信息，就无法排除”重跑换排名”的可能，表 1 的排名结论只能视为一次运行下的观测（审稿人判断）。</li>
+</ol>
+<p>总体而言：论文提供了丰富的<strong>相关性证据</strong>（什么与高分&#x2F;低分相关）与一套可复现的手术台，但没有提供任何<strong>因果机制证据</strong>（为什么预训练有效、为什么合成数据无效、为什么遗忘如此严重）。对基准类工作这是可接受的——其贡献本在于测量而非解释——但摘要中”provide new insights into what factors most strongly affect the performance”的措辞略强于证据能支撑的范围（Abstract、§1，作者主张）。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p><strong>论文实际报告的成本（原文事实）</strong>：训练算力方面只给出了 π0&#x2F;π0.5 的多任务训练墙钟时间（75k 步、batch 64、单块 NVIDIA GH200 上 48 小时）；GR00T N1.5 只报告步数（多任务 120k；基础模型 80k+60k；终身 100k+60k×3）与 batch 128，未给墙钟时间；Diffusion Policy 报告 250k 步、batch 192。作者注明所用 batch 是”单块 GH200 上能放下的最大 batch”（Appendix G.1），暗示显存是硬约束，但未给出显存占用、GPU 数量或总机时。数据成本方面：人类演示 612 小时（预训练 404 + 目标 208，按 §3.4.3 口径）是遥操作人工成本的主要来源，真机实验另采 140 条演示；MimicGen 生成 600k 轨迹的算力与时间<strong>论文未报告</strong>；新增 3D 资产由美术人员制作、部分由合作方（LightWheel）提供（Acknowledgments），成本未报告；LLM 用于生成活动&#x2F;任务蓝图与论文润色（Appendix A）。存储与数据量：超过 50 万条轨迹、每条含三路 256×256 图像，论文未报告数据集硬盘占用与下载方式。</p>
+<p><strong>评测成本</strong>：每方法每任务 30 次试验、50 个评测任务，加上训练，构成不低的使用门槛；但论文未给出评测吞吐量（20 Hz 仿真、可并行）或端到端评测时间。<strong>外部依赖</strong>：π0、π0.5、GR00T N1.5 均为第三方模型与检查点，版本细节由官方仓库决定；资产与场景牵涉第三方素材（作者单位感谢 LightWheel 提供素材）与 Zillow 房源复刻，论文未报告素材许可证——数字表亲（digital cousin）路线（Dai et al., 2024）使真实住宅平面图进入数据集，是否涉及隐私或授权问题论文未讨论（<strong>无法确认</strong>，因为论文与项目页都未披露许可证信息）。</p>
+<p><strong>适用范围与边界（原文事实 + 审稿人判断）</strong>：结论适用范围被作者在 §5 自限为厨房场景；全部主实验是仿真实验（Panda + Omron 移动底盘），真机结论只覆盖 4 个任务、1 台机器人、20 次试验&#x2F;任务，且使用了会重渲染相机视角、选取”仿真中表现最好的 150 个任务”做 mid-training 的专门对齐流程（§4.5）——这些优化由作者自己的前期工作（Maddukuri et al., 2025）提供，未做消融。论文未报告的内容还包括：数据采集与 MimicGen 的成本、评测的方差、任务级置信区间、以及 365 个任务中未被数据集覆盖的 49 个复合任务（见质疑五）的用途说明。<strong>已解决的问题</strong>：把”任务多样性、场景多样性、数据规模与数据效率”变成可复现测量的量，并公开模型；<strong>未解决</strong>：仿真到真机的定量差距（作者自认）、合成数据质量治理（作者承认）、终身学习遗忘（论文只展示未缓解）、评测统计可靠性（未报告）。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：占数据总量约-73-的-MimicGen-合成数据在论文自家消融中普遍拉低下游性能，基准的”大规模数据”卖点与”合成数据无害-可扩展”的隐含前提被自己的实验反驳，而论文没有给出任何质量管控手段。"><a href="#质疑：占数据总量约-73-的-MimicGen-合成数据在论文自家消融中普遍拉低下游性能，基准的”大规模数据”卖点与”合成数据无害-可扩展”的隐含前提被自己的实验反驳，而论文没有给出任何质量管控手段。" class="headerlink" title="质疑：占数据总量约 73% 的 MimicGen 合成数据在论文自家消融中普遍拉低下游性能，基准的”大规模数据”卖点与”合成数据无害&#x2F;可扩展”的隐含前提被自己的实验反驳，而论文没有给出任何质量管控手段。"></a>质疑：占数据总量约 73% 的 MimicGen 合成数据在论文自家消融中普遍拉低下游性能，基准的”大规模数据”卖点与”合成数据无害&#x2F;可扩展”的隐含前提被自己的实验反驳，而论文没有给出任何质量管控手段。</h4><ul>
+<li><strong>原文依据</strong>：§3.4.1、Table 7（合成数据 600k 轨迹、1,615 小时，人类数据 404+208&#x3D;612 小时；1615&#x2F;2227≈73%）；§4.4、Table 4：10% 目标数据下平均成功率 Human300 40.0% vs Human300+MG60 35.9%，100% 目标数据下 52.5% vs 51.1%，其中 10% 目标数据下 Composite-Unseen 为 32.3% vs 22.7%；原文自述 “the resulting demonstrations vary in quality”（§4.4）。MimicGen 仅覆盖 60 个 atomic 任务，未覆盖任何 composite 任务（§3.4.1）。</li>
+<li><strong>为什么重要</strong>：数据规模是本文的三大核心贡献之一，且 §4.2 的主实验默认使用 Human300+MG60 全量组合——即用上了反而更差的组合。若合成数据不能提升下游性能，”超过 2,200 小时交互数据”的价值就要从”训练资源”改述为”待研究素材”；同时提示任何用该基准做预训练的后续工作都面临一个未标注的质量陷阱。</li>
+<li><strong>当前能够得出的判断</strong>：证据充分表明”在当前协议下加入 MimicGen 数据不改善、多数情形下劣化下游性能”（这是可对账的原文事实）；但”原因是数据质量差”只是作者解释——比较中同时改变了数据小时数（约 4 倍）、任务覆盖（+60 个原子任务）与优化步数&#x2F;轮数，无法把质量效应与规模效应分开（审稿人判断：存在混杂，作者结论未被隔离验证）。</li>
+<li><strong>如何验证或补强</strong>：报告逐条演示的质量度量（如物理可行性、动作平滑度、与人类演示的分布距离）；按质量分层的混合实验；控制总小时数或总梯度步的等预算对照；把 MimicGen 扩展到 composite 任务并复测；给出过滤后的最佳合成数据子集能否超过纯人类数据。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：”2-500-个独特场景”来自-50-个布局-×-50-个风格的组合与-50-套美国房源，论文未量化这些场景对真实世界的覆盖，预训练-目标风格”不重叠”也只是一句设计声明而无可核验清单。"><a href="#质疑：”2-500-个独特场景”来自-50-个布局-×-50-个风格的组合与-50-套美国房源，论文未量化这些场景对真实世界的覆盖，预训练-目标风格”不重叠”也只是一句设计声明而无可核验清单。" class="headerlink" title="质疑：”2,500 个独特场景”来自 50 个布局 × 50 个风格的组合与 50 套美国房源，论文未量化这些场景对真实世界的覆盖，预训练&#x2F;目标风格”不重叠”也只是一句设计声明而无可核验清单。"></a>质疑：”2,500 个独特场景”来自 50 个布局 × 50 个风格的组合与 50 套美国房源，论文未量化这些场景对真实世界的覆盖，预训练&#x2F;目标风格”不重叠”也只是一句设计声明而无可核验清单。</h4><ul>
+<li><strong>原文依据</strong>：§3.2（50 新布局 + 50 新风格组合出 2,500 场景；目标场景为 RoboCasa 原版 10 个；”We ensure that the pretraining and target styles do not overlap in the selection of the fixtures, appliances, or environment textures used.”）；Appendix D（50 套房源仅来自 Bay Area、Austin、Denver、Boston、Atlanta 五个都市区）；§5 结论自认 “the benchmark is currently limited to kitchen environments”；H.2&#x2F;Table 9 显示相机位姿扰动即造成约 10 个点下降。此外 49 个复合任务没有配套数据（见质疑五），”覆盖真实分布”的论证链在这些任务上断裂。</li>
+<li><strong>为什么重要</strong>：环境多样性是本文的核心自变量（§4.4、H.1 的结论都建立在场景数变化上）。若 2,500 个场景之间的差异主要是纹理与同类设施的实例替换（50 种真实户型 × 资产搭配），而布局结构只有 50 种，那么”多样性增益”结论对更广的厨房形态（乃至其他房间）的可推广性就受限；非重叠声明若无法审计，目标场景作为”未见环境测试集”的洁净度也无法独立验证。</li>
+<li><strong>当前能够得出的判断</strong>：当前材料只能确认作者的构造与声明（原文事实）与少量敏感性证据（相机扰动、场景数消融）；”2,500 &#x3D; 50×50 组合”与”完全不同分布的 2,500 个场景”是两回事，论文未提供场景间距离的量化（审稿人判断：覆盖范围与独立性均未被验证）。</li>
+<li><strong>如何验证或补强</strong>：公开 50 个布局与 50 个风格的元数据并做重叠审计（列出各风格使用的设施&#x2F;电器&#x2F;纹理清单）；用感知嵌入或几何指标量化 2,500 场景 vs 10 目标场景的分布距离；在真实家庭观测上测覆盖率；扩展至多房间或非厨房域以检验结论外推。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：所有结果均为单次训练、无方差与置信区间，且方法间比较混入算力、初始化与微调配置差异，任务级成功率从-0-到-93-，基准的排序结论缺乏统计可靠性。"><a href="#质疑：所有结果均为单次训练、无方差与置信区间，且方法间比较混入算力、初始化与微调配置差异，任务级成功率从-0-到-93-，基准的排序结论缺乏统计可靠性。" class="headerlink" title="质疑：所有结果均为单次训练、无方差与置信区间，且方法间比较混入算力、初始化与微调配置差异，任务级成功率从 0% 到 93%，基准的排序结论缺乏统计可靠性。"></a>质疑：所有结果均为单次训练、无方差与置信区间，且方法间比较混入算力、初始化与微调配置差异，任务级成功率从 0% 到 93%，基准的排序结论缺乏统计可靠性。</h4><ul>
+<li><strong>原文依据</strong>：Table 1–5、8–11 全表无误差棒、无种子数、无显著性检验（论文未报告）；§4.1 作者自述 “we do not claim that it is conclusively the superior method”，并列出 compute（如 batch size）、数据组成、是否微调骨干等影响因素；Appendix G.1 显示四方法 batch 192&#x2F;64&#x2F;64&#x2F;128、步数 250k&#x2F;75k&#x2F;75k&#x2F;120k，且只有后三者使用公开预训练检查点；Table 11 显示逐任务成功率 0%–93% 的极宽跨任务波动；Table 1 中 Composite-Unseen 上各方法差异（1.25 &#x2F; 0.7 &#x2F; 1.2 &#x2F; 4.4）在 30 次试验下只有零到一次成功的量级。</li>
+<li><strong>为什么重要</strong>：基准的首要价值是可靠排序与可靠比较；如果无方差、无重复，”GR00T N1.5 &gt; π0.5 &gt; π0 &gt; DP”与”复合任务成功率约 10%”这类被广泛引用的数字就无法区分方法效应与运行噪声；跨方法的训练预算不统一则使排名本身不可归因于方法能力。</li>
+<li><strong>当前能够得出的判断</strong>：证据不足——无法判断表 1 排序的可重复性；作者对混杂因素的披露是诚实的，但没有用实验（多 seed、等预算、统一微调策略）消除混杂（审稿人判断）。</li>
+<li><strong>如何验证或补强</strong>：每个设置至少 2–3 个随机种子并报告均值±标准差或 95% 置信区间；给出等算力&#x2F;等步数版本的方法对比；统一或至少分别声明各方法的微调策略（LoRA 对照 Table 10 已显示微调方式本身能造成 20.0 vs 1.2 的差距，说明这一变量影响巨大）；对 Composite-Unseen 这类近零指标改用更细的成功判定或更多试验次数。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：相对父基准-RoboCasa-的增量边界未被实验界定，”首个满足全部标准的仿真框架”的主张没有文献穷尽验证，社区缺少迁移到该基准的量化理由。"><a href="#质疑：相对父基准-RoboCasa-的增量边界未被实验界定，”首个满足全部标准的仿真框架”的主张没有文献穷尽验证，社区缺少迁移到该基准的量化理由。" class="headerlink" title="质疑：相对父基准 RoboCasa 的增量边界未被实验界定，”首个满足全部标准的仿真框架”的主张没有文献穷尽验证，社区缺少迁移到该基准的量化理由。"></a>质疑：相对父基准 RoboCasa 的增量边界未被实验界定，”首个满足全部标准的仿真框架”的主张没有文献穷尽验证，社区缺少迁移到该基准的量化理由。</h4><ul>
+<li><strong>原文依据</strong>：§2 的定位主要由规模数字构成（RoboCasa：100k 演示&#x2F;30 任务&#x2F;100 场景 vs 本文 &gt;500k&#x2F;300+&#x2F;2,500；”To our best knowledge, our work is the first simulation framework to satisfy all of these criteria.”）；§3.1–§3.3 显示 25 个原子任务、83 个复合任务、10 个目标场景、2,509 个对象、控制器与动作空间（Appendix B.2）均直接继承 RoboCasa；实验中没有在 RoboCasa 原版上运行同一批方法，也未与 BEHAVIOR-1k、ManiSkill3、LIBERO 等做同任务&#x2F;同方法的交叉比较。</li>
+<li><strong>为什么重要</strong>：基准类工作的价值主张应是”新基准能测出旧基准测不出的东西”（例如更长的任务、更难的组合泛化、更多样的场景压力）。如果论文只展示自身数字而不展示”换到旧基准后结论如何变化”，那么增量价值只剩规模；对希望迁移的社区而言缺少决策依据。</li>
+<li><strong>当前能够得出的判断</strong>：只能确认规模层面的巨大差异与协议更完整（原文事实）；新颖性的”不可替代性”未被实验证明，属作者主张（审稿人判断）。是否”首个”需要更完整的独立文献检索才能判定，论文自身的 related work 未给出穷尽比较。</li>
+<li><strong>如何验证或补强</strong>：在 RoboCasa 原版上复跑同一批方法并对比结论（如”在 RoboCasa 上多任务排名是否与 RoboCasa365 一致”）；给出只保留旧任务&#x2F;旧场景的消融子集；对新增 40 个原子任务与 217 个复合任务提供难度分层统计；与最近的大规模基准做方法论对表（任务数、演示数、评测协议、场景数）。</li>
+<li><strong>严重程度</strong>：次要问题（不否定其可用性，但削弱”替代性”论证）。</li>
+</ul>
+<h4 id="质疑：文中存在多处数字与口径不一致，涉及核心资源规模的可引用性。"><a href="#质疑：文中存在多处数字与口径不一致，涉及核心资源规模的可引用性。" class="headerlink" title="质疑：文中存在多处数字与口径不一致，涉及核心资源规模的可引用性。"></a>质疑：文中存在多处数字与口径不一致，涉及核心资源规模的可引用性。</h4><ul>
+<li><strong>原文依据</strong>：(1) 人类预训练数据小时数：§3.4.3 与 Table 7 为 404 小时，§4.2 为 411 小时，HTML 与 PDF 两版均如此；(2) Table 5 脚注称平均提升 “18.1%”，而 61.8→79.8 的实际差为 18.0（逐任务差均值亦为 18.0）；(3) §3.4 称数据集 “covering all of our tasks”，但 §3.4.1&#x2F;§3.4.2 显示 365 个任务中只有 300 个（预训练）+ 16 个（Composite-Unseen 目标）有数据，据此推算 49 个复合任务没有任何配套数据集——“覆盖全部任务”与原文数字自相抵触（审稿人依原文推算）；(4) 附录 E.2 文字写 “Tables 7, 8, and 9”，实际是 Figures 7–9，还与附录 F 的真 Table 7（数据集统计）撞号；(5) Fig. 1 标注 “3200+ Objects”，正文只给出继承的 2,509 个对象与新增 57 个类别（新增数量未报告）。</li>
+<li><strong>为什么重要</strong>：数据规模（小时数、轨迹数、覆盖率）正是社区引用该基准时最需要的口径；两三处小错不改变”600+ 小时人类数据、1,600+ 小时合成数据、&gt;50 万轨迹”的量级结论，但会直接进入他人的论文表格与使用决策，影响可复现性与信任。</li>
+<li><strong>当前能够得出的判断</strong>：存在多个可对账的笔误&#x2F;口径问题（原文事实层面可核实）；不影响主结论成立，但需作者勘误与数据清单披露。</li>
+<li><strong>如何验证或补强</strong>：作者勘误上述数字与表述；随数据集发布逐任务的演示数、小时数与覆盖率清单；在项目页给出脚本可复算的 Table 7 统计。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现通用机器人缺少可复现的大规模训练与评测资源，因此在 RoboCasa 之上把厨房移动操作仿真扩展为 365 任务、2,500 场景、600+ 小时人类演示加 1,600+ 小时合成演示的基准 RoboCasa365，并把多任务训练、基础模型训练与终身学习固化为三套协议。实验在四个已有策略上表明：复合任务至今无人及格（最好 9.6%）、预训练带来约 3× 数据效率（Table 2、Fig. 5）、终身学习存在严重遗忘（41.5%→10.6%，Table 3）；其中”任务多样性有益、场景多样性有益、全量微调必要”等证据较扎实（Tables 4、8、10），但”合成数据质量导致性能下降”的因果解释、跨场景&#x2F;真机的泛化范围、以及任何排序结论的统计可靠性仍缺少充分支持（无方差、单次运行、比较混杂）。本文最有价值的部分是大规模且诚实的基准套件与负面结果披露（合成数据有害、LoRA 失效、遗忘严重），最大的审稿风险是把”资源规模”当作”科学结论”的对价——数据多不等于数据有用，这一点论文自己的 Table 4 已给出反例。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。gap 论证（§1–§2 的规模对比）、四个研究问题（§4 开头）与三条协议的任务口径都很明确，作者还主动自限结论范围（§4.1 的方法排名声明、§5 的厨房域自限）。</li>
+<li><strong>创新性证据</strong>：中。增量是真实的规模扩张（场景 120→2,500、任务 30→365、数据 100k→500k+）与更完整的评测套件，但任务生成流程、控制器、动作空间、对象库与 108 个任务继承自 RoboCasa，且”首个满足全部标准”的主张未做穷尽比较（§2；见质疑四）。</li>
+<li><strong>方法可信度</strong>：中。工程细节与训练超参披露充分（Appendix B、G），任务与场景构建可核查；但方法比较混入算力&#x2F;初始化差异（Appendix G.1）、关键结论无方差（Tables 1–5），合成数据质量问题的机制未被隔离验证（§4.4；见质疑一、三）。</li>
+<li><strong>实验支持力度</strong>：中。实验面板丰富（三协议 + 组成、场景、鲁棒性、共训、LoRA、逐任务共 11 张表），且不回避负面结果；但主结果全部在自家仿真内、真机仅 4 任务&#x2F;20 次试验，且没有统计显著性与重复实验（§4.2、§4.5）。</li>
+<li><strong>可复现性</strong>：中。论文声明开源全部模型（§4.2）并给出完整训练与评测协议（Appendix G.2：每任务 30 次试验）、数据集字段说明（Appendix F）与资产清单（Table 6）；但未报告随机种子，未披露数据集下载与许可证信息，49 个无数据任务的清单缺失，且本次精读未下载数据&#x2F;代码核验——这些只能记为”论文声称可复现、实际可复现性无法确认”（按规范记为”中”，证据来自文档披露程度而非实际复现）。</li>
+<li><strong>综合阅读价值</strong>：高。对计算机专业学生而言，这是理解”机器人学习基准长什么样、怎么构建、怎么被质疑”的完整样本：协议设计（场景分离、任务 split）、评测口径（30 次试验×50 任务）、以及对复合任务&#x2F;终身学习现状的清醒数据都值得反复参考；阅读时应带着质疑一至五的视角看它的数字。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> RoboCasa365: A Large-Scale Simulation Framework for Training and Benchmarking Generalist Robots</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-09 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-09 16:26:09
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/09/2603.04356v1_RoboCasa365_A_Large-Scale_Simulation_Framework_for_Training_and_Benchmarking_Generalist_Robots/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E5%AD%A6%E4%B9%A0/">#机器人学习</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E4%BB%BF%E7%9C%9F%E5%9F%BA%E5%87%86/">#仿真基准</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E7%A7%BB%E5%8A%A8%E6%93%8D%E4%BD%9C/">#移动操作</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B/">#机器人基础模型</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%A8%A1%E4%BB%BF%E5%AD%A6%E4%B9%A0/">#模仿学习</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E7%BB%88%E8%BA%AB%E5%AD%A6%E4%B9%A0/">#终身学习</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/09/2604.05014v1_StarVLA_A_Lego-like_Codebase_for_Vision-Language-Action_Model_Developing/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">StarVLA: A Lego-like Codebase for Vision-Language-Action Model Developing</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/09/2609.38173v2_In-context_Robot_Learning_Made_Simple_A_Democratized_Recipe_for_Manipulation_Tasks/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">In-context Robot Learning Made Simple: A Democratized Recipe for Manipulation Tasks</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">RoboCasa365: A Large-Scale Simulation Framework for Training and Benchmarking Generalist Robots</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 105 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

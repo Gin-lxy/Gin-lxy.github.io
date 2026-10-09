@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/09/2610.12299v1_multi-agent_egocentric_world_model_with_fine-grained_embodied_interaction/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Multi-Agent Egocentric World Model with Fine-Grained Embodied Interaction">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/09/2610.12299v1_Multi-Agent_Egocentric_World_Model_with_Fine-Grained_Embodied_Interaction/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-09T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-09T08:26:09.513Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="世界模型">
+<meta property="article:tag" content="具身交互">
+<meta property="article:tag" content="多智能体">
+<meta property="article:tag" content="扩散模型">
+<meta property="article:tag" content="视频生成">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Multi-Agent Egocentric World Model with Fine-Grained Embodied Interaction | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">336</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">105</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Multi-Agent Egocentric World Model with Fine-Grained Embodied Interaction</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-09 12:00</span>
+        <span class="mobile">2026-10-09 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-09 16:26:09</span>
+            <span class="mobile">2026-10-09 16:26:09</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/">世界模型</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%A7%86%E9%A2%91%E7%94%9F%E6%88%90/">视频生成</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B/">扩散模型</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93/">多智能体</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%85%B7%E8%BA%AB%E4%BA%A4%E4%BA%92/">具身交互</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Dahyun Chung、Siyoon Jin、Hyunwook Choi、Honggyu An、Junyoung Seo、Hyunsung Kim、Seung Wook Kim†、Seungryong Kim†（KAIST AI；† 为共同通讯作者。项目页：<a class="link"   target="_blank" rel="noopener" href="https://cvlab-kaist.github.io/ME-World/" >https://cvlab-kaist.github.io/ME-World/<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ，官方仓库：<a class="link"   target="_blank" rel="noopener" href="https://github.com/cvlab-kaist/ME-World" >https://github.com/cvlab-kaist/ME-World<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ，截至 2026-10-09 仅发布 README 与项目素材，推理代码、模型权重与训练代码均标注 “Code-released soon” 尚未发布）。</p>
+<p>论文：2610.12299v1（arXiv 版本列表仅 v1）；来源：Hugging Face Daily Papers 2026-10-09 批次，默认顺序第 7 位；精读归档日期：2026-10-09（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.12299" >https://huggingface.co/papers/2610.12299<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.12299v1" >https://arxiv.org/abs/2610.12299v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>（全文 HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.12299v1" >https://arxiv.org/html/2610.12299v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>）</p>
+<p>分析范围：官方 PDF v1（27 页）与 arXiv HTML v1 全文；两版均含完整正文 §1–§5 与附录 A–D（HTML 文本末段与 PDF 的 §D.2 结尾一致，可逐句互相核对），Table 1–5、Figure 1–13 均已核查。关键数字（S_env 0.468、FVD 637.9、Table 5 控制验证值等）经 PDF 与 HTML 双向计数核对一致。正文引用的 6 张图片（论文 Fig. 1–6）取自 HTML 高清原图（约 2040 px 宽）并逐张目视核验。<strong>材料完整</strong>。需要说明的「论文未报告」项：训练总时长与迭代步数、推理时延与显存、数据构建的算力与人工成本、任何方差&#x2F;置信区间&#x2F;显著性检验、真实基准上的 S_id（论文明确记为 N&#x2F;A，不适用）。</p>
+<p>标签：世界模型、视频生成、多智能体、具身交互、扩散模型。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文把「多智能体第一人称世界模型」（multi-agent egocentric world model）形式化为：为共享世界中通过细粒度具身动作（肢体、手部、头部运动）交互的多个智能体<strong>同步</strong>生成各自的自我中心视频流（ego stream），并要求跨视角动作一致、共享环境一致、交互引发的状态更新一致（§3.1）。作者提出的 ME-World 用三个机制应对——把多条 ego 流放进<strong>同一条 token 序列联合去噪</strong>、用「共享动作条件」把全部智能体的姿态投影进每个目标视角、用「共享环境记忆」（按目标视角 warp 的历史证据 + 干净锚帧）锚定同一环境（§3.2–§3.4）。在论文自建的两个 100 片段基准（真实 CoMind 与合成场景）上，ME-World 在共享世界一致性、动作控制与视频质量上普遍优于零样本基线与受控适配的多智能体基线（Table 1、Table 2）；但关键幅度（相对最强适配基线 MetaWorld 的 S_env +0.047）没有方差或显著性检验，真实基准上基线均为零样本而 ME-World 经过域内微调，合成基准上相机控制的个别指标还略逊于 AnyView（Trans. Err. 0.293 vs 0.23）——结论应限定在「论文自定义的两个基准与三个新指标上有效」，而非「普遍解决多智能体世界模拟」。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>研究背景与具体任务。</strong> 视频世界模型（world model）在动作条件下预测未来观测（Ha &amp; Schmidhuber, 2018；§1 开篇）；近年扩展到 egocentric world model（第一人称视角世界模型），即具身智能体在自身动作条件下预测未来的第一人称观测，称为 ego stream（自我中心视频流）。但绝大多数现有工作假设只有一个具身主体（§1）。真实场景中多个智能体共存、互相交互、并与共享物体共同改变环境的演化状态——论文称之为「共享世界状态（shared world state）」：一次交互必须能从<strong>每个</strong>智能体的视角被看见，由此产生的状态变化必须<strong>同时</strong>反映在所有观测里。论文的任务因此是：给定每个智能体的未来动作序列（含头动与肢体动作）、文本提示、初始 ego 帧与观测历史，联合生成所有智能体的未来 ego 流，使每条流既服从自己的动作、又与同一条不断演化的共享世界保持一致（§3.1）。</p>
+<p><strong>现有方法通常如何处理。</strong> 两条路。一是单智能体 egocentric world model（EgoSim、JointControlVideo 等），每条流独立生成，每条流只条件化自己的动作；二是已有的多智能体&#x2F;多视角世界模型（MultiWorld、Solaris、γ-World、MetaWorld；多视图生成 GEN3C、AnyView），它们把动作抽象为低维粗控制——多人游戏中的离散指令、驾驶与视频中的相机轨迹、机器人操作中的控制信号（§1）。</p>
+<p><strong>现有方法在什么条件下表现不好。</strong> 论文的论证是概念性的：粗动作抽象无法刻画<strong>细粒度具身动作的双重角色</strong>——同一动作既是第一人称的控制输入（我的手臂怎么动），又是别的视角下可观察的事件（对方看到我的手如何移动）。论文把由此产生的失败模式拆成三类（Fig. 2，真实厨房场景示意）：</p>
+<ol>
+<li><strong>动作不一致（action inconsistency）</strong>：若每条流只接收自己的动作，同一交互在不同视角下渲染出的动作时序互不匹配（Fig. 2a）；</li>
+<li><strong>环境不一致（environment inconsistency）</strong>：独立生成的流会画出冲突的布局、外观或物体（Fig. 2b）；</li>
+<li><strong>状态更新不一致（state update inconsistency）</strong>：交互改变共享物体状态（例如被挪动的平底锅）后，只有部分视角反映该变化，甚至不同流给出互相矛盾的物体状态（Fig. 2c）。</li>
+</ol>
+<p><img src="/images/dailypaper/2026-10-09/2610.12299_fig2.png" alt="论文 Fig. 2：动机图。三列分别对应三类失败模式——(a) 动作不一致、(b) 环境不一致、(c) 状态更新不一致；每列左为基线、右为 ME-World，红框标出不一致区域，底部文字标签写明 &quot;Inconsistent Action/Env./State&quot; 与 &quot;Consistent...&quot;（本报告图 images/2610.12299_fig2.png，对应论文 Fig. 2）"></p>
+<p><strong>作者发现的新现象与被忽略的问题。</strong> 两点：(1) 细粒度交互（手、臂、身体姿势、注视引起的视角变化）在共享世界中必须跨流同步，而现有粗控制工作没有处理这一需求（§1）；(2) 评测层面，现有跨视角一致性指标（几何一致性、VLM 判别）所测的一致性可能<strong>直接来自共享的输入条件</strong>（例如参考视频流、warp 出的历史证据），因此无法隔离「模型自己建立的一致性」（§4.1）。第 (2) 点直接催生了新指标 S_env：只在<strong>没有</strong> warp 证据覆盖的区域测量环境一致性。</p>
+<p><strong>支撑证据。</strong> Fig. 2 是示意性的失败模式图（论文未说明该图是真实基线运行结果还是作者构造的示意）；§4.1 对「条件喂出一致性」的论证是概念性的，直接证据是附录 B.1.2 的定性可视化（Fig. 11）与受控注入实验（Table 5，见 §4.3）。<strong>审稿人判断：论文观察到了现象级证据（Table 1 中现有方法 S_env 在 0.25–0.42 区间），但没有对既有指标做系统性实证审计来证明它们确实”偏好被条件喂出的一致性”。</strong></p>
+<p><strong>作者对原因的归因。</strong> 细粒度多体交互要求跨智能体的动作条件（不只是自己的动作）与共享环境证据（不只是自己的历史）；缺少任一项时，仅靠联合注意力不足以对齐动作与背景（§3.3–§3.4）。</p>
+<p><strong>核心假设。</strong> 把三个机制组合起来——联合生成、共享动作条件、共享环境记忆——就能在不牺牲视频质量的前提下显著提升共享世界一致性，并让细粒度动作控制跨视角对齐。</p>
+<p><strong>三类问题的区分。</strong></p>
+<ul>
+<li><strong>领域早已存在的一般问题</strong>：世界模型中的长时程一致性；多视角&#x2F;多智能体生成中的跨视角一致性；ego 视频生成的动作可控性。</li>
+<li><strong>本文的新观察</strong>：细粒度具身动作具有「第一人称控制 + 跨视角可观察事件」的双重角色；现有一致性指标可能被输入条件本身满足，从而高估模型能力。</li>
+<li><strong>本文实际解决的具体子问题</strong>：在两个智能体、77 帧（10 FPS，约 7.7 秒；秒数为按帧率换算）、480–504 px 分辨率的设定下，同步生成两条 ego 流，并配套真实+合成数据管线与共享世界一致性指标。</li>
+</ul>
+<blockquote>
+<p>教学简化示例（非论文实验）：两个人握手。对 Agent 1，这是自己手部骨架的控制输入；对 Agent 2，这是其视野中出现的”事件”。如果两条流各自只条件化自己的动作，Agent 2 的流完全可能生成一段与自己视角下对方手臂不一致的接触时序——这正是 Fig. 2a 所示失败模式的直觉版本。</p>
+</blockquote>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p><strong>总括。</strong> ME-World 的技术增量不是一个新算法，而是「问题设定 + 条件设计 + 数据与评测」的组合：核心是把多个 ego 流当作<strong>同一个预训练多视图扩散 Transformer（diffusion transformer, DiT）内的一个联合去噪问题</strong>（Cosmos-Predict2.5 2B，§4.2、附录 D.1），把<strong>全部</strong>智能体的身体与头部运动投影进每个目标视角作为动作条件，再用两条互补的记忆通道（warp 到目标视角的几何证据 + 干净的共享锚帧）把各流锚定到同一环境。真正有辨识度的是第三个机制与新评测指标；方法层面更多是已有组件的重新组合与工程实现。</p>
+<p><strong>创新点 1：联合多智能体生成（joint multi-agent generation）。</strong></p>
+<ul>
+<li><strong>新增机制</strong>：所有智能体的噪声潜码按 token 维拼接为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>Z</mi><mi>τ</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></msubsup><mo>=</mo><mo stretchy="false">[</mo><msubsup><mi>Z</mi><mi>τ</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msubsup><mo separator="true">;</mo><mo>…</mo><mtext> </mtext><mo separator="true">;</mo><msubsup><mi>Z</mi><mi>τ</mi><mrow><mo stretchy="false">(</mo><mi>N</mi><mo stretchy="false">)</mo></mrow></msubsup><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">Z^{\mathrm{gen}}_{\tau}=[Z^{(1)}_{\tau};\dots;Z^{(N)}_{\tau}]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9303em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.453em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">gen</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2948em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.5834em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mtight">1</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1166em;"><span></span></span></span></span></span></span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.5834em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1166em;"><span></span></span></span></span></span></span><span class="mclose">]</span></span></span></span>（Eq. (1), §3.2），在单个 DiT 内共享自注意力、共同去噪；所有流使用相同的旋转位置编码（rotary positional embedding, RoPE）对齐到公共时空坐标系，用可学习的 agent embedding <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>e</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msup></mrow><annotation encoding="application/x-tex">e^{(n)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.888em;"></span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span></span></span></span> 区分流身份；文本交叉注意力按流独立（不同智能体提示不同、观察同一场景的不同区域）(§3.2)。</li>
+<li><strong>与最接近方法的差异</strong>：单智能体基线逐流独立生成；γ-World 用 Sparse Hub Attention 通过 hub token 通信而非全自注意力；MultiWorld&#x2F;MetaWorld 的适配版保留各自机制（Table 3）。与底座本身（Cosmos-Predict2.5 已是多视图 DiT）的差异在于：这里每条流属于一个<strong>动作主体不同</strong>的智能体，且动作条件来自跨智能体投影。</li>
+<li><strong>类型</strong>：已有组件（多视图 DiT、token 拼接、agent embedding）在新问题设定下的组合与接口设计。</li>
+<li><strong>如何对应问题</strong>：直接对应”多条流必须作为同一世界的耦合观测”这一形式化目标（§3.2 首段）。</li>
+<li><strong>原文证据</strong>：Table 4 中变体 (7)（其余组件全开、仅去掉联合生成）→ (8)（完整模型）使真实基准 S_env 0.433→0.468、S_update 0.422→0.466；Fig. 7 中缺少联合生成的变体在不同视角间出现外观与环境的分歧。</li>
+<li><strong>移除后变化</strong>：见上；但这是三个增量中最小的一个（S_env +0.035），且没有方差报告（见 §5 质疑三）。</li>
+</ul>
+<p><strong>创新点 2：共享动作条件（shared action conditioning）。</strong></p>
+<ul>
+<li><strong>新增机制</strong>：每条 ego 流的动作条件包含<strong>全部</strong>智能体的运动，而非仅自己的（§3.3）。动作分解为身体与头部：身体动作渲染为自我动作骨架图（self-action skeleton map，捕捉本视角可见的手&#x2F;臂运动），其他智能体的 3D 身体姿态按相对相机几何<strong>投影进目标视角</strong>；头部动作以 Plücker ray maps（Plücker 射线图）给出逐像素相机光线，所有流共享同一 canonical 坐标框架。姿态序列用冻结的 VAE 编码器编码、光线图用 MLP 投影，二者与噪声潜码通道拼接。</li>
+<li><strong>与最接近方法的差异</strong>：相对”只条件化自己动作”（Table 4 中变体 (3)(4)(6) 使用 self hand pose），共享动作条件显式提供跨智能体运动线索；相对多视图生成基线（GEN3C&#x2F;AnyView 依赖 GT 参考视频流与相机轨迹，没有跨智能体动作条件）也有区别。</li>
+<li><strong>类型</strong>：条件构造层面的新设计（把跨智能体姿态投影进目标视角），其中骨架图与光线图表示本身是已有技术（如 E3C 的手部控制、相机控制中的 Plücker 表示）。</li>
+<li><strong>如何对应问题</strong>：直接对应失败模式 (a)—跨视角动作一致。</li>
+<li><strong>原文证据</strong>：Table 4 变体 (4)→(5)（在联合生成基础上加共享动作条件）：真实基准 Full-Body-F1 0.563→0.803、Full-Body-PCK 0.416→0.809、S_env 0.426→0.445；Fig. 7 显示缺它时跨视角动作错位。</li>
+<li><strong>移除后变化</strong>：other-agent（对方智能体）动作控制指标大幅下降，交互时序跨视角不对齐。</li>
+</ul>
+<p><strong>创新点 3：共享环境记忆（shared environment memory）双通道。</strong></p>
+<ul>
+<li><strong>新增机制</strong>（§3.4）：(i) <strong>流对齐几何记忆</strong>——从所有智能体汇总的观测历史池中，为每条目标流选取重投影覆盖最大的历史帧，按目标光线条件 warp 到目标视角，得到 warped RGB 条件 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>X</mi><mrow><mi mathvariant="normal">w</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">p</mi></mrow><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup></mrow><annotation encoding="application/x-tex">X^{(n)}_{\mathrm{warp}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.2975em;vertical-align:-0.2527em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.5834em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">warp</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2527em;"><span></span></span></span></span></span></span></span></span></span> 与可见性掩码（visibility mask）<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>M</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi></mrow><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup></mrow><annotation encoding="application/x-tex">M^{(n)}_{\mathrm{vis}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.3275em;vertical-align:-0.2827em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.4173em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">vis</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2827em;"><span></span></span></span></span></span></span></span></span></span>；warp 前用 SAM3 剔除动态人区域，避免把旧姿态带入新帧。(ii) <strong>跨流锚记忆</strong>——贪心选取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi></mrow><annotation encoding="application/x-tex">K</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span></span></span></span> 个在目标视角覆盖上互补的干净（未 warp）历史观测作为共享锚 token，追加到联合去噪序列（实现中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mo>=</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">K=4</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">4</span></span></span></span>，附录 D.1），供<strong>所有</strong>流共同注意，锚定全局外观。扩展后的输入为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>Z</mi><mi>τ</mi><mrow><mi mathvariant="normal">j</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">t</mi></mrow></msubsup><mo>=</mo><mo stretchy="false">[</mo><msubsup><mi>Z</mi><mi>τ</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></msubsup><mo separator="true">;</mo><msub><mi>Z</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">f</mi></mrow></msub><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">Z^{\mathrm{joint}}_{\tau}=[Z^{\mathrm{gen}}_{\tau};Z_{\mathrm{ref}}]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0775em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8305em;"><span style="top:-2.453em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">joint</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.453em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">gen</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0778em;">ref</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">]</span></span></span></span>（§3.4，正文给出的公式未编号）。</li>
+<li><strong>与最接近方法的差异</strong>：论文明确对比”把历史图当 reference image”的隐式条件——那不让模型知道每帧该画什么（因为图不一定与目标视角对齐）；双通道分别提供”几何对齐的证据（但只在覆盖区域有效、且丢弃原始外观）”与”覆盖不全但外观干净的整体锚点”，互补（§3.4）。与 MultiWorld 的 VGGT 全局状态编码器、MetaWorld 的 world-state alignment 的对照见 Table 3 的受控适配。</li>
+<li><strong>类型</strong>：已有组件（重投影&#x2F;warp、reference token、贪心覆盖选取）的组合，整套双通道设计是新的。</li>
+<li><strong>如何对应问题</strong>：对应失败模式 (b)(c)—共享环境与状态更新的一致传播。</li>
+<li><strong>原文证据</strong>：Table 4 变体 (4)→(6)（加共享环境记忆）：S_env 0.426→0.456、S_update 0.421→0.455；与共享动作条件互补——(5)（含动作、无记忆）在 other-agent 控制上强（Full-Body-F1 0.803），(6)（含记忆、无动作）在一致性上强（S_env 0.456）；而变体 (7)（同时含共享动作与共享环境记忆、但缺联合生成）虽然对方动作控制最强（Full-Body-F1 0.813、PCK 0.847），S_env 只有 0.433、低于 (5)(6)——说明两组件之外，一致性还依赖联合生成。</li>
+<li><strong>移除后变化</strong>：跨流背景&#x2F;布局不一致（Fig. 7 第 3、4、5 列）。</li>
+</ul>
+<p><strong>创新点 4：真实+合成数据管线与共享世界一致性指标。</strong></p>
+<ul>
+<li><strong>新增数据构造</strong>：合成数据把 Inter-X（1,372 条序列、40 类交互）与 InterHuman（450 条）的双人动作重定向到 100 个 VRM 头像，放置于 7 个 Blender 室内外场景的 53 个有效站位，同步渲染双 ego 流，得到 4,736 对 77 帧片段（&#x3D;9,472 个视频；10 FPS、504×504；附录 C.1）。真实数据把 CoMind（双人协作厨房、双穿戴者）整理为约 12K 对同步双 ego 片段（32 段录制；每样本 200 帧上下文 + 77 帧目标；附录 C.2），其中全身 2D 姿态由 Sapiens2 估计、度量深度由 DA3 估计、人类区域用 SAM3 剔除、文本描述由 Qwen3.6-35B-A3B 生成。</li>
+<li><strong>新增指标</strong>：S_env（只测无 warp 证据覆盖区域的环境一致性）、S_update（测 warp 未覆盖但被判定为”交互引发的状态变化”区域的一致性）、S_id（合成基准上的对方角色身份保持，identity consistency），均为在 GT 几何建立的共视对应（co-visible correspondence）上的 DINOv3 特征余弦相似度（§4.1；实现细节 Eq. (2)–(8)、附录 B.1.1）。</li>
+<li><strong>类型</strong>：数据工程 + 评测协议设计，是本文最有辨识度的贡献；算法层面的新意有限。</li>
+<li><strong>原文证据</strong>：Table 5 受控验证（在 100 个片段上注入跨视角不一致）：环境冲突使 S_env 下降 0.090 而 S_update 只降 0.019；状态冲突使 S_update 下降 0.147 而 S_env 只降 0.059——两指标对各自目标冲突敏感、互相区分（附录 B.1.2）。</li>
+<li><strong>边界</strong>：S_id 只在合成基准报告；S_env&#x2F;S_update 依赖 GT（真实数据上为 SLAM 位姿 + DA3 估计深度）几何。</li>
+</ul>
+<p><strong>不属于创新、但影响观感的因素</strong>（按规范显式排除）：底座是现成的 Cosmos-Predict2.5 2B（更大&#x2F;更强基础模型不构成创新，此处甚至是 2B 的小模型）；SAM3、DA3、Sapiens2、YOLOX、ViTPose、DINOv3、I3D、Qwen3.6-35B-A3B、Wan-2.1 VAE、Cosmos-Reason1 7B 文本编码器均为直接使用的现有模型，论文未对它们改进；两个新基准是自建数据（更换数据集或指标本身不自动构成创新，其价值由 Table 5 的指标验证支持）。</p>
+<p><strong>关于原创边界。</strong> 论文没有声称”首次提出多智能体世界模型”（related work 明确列出 Savva et al. 2026、Wu et al. 2026、Hu et al. 2026b、Liu et al. 2026 等先行工作），其声称的差异是”细粒度具身交互下的同步 ego 流生成”。Table 2–3 的受控适配为”ME-World 的组件组合在该设定下确实有效”提供了对照；但是否构成该问题在文献中的首次系统化，需要更完整的文献检索，本文的 related work 没有做到穷尽的覆盖论证。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉。</strong> 如果多个智能体共享同一个世界，那么每条 ego 流都不是独立的视频，而是同一个演化场景的不同观测。于是最自然的设计是三条并行：**(1) 让所有流一起去噪<strong>，使信息可以在流之间流动（联合生成）；</strong>(2) 告诉每条流”所有人怎么动”<strong>——不只自己的骨架，还包括对方被投影进自己视角的身体姿态（共享动作条件），这样一次交互在两条流里必须画成同一件事；</strong>(3) 给所有流”同一份场景证据”**——把历史观测按目标视角几何 warp 成对齐证据，再挑几张干净的历史帧作为全局锚点（共享环境记忆），使新增区域与背景外观有共同依据。Fig. 1 是这一设计的输入输出示意：左侧给定了两个智能体的身体&#x2F;头部运动、身份与共享世界的选择、以及各自视角的首帧；右侧是模型为两个视角同步生成的 77 帧视频，两视角中角色身份、场景外观、以及”交互结果”（谁把手伸向哪里、接触是否发生）保持一致。</p>
+<p><img src="/images/dailypaper/2026-10-09/2610.12299_fig1.png" alt="论文 Fig. 1：Teaser。(a) 输入：两个智能体的身体运动与头部姿态、角色身份与共享世界选择、两个视角的首帧初始化；(b) 生成视频：Agent 1 与 Agent 2 两条 ego 流在 Frame #1/#15/#30/#45/#60/#70/#77 上同步、且交互结果一致（本报告图 images/2610.12299_fig1.png，对应论文 Fig. 1）"></p>
+<p><strong>按实际运行流程展开。</strong></p>
+<ol>
+<li><strong>输入是什么。</strong> 每个智能体 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">n</span></span></span></span> 的未来 ego 流记为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>X</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msup><mo>=</mo><mo stretchy="false">{</mo><msubsup><mi>x</mi><mi>t</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup><msubsup><mo stretchy="false">}</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mi>T</mi></msubsup></mrow><annotation encoding="application/x-tex">X^{(n)}=\{x^{(n)}_t\}_{t=1}^{T}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.888em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">X</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2948em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.4542em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2458em;"><span></span></span></span></span></span></span><span class="mclose"><span class="mclose">}</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-2.4519em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2481em;"><span></span></span></span></span></span></span></span></span></span>、动作序列 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>A</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msup><mo>=</mo><mo stretchy="false">{</mo><msubsup><mi>a</mi><mi>t</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">A^{(n)}=\{a^{(n)}_t\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.888em;"></span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2948em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.4542em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2458em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span>（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>a</mi><mi>t</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup><mo>=</mo><mo stretchy="false">{</mo><msubsup><mi>a</mi><mrow><mi>t</mi><mo separator="true">,</mo><mrow><mi mathvariant="normal">b</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">y</mi></mrow></mrow><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup><mo separator="true">,</mo><msubsup><mi>a</mi><mrow><mi>t</mi><mo separator="true">,</mo><mrow><mi mathvariant="normal">h</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">d</mi></mrow></mrow><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">a^{(n)}_t=\{a^{(n)}_{t,\mathrm{body}},a^{(n)}_{t,\mathrm{head}}\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.2906em;vertical-align:-0.2458em;"></span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.4542em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2458em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.4822em;vertical-align:-0.4374em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.3987em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0139em;">body</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.4374em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.3987em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mtight"><span class="mord mathrm mtight">head</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.4374em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span>，即身体与头部两部分），另有文本提示 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>P</mi><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msup></mrow><annotation encoding="application/x-tex">P^{(n)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.888em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span></span></span></span>、初始 ego 帧 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>x</mi><mn>0</mn><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup></mrow><annotation encoding="application/x-tex">x^{(n)}_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.3111em;vertical-align:-0.2663em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.4337em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2663em;"><span></span></span></span></span></span></span></span></span></span>；所有智能体的观测历史汇入共享历史池 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>E</mi></mrow><annotation encoding="application/x-tex">E</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">E</span></span></span></span>（§3.1）。注意：<strong>未来动作序列是输入</strong>（在论文实验中来自数据集的 GT 动作），不是模型预测的对象。</li>
+<li><strong>条件构造（固定几何流程，不学习）</strong> 见 Fig. 3(a)：头部运动渲染为 Plücker ray 图 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>X</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">y</mi></mrow><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup></mrow><annotation encoding="application/x-tex">X^{(n)}_{\mathrm{ray}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.2975em;vertical-align:-0.2527em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.5834em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0139em;">ray</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2527em;"><span></span></span></span></span></span></span></span></span></span>（表达由头动诱导的逐像素相机光线，统一到 canonical 坐标系，经 MLP 投影）；身体运动构造姿态条件 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>X</mi><mrow><mi mathvariant="normal">p</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi></mrow><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup></mrow><annotation encoding="application/x-tex">X^{(n)}_{\mathrm{pose}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.2975em;vertical-align:-0.2527em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.5834em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">pose</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2527em;"><span></span></span></span></span></span></span></span></span></span>——把自己的骨架图与其他智能体的 3D 身体姿态按相对相机几何投影到目标像平面，经冻结 VAE 编码；共享环境记忆产生 warp 条件 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>X</mi><mrow><mi mathvariant="normal">w</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">p</mi></mrow><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup></mrow><annotation encoding="application/x-tex">X^{(n)}_{\mathrm{warp}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.2975em;vertical-align:-0.2527em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.5834em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">warp</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2527em;"><span></span></span></span></span></span></span></span></span></span> 与可见性掩码 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>M</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi></mrow><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup></mrow><annotation encoding="application/x-tex">M^{(n)}_{\mathrm{vis}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.3275em;vertical-align:-0.2827em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.4173em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">vis</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2827em;"><span></span></span></span></span></span></span></span></span></span>（选择重投影覆盖最大的历史帧、用 SAM3 剔除动态人、按目标光线 warp，经冻结 VAE 编码）；跨流锚记忆给出干净锚帧特征 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>Z</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">f</mi></mrow></msub></mrow><annotation encoding="application/x-tex">Z_{\mathrm{ref}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0778em;">ref</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（贪心覆盖选取，附 ray 与共享动作条件）。以上条件与噪声潜码做通道拼接。</li>
+<li><strong>每步由什么组件执行。</strong> 几何投影、warp、掩码、锚选取全部由固定的几何流水线（含 SAM3、VAE 编码器等现成模块）执行；唯一被训练的是 DiT 主干与条件模块（§4.2、附录 D.1–D.2）。</li>
+<li><strong>联合去噪（模型决定的部分）</strong> 见 Fig. 3(b)：所有智能体的潜码与锚帧拼成一条 token 序列 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>Z</mi><mi>τ</mi><mrow><mi mathvariant="normal">j</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">t</mi></mrow></msubsup><mo>=</mo><mo stretchy="false">[</mo><msubsup><mi>Z</mi><mi>τ</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></msubsup><mo separator="true">;</mo><msub><mi>Z</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">f</mi></mrow></msub><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">Z^{\mathrm{joint}}_{\tau}=[Z^{\mathrm{gen}}_{\tau};Z_{\mathrm{ref}}]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0775em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8305em;"><span style="top:-2.453em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">joint</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.453em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">gen</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0778em;">ref</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">]</span></span></span></span>（联合序列公式见 §3.4，正文未编号；其雏形 token 拼接为 Eq. (1)），经 DiT 块处理——共享自注意力让流之间交换证据，每条流有独立的文本交叉注意力路径，逐层去噪后各自解码回视频。哪些行为由模型决定、哪些由固定流程控制，是理解本方法的关键：**”在哪里、以什么几何关系存在什么条件”由固定流程决定；”这些条件最终长成什么像素”由模型决定。**</li>
+<li><strong>是否需要训练、训练哪些部分。</strong> 需要。用整流流（rectified flow, Liu et al., 2022）目标微调：对 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi><mo>∼</mo><mi>U</mi><mo stretchy="false">(</mo><mn>0</mn><mo separator="true">,</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\tau\sim U(0,1)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∼</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">U</span><span class="mopen">(</span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1</span><span class="mclose">)</span></span></span></span> 构造 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>Z</mi><mi>τ</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></msubsup><mo>=</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>τ</mi><mo stretchy="false">)</mo><msubsup><mi>Z</mi><mn>0</mn><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></msubsup><mo>+</mo><mi>τ</mi><msup><mi>ϵ</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></msup></mrow><annotation encoding="application/x-tex">Z^{\mathrm{gen}}_{\tau}=(1-\tau)Z^{\mathrm{gen}}_0+\tau\epsilon^{\mathrm{gen}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9303em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.453em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">gen</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0486em;vertical-align:-0.2663em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mclose">)</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7823em;"><span style="top:-2.4337em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span><span style="top:-3.1809em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">gen</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2663em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6644em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mord"><span class="mord mathnormal">ϵ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">gen</span></span></span></span></span></span></span></span></span></span></span></span></span>，训练目标（§3.5，正文给出的损失未编号）为</li>
+</ol>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">F</mi><mi mathvariant="normal">M</mi></mrow></msub><mo>=</mo><msub><mi mathvariant="double-struck">E</mi><mrow><msub><mi>Z</mi><mn>0</mn></msub><mo separator="true">,</mo><mi>ϵ</mi><mo separator="true">,</mo><mi>τ</mi><mo separator="true">,</mo><mi>C</mi></mrow></msub><mo fence="false" stretchy="true" minsize="1.8em" maxsize="1.8em">[</mo><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">∥</mo><msub><mi>f</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><msubsup><mi>Z</mi><mi>τ</mi><mrow><mi mathvariant="normal">j</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">t</mi></mrow></msubsup><mo separator="true">,</mo><mi>τ</mi><mo separator="true">,</mo><mi>C</mi><mo stretchy="false">)</mo><mo>−</mo><mo stretchy="false">(</mo><msup><mi>ϵ</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></msup><mo>−</mo><msubsup><mi>Z</mi><mn>0</mn><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">n</mi></mrow></msubsup><mo stretchy="false">)</mo><msubsup><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">∥</mo><mn>2</mn><mn>2</mn></msubsup><mo fence="false" stretchy="true" minsize="1.8em" maxsize="1.8em">]</mo><mo separator="true">,</mo></mrow><annotation encoding="application/x-tex"> \mathcal{L}_{\mathrm{FM}}=\mathbb{E}_{Z_0,\epsilon,\tau,C}\Big[\big\|f_\theta(Z^{\mathrm{joint}}_{\tau},\tau,C)-(\epsilon^{\mathrm{gen}}-Z^{\mathrm{gen}}_0)\big\|_2^2\Big], </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">FM</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.8em;vertical-align:-0.65em;"></span><span class="mord"><span class="mord mathbb">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3173em;"><span style="top:-2.357em;margin-left:-0.0715em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">ϵ</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0715em;">C</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mord"><span class="delimsizing size2">[</span></span><span class="mord"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.85em;"><span style="top:-2.85em;"><span class="pstrut" style="height:3.2em;"></span><span style="width:0.556em;height:1.2em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.556em" height="1.2em" viewBox="0 0 556 1200"><path d="M145 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z
+M367 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8805em;"><span style="top:-2.453em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">joint</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">ϵ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">gen</span></span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.8em;vertical-align:-0.65em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7823em;"><span style="top:-2.4337em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span><span style="top:-3.1809em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">gen</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2663em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mord"><span class="mord"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.85em;"><span style="top:-2.85em;"><span class="pstrut" style="height:3.2em;"></span><span style="width:0.556em;height:1.2em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.556em" height="1.2em" viewBox="0 0 556 1200"><path d="M145 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z
+M367 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.054em;"><span style="top:-2.3003em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span><span style="top:-3.3029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3997em;"><span></span></span></span></span></span></span><span class="mord"><span class="delimsizing size2">]</span></span><span class="mpunct">,</span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mo>=</mo><mo stretchy="false">{</mo><mi>E</mi><mo separator="true">,</mo><msup><mi>A</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>:</mo><mi>N</mi><mo stretchy="false">)</mo></mrow></msup><mo separator="true">,</mo><msup><mi>P</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>:</mo><mi>N</mi><mo stretchy="false">)</mo></mrow></msup><mo separator="true">,</mo><msubsup><mi>x</mi><mn>0</mn><mrow><mo stretchy="false">(</mo><mn>1</mn><mo>:</mo><mi>N</mi><mo stretchy="false">)</mo></mrow></msubsup><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">C=\{E,A^{(1:N)},P^{(1:N)},x^{(1:N)}_0\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.3111em;vertical-align:-0.2663em;"></span><span class="mopen">{</span><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mtight">1</span><span class="mrel mtight">:</span><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mtight">1</span><span class="mrel mtight">:</span><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.4337em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mtight">1</span><span class="mrel mtight">:</span><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2663em;"><span></span></span></span></span></span></span><span class="mclose">}</span></span></span></span> 为全部条件，损失只施加在生成的潜帧上；VAE 与文本编码器冻结。真实数据与合成数据训练<strong>两个独立 checkpoint，互不迁移权重</strong>（附录 D.2）。<br>6. <strong>推理阶段发生什么变化。</strong> 用对应域（真实&#x2F;合成）的 EMA 权重，35 步去噪、无分类器引导（classifier-free guidance, CFG）尺度 7.0，首帧条件 + 4 条共享锚，联合生成两条 77 帧、480×480（附录 D.1；与附录 C 的 504×504 口径不一致，见 §4.1）、10 FPS 的视频；每视角编码为 20 个潜帧。扩展时：三智能体只需追加一条流与对应 agent token，并把第三个智能体的姿态投影进各视角（附录 A.2）；更长时程用自回归（autoregressive, AR）串联——每个新块条件化于前一块的 2 帧，训练时随机只给 1 帧或给 2 帧并加概率 0.5、标准差 0.1 的高斯噪声扰动，以增强对”不完美交接帧”的鲁棒性（附录 A.2），论文展示了 221 帧双智能体序列。</p>
+<p><img src="/images/dailypaper/2026-10-09/2610.12299_fig3.png" alt="论文 Fig. 3：总体架构。(a) 条件构造：两条流的头部运动→光线图 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>X</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">y</mi></mrow></msub></mrow><annotation encoding="application/x-tex">X_{\mathrm{ray}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0139em;">ray</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>、身体运动→姿态条件 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>X</mi><mrow><mi mathvariant="normal">p</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi></mrow></msub></mrow><annotation encoding="application/x-tex">X_{\mathrm{pose}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">pose</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>、观测历史→共享环境记忆（warp 证据 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>X</mi><mrow><mi mathvariant="normal">w</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">p</mi></mrow></msub></mrow><annotation encoding="application/x-tex">X_{\mathrm{warp}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">warp</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>+掩码 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>M</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi></mrow></msub></mrow><annotation encoding="application/x-tex">M_{\mathrm{vis}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">vis</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、跨流锚 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>X</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">g</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">/</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">y</mi><mi mathvariant="normal">/</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi></mrow><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">f</mi></mrow></msubsup></mrow><annotation encoding="application/x-tex">X^{\mathrm{ref}}_{\mathrm{rgb/ray/pose}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.3461em;vertical-align:-0.497em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-2.378em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">rgb/ray/pose</span></span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0778em;">ref</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.497em;"><span></span></span></span></span></span></span></span></span></span>），加上 agent embedding 后 token 化并通道拼接；(b) 总体流程：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>Z</mi><mrow><mo stretchy="false">(</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msup><mo separator="true">,</mo><msup><mi>Z</mi><mrow><mo stretchy="false">(</mo><mn>2</mn><mo stretchy="false">)</mo></mrow></msup><mo separator="true">,</mo><msup><mi>Z</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">f</mi></mrow></msup></mrow><annotation encoding="application/x-tex">Z^{(1)},Z^{(2)},Z^{\mathrm{ref}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0824em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mtight">1</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mtight">2</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8491em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0778em;">ref</span></span></span></span></span></span></span></span></span></span></span></span></span> 联合进入 DiT（自注意力跨流、交叉注意力接文本、FFN），输出两条同步生成视频（本报告图 images/2610.12299_fig3.png，对应论文 Fig. 3）"></p>
+<blockquote>
+<p>教学简化示例（非论文实验）：把跨流锚记忆的选取想象成”用几张照片盖住两个人的共同视野”——第一张选覆盖最大者，之后每张都挑”能补上尚未被覆盖区域”的那张（贪心），最后这些照片原件被所有流共享。论文在实现中选择 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mo>=</mo><mn>4</mn></mrow><annotation encoding="application/x-tex">K=4</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">4</span></span></span></span> 条锚（附录 D.1），具体贪心准则是最大化目标视角未被已选锚覆盖的区域（§3.4）。</p>
+</blockquote>
+<p><strong>关键设计假设与代价。</strong> 方法成立依赖三个前提：(i) 能获得每个智能体的未来动作（含头动）——论文实验中来自 GT；(ii) 能获得（或估计）相机几何与度量深度来构造 warp 与光线条件（真实数据用 CoMind 多设备 SLAM + DA3 估计，附录 C.2）；(iii) 场景外观能被历史观测部分覆盖。结构性代价：联合序列长度随智能体数线性增长（两条流 + 4 条锚），共享自注意力的开销随之上升；35 步推理对每条联合样本要跑完整个 DiT。论文<strong>未报告</strong>延迟、显存或吞吐数字，实时性无从判断。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p><strong>任务与数据集。</strong> 两个自建基准，各 100 个片段：</p>
+<ul>
+<li><strong>真实基准</strong>：从 CoMind 官方 validation 划分采 100 个片段（与训练数据不相交，厨房与参与者均为未见过的；附录 C.3）。排除头发遮挡相机、平均跨视角共视率低于 0.075、以及两个视角中对方可见帧少于 10 帧的片段；最终平均跨视角共视率 0.38、每片段对方可见帧中位数 43；按录音配额 28&#x2F;25&#x2F;47 采样。所有指标在 480×480 分辨率计算。</li>
+<li><strong>合成基准</strong>：100 个片段，覆盖 6 个 Poly Haven 场景（Hidden Alley、Verdant Trail、The Shed、Namaqualand、Pawn Shop、Pine Forest；配额 14&#x2F;23&#x2F;18&#x2F;14&#x2F;19&#x2F;12），来自 84 条 Inter-X 与 16 条 InterHuman 序列、86 对头像；要求对方可见帧 ≥10 且至少 6 个身体关节在画面内、平均共视率 ≥0.05，平均共视率 0.31；每条序列至多取一个窗口。</li>
+</ul>
+<p><strong>基础模型与配置。</strong> 从 Cosmos-Predict2.5 2B 多视图 DiT 初始化，冻结 Wan-2.1 causal video VAE 与 Cosmos-Reason1 7B 文本编码器；训练细节见附录 D.2（AdamW、学习率 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>3</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">3\times 10^{-5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">3</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span>、权重衰减 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mrow><mo>−</mo><mn>3</mn></mrow></msup></mrow><annotation encoding="application/x-tex">10^{-3}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">3</span></span></span></span></span></span></span></span></span></span></span></span>、100 步 warmup、线性衰减、BF16、FSDP、4×A100 80GB、全局 batch size 4、EMA）；推理 35 步、CFG 7.0。注意附录口径不一致：C.1&#x2F;C.2 称数据在 <strong>504×504</strong> 渲染&#x2F;处理，D.1 称训练样本为 <strong>480×480</strong>——两处冲突，论文未解释。</p>
+<p><strong>基线与公平性。</strong> 三类零样本基线（用官方 checkpoint、不做微调）：多视图生成 GEN3C、AnyView-DVS；单 ego 世界模型 EgoSim、JointControlVideo；通用世界模型 DreamX-World、LingBot-World（§4.2、附录 B.3）。为实现受控比较，另把四个多智能体世界模型（MultiWorld、Solaris、γ-World、MetaWorld）适配到本设定：<strong>同 backbone、同训练数据、同共享动作条件</strong>，只保留各自原生的跨智能体&#x2F;场景条件机制（Table 3；附录 B.3.4，其中 MetaWorld 因官方实现未公开而由作者按论文重实现）。因此 Table 2 的对比控制得相对更干净，而 Table 1 中”ME-World 经过域内微调、其余方法零样本”的落差需要谨慎解读（见 §5 质疑一）。</p>
+<p><strong>评价指标。</strong> 三个新指标：S_env、S_update、S_id（真实基准只报前两个；S_id 需要参考身份，仅合成有）。辅助指标：相机控制 Trans. Err.&#x2F;Rot. Err.（用 DA3-GIANT 估计轨迹、相似变换对齐后计算 ATE 与平均旋转误差）；自我动作控制 Hand-F1&#x2F;Hand-mIoU（SAM3）；对方动作控制 Full-Body-F1&#x2F;Full-Body-PCK@10（YOLOX + ViTPose）；视频质量 PSNR&#x2F;SSIM&#x2F;LPIPS&#x2F;FVD（I3D 特征）（附录 B.2）。</p>
+<p><strong>各实验回答什么。</strong> Table 1&#x2F;Fig. 5：相对零样本的通用基线是否更好；Table 2&#x2F;Fig. 6 与 Table 3：在受控适配下相对多智能体方法是否更好、组件来源是什么；Table 4&#x2F;Fig. 7：每个组件的贡献（消融）；Table 5、Fig. 11（附录 B.1.2）：<strong>指标本身</strong>是否可靠（受控注入不一致 + 定性可视化）；附录 A.2、Fig. 10：能否扩展（三智能体、221 帧自回归，均为定性）。</p>
+<p><strong>新指标的构造（Fig. 4）。</strong> 指标的关键设计是”用 GT 几何建立对应、在生成视频上测一致性”：先用 GT 度量深度与 GT 相机位姿把查询视角 X 的 patch 反投影-再投影到目标视角，保留边界内且重投影深度差 &lt;10 cm 的共视对应（Fig. 4a）；S_env 只在查询侧<strong>没有</strong> warp 证据（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>M</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi></mrow></msub><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">M_{\mathrm{vis}}=0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">vis</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>）的区域测 DINOv3 特征相似度（Fig. 4b），从而隔离”模型自己建立的一致性”；S_update 在”有 warp 证据但判定发生了状态变化”（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>M</mi><mrow><mi mathvariant="normal">u</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">e</mi></mrow><mrow><mo stretchy="false">(</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msubsup><mo>=</mo><mn>1</mn><mo separator="true">,</mo><msub><mi>M</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">s</mi></mrow></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">M^{(n)}_{\mathrm{update}}=1, M_{\mathrm{vis}}=1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.4822em;vertical-align:-0.4374em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.3987em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">update</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">n</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.4374em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8778em;vertical-align:-0.1944em;"></span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">vis</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>）的区域测相似度（Fig. 4c），变化判定用生成结果与 warp 的 DINOv3 特征差超过每帧背景 patch 距离的 80 分位数（B.1.1, Eq. (2)–(8)）；S_id 在合成基准用 SAM3 分割对方角色、与 12 个方位参考渲染的最大余弦相似度作为身份分（Fig. 4d）。为什么需要这套设计：人类评估不可复现、VLM 判别成本高且不稳，而几何对应能在不依赖 3D 重建的情况下比较”同一片世界”在两个视角里画得是否一致。</p>
+<p><img src="/images/dailypaper/2026-10-09/2610.12299_fig4.png" alt="论文 Fig. 4：共享世界一致性评测协议。(a) 共视对应（GT query/target + 深度/相机 → 反投影-投影）；(b) S_env：在无 warp 证据区域测跨视角 DINOv3 相似度；(c) S_update：在有 warp 证据且检测到变化区域测一致性；(d) S_id：SAM3 分割对方角色，与多视角参考特征取最大相似度（本报告图 images/2610.12299_fig4.png，对应论文 Fig. 4）"></p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p><strong>真实基准（Table 1）。</strong> ME-World 在全部报告指标上优于所有零样本基线：S_env 0.468 vs 最强零样本 GEN3C 0.417、最弱 DreamX-World 0.306；S_update 0.466 vs GEN3C 0.412；相机控制 Trans. Err. 0.042 vs GEN3C 0.12、Rot. Err. 2.256 vs AnyView 4.736；自我动作 Hand-F1 0.888 vs EgoSim 0.75；对方动作 Full-Body-F1 0.822 vs LingBot 0.395、Full-Body-PCK 0.881 vs EgoSim 0.514；视频质量 PSNR 19.849 vs GEN3C 18.083、FVD 637.9 vs 最好的基线值 LingBot 689.9（Table 1，Real Benchmark 区）。</p>
+<p><strong>合成基准（Table 1）。</strong> S_env 0.441 vs GEN3C 0.414；S_update 0.436 vs GEN3C 0.406；S_id 0.561 vs JointControlVideo 0.518（+0.043；S_id 只在合成基准可算）；Hand-F1 0.593 vs JointControlVideo 0.527；FVD 465.5 vs LingBot 841.5。<strong>两个例外必须点出</strong>：相机控制上 AnyView-DVS 更好——Trans. Err. 0.23 vs ME-World 0.293、Rot. Err. 9.004 vs 9.057（Table 1，Synthetic Benchmark 区）；即论文正文”Synthetic Benchmark … improves camera control”的表述（§4.3 Results）与表中数字不符，ME-World 在合成基准的相机控制并非全面最优（详见 §5 质疑四）。</p>
+<p><strong>受控适配的多智能体基线（Table 2，真实基准）。</strong> 适配后的基线全部使用与 ME-World 相同的 backbone、训练数据与共享动作条件，因此这组对比最能说明”其余组件”的贡献：ME-World S_env 0.468 vs MetaWorld 0.421、MultiWorld 0.395、Solaris 0.324、γ-World 0.304；S_update 0.466 vs MetaWorld 0.413；Rot. Err. 2.256 vs MetaWorld 4.086；FVD 637.9 vs MultiWorld 694、MetaWorld 704.4。MetaWorld 是唯一全面接近的适配基线（其 Hand-F1 0.865 vs ME-World 0.888、Trans. Err. 0.054 vs 0.042），领先幅度为 S_env +0.047、S_update +0.053——<strong>不算大</strong>。</p>
+<p><img src="/images/dailypaper/2026-10-09/2610.12299_fig5.png" alt="论文 Fig. 5：与现有方法的定性对比。上为真实基准、下为合成基准；每列给两个同步 ego 流的三个时刻。列依次为 GT、(a) Ours、(b) GEN3C、(c) AnyView、(d) EgoSim、(e) JointControl、(f) DreamX、(g) LingBot；多视图基线的 GT 条件流以降低的不透明度显示（本报告图 images/2610.12299_fig5.png，对应论文 Fig. 5）"></p>
+<p><img src="/images/dailypaper/2026-10-09/2610.12299_fig6.png" alt="论文 Fig. 6：与多智能体世界模型的定性对比（真实基准）。列依次为 GT、(a) Ours、(b) MultiWorld、(c) Solaris、(d) γ-World、(e) MetaWorld；两个视角的三个时刻。可见部分基线出现跨视角不一致或场景穿帮，ME-World 的两条流保持同一场景与同步交互（本报告图 images/2610.12299_fig6.png，对应论文 Fig. 6）"></p>
+<p><strong>消融（Table 4，真实基准）。</strong> 变体 (1) 未微调底座与 (2) 域内微调底座都”无法产生可信的多智能体 ego 未来”（S_env 0.289&#x2F;0.290，§4.4）；(3) 加入自我手部姿态与历史 warp 后 S_env 跳到 0.401（单步最大跃迁 +0.111，但捆绑了两个改动）；(4) 再加联合生成 → 0.426；(5) &#x3D; (4) + 共享动作 → 0.445，且对方动作控制大幅提升（Full-Body-F1 0.563→0.803、PCK 0.416→0.809）；(6) &#x3D; (4) + 共享环境记忆 → 0.456，一致性收益更均匀；(7) &#x3D; (3) + 共享动作 + 共享环境记忆（去联合生成）→ 0.433；(8) 完整模型 → 0.468&#x2F;0.466。<strong>值得报告的非单调细节</strong>：(8) 的 FVD 637.9 高于变体 (3) 的 558.6、(4) 的 554.7 与 (6) 的 541.7，即最终模型在一致性指标上最优、在 FVD 上相对若干中间变体退步；Trans. Err. 上 (7) 的 0.039 也略优于 (8) 的 0.042（Table 4）——组件并非在所有指标上单调改善。</p>
+<p><strong>统计稳健性。</strong> 两个基准各 100 个片段，所有表格均为单次训练&#x2F;单次评测结果，论文全文<strong>没有报告任何方差、置信区间或显著性检验</strong>，因此上述差距的稳定性无法从现有材料判断（§5 质疑二）。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p><strong>实验首先说明”方法在这些基准上有效”，其次才部分触及”为什么有效”。</strong> Table 4 的构建式消融（build-up）可以被读成近似 leave-one-out：(5)&#x3D;完整模型去掉共享环境记忆、(6)&#x3D;去掉共享动作条件、(7)&#x3D;去掉联合生成。三者各自移除都造成下降，这一点支持三个组件都”有用”。但隔离程度有限：</p>
+<ol>
+<li><strong>没有方差</strong>：每个变体只有一个模型、一次评测（论文未报告种子数），无法排除优化噪声；尤其联合生成的边际贡献（(7)→(8)：S_env +0.035、S_update +0.044）与报告的任何波动范围都没有对照。</li>
+<li><strong>最大跃迁捆绑两个改动</strong>：变体 (2)→(3) 同时加入”自我手部姿态”与”历史 warp”，单步 +0.111 的收益无法归因到其中任一。</li>
+<li><strong>组件间存在交互</strong>：共享动作条件与共享环境记忆的边际收益按指标分化——(4)→(5) 对 S_env 只 +0.019 但把 Full-Body-F1 拉高 +0.240；(4)→(6) 对 S_env +0.030、对 Full-Body-F1 只 +0.122（Table 4）。这说明两个机制解决的是不同失败模式（动作对齐 vs 环境一致），与 §4.4 的文字解释一致，但这种解释是作者的主张，消融本身只提供了相关证据。</li>
+<li><strong>信息量混杂</strong>：共享动作条件与共享环境记忆都<strong>增加了输入信息</strong>（对方姿态、跨流锚）。因此”组件有效”无法区分”机制设计正确”与”给模型的输入更多”——这对本文并不致命（增加的信息本身就是设计），但意味着消融不能证明”联合自注意力实现了信息交换”这一更细的机制主张；论文没有注意力统计、探针或条件干预来支撑该主张。</li>
+<li><strong>真正的机制证据是指标验证而非模型验证</strong>：Table 5 在 100 个已生成片段上注入受控不一致——环境冲突使 S_env 降 0.090 而 S_update 只降 0.019；状态冲突使 S_update 降 0.147 而 S_env 只降 0.059；5 帧时序错位使两者都明显下降（−0.069&#x2F;−0.090）（附录 B.1.2）。这支持两个指标各自”对目标冲突敏感、对非目标冲突相对不敏感”，但不验证 ME-World 的生成机制；Fig. 11 的定性可视化（ME-World S_env 0.582&#x2F;S_update 0.495 vs 独立单流生成 0.498&#x2F;0.402）同理，说明指标能响应生成质量差异，不能证明机制。</li>
+</ol>
+<p><strong>结论</strong>：目前证据链是”组件移除→相应指标下降→定性图印证失败模式”，属于较强的效果证据 + 中等强度的机制证据；”联合注意力实现了跨流信息交换””共享锚防止了身份漂移”这类因果表述仍属作者解释，未被直接验证。论文还<strong>未报告</strong>按共视率、交互时长或智能体距离分层的分析，也没有失败案例的统计（§5 质疑三、质疑四）。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p><strong>训练与数据成本（论文实际报告）。</strong> 两个独立 checkpoint（真实、合成）各自在 4×A100 80GB 上以 BF16+FSDP 训练，全局 batch size 4，EMA 权重；<strong>训练时长、步数与总算力均未报告</strong>（附录 D.2）。数据侧：合成管线需要 Blender 渲染 1,822 条交互（100 头像、7 场景、53 有效站位，附录 C.1）；真实管线需要 CoMind 多设备 SLAM（有效共享解）、DA3 深度、SAM3 人掩码、Sapiens2 全身姿态、Qwen3.6-35B-A3B 生成 caption（附录 C.2）——数据构建的人力与算力成本论文未报告。</p>
+<p><strong>推理成本。</strong> 每条”双流联合样本”需要 35 步去噪 + CFG（尺度 7.0），输出两条 77 帧流；<strong>延迟、吞吐、显存均未报告</strong>（§4.2、附录 D.2）。自回归扩展要逐块生成（每块条件化于前块 2 帧，附录 A.2），时延随长度线性增长，论文同样没有量化。整体不声称实时（结论中把实时交互列为未来方向）。</p>
+<p><strong>依赖与系统复杂度。</strong> 除 Cosmos-Predict2.5 2B 底座、Wan-2.1 VAE、Cosmos-Reason1 7B 文本编码器外，整条管线还依赖 SAM3、DA3、Sapiens2、YOLOX、ViTPose、DINOv3、I3D、Qwen3.6-35B-A3B 等外部模型（训练条件构造与评测各一套）；这些大多是公开模型，但组件众多，任一环替换都可能影响指标复现。</p>
+<p><strong>适用范围（结论的边界）。</strong> 训练与定量评测均为<strong>两个智能体、77 帧（10 FPS 下约 7.7 秒）、480–504 px</strong>；真实域只有 CoMind 的双人厨房协作；模型输入要求每个智能体的未来动作序列（含头动）以及可靠（或可估计）的相机几何&#x2F;度量深度；三智能体与 221 帧自回归只有定性展示、无指标（附录 A.2）；S_id 只在合成基准可得；论文没有 limitations 一节，失败案例、分布外场景与”多个智能体继续增多时的一致性衰减”均未系统报告。</p>
+<p><strong>改善了哪些、仍未解决哪些。</strong> 在论文报告的两个基准上，共享世界一致性、细粒度动作控制与视频质量相对零样本与受控适配基线均改善（Table 1–2），并且成本（底座仅 2B、无需额外专用硬件）相对温和。仍未解决：统计稳健性、跨域泛化、更大群体的定量评估、长时程定量一致性、实时性与效率、以及代码&#x2F;权重的公开（截至 2026-10-09 未发布）。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：Table-1-的核心对比中，ME-World-在评测域上微调、全部通用基线零样本，领先可能来自训练域优势而非方法设计"><a href="#质疑：Table-1-的核心对比中，ME-World-在评测域上微调、全部通用基线零样本，领先可能来自训练域优势而非方法设计" class="headerlink" title="质疑：Table 1 的核心对比中，ME-World 在评测域上微调、全部通用基线零样本，领先可能来自训练域优势而非方法设计"></a>质疑：Table 1 的核心对比中，ME-World 在评测域上微调、全部通用基线零样本，领先可能来自训练域优势而非方法设计</h4><ul>
+<li><strong>原文依据</strong>：§4.2 Baselines 明确”As baselines use released checkpoints without fine-tuning”；Table 1 的六个通用基线（GEN3C、AnyView、EgoSim、JointControl、DreamX、LingBot）全部零样本，而 ME-World 在真实&#x2F;合成数据上分别微调（附录 D.2）。论文为四个<strong>多智能体</strong>方法补做了受控适配（Table 3：同 backbone、同数据、同共享动作条件），但没有为其余六个基线做同条件训练。</li>
+<li><strong>为什么重要</strong>：它直接影响论文第一结论”ME-World improves … over existing methods”的归因——在域内数据上训练的模型对零样本模型存在必然优势，该优势与方法机制无关。</li>
+<li><strong>当前能够得出的判断</strong>：混杂因素确实存在，但影响被部分对冲：受控适配组（Table 2）显示即便是同一训练条件下的多智能体基线也整体落后；且多视图基线额外获得了 GT 参考流这种强输入。因此可支持的结论是”在其设定下优于各基线的公开形态”，<strong>不能</strong>支撑”架构性优于这些方法”。</li>
+<li><strong>如何验证或补强</strong>：对六个通用基线在相同训练数据&#x2F;预算下微调（或至少给出 ME-World 在零样本条件下的数字），把 Table 1 重跑为”等训练条件”对照。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：所有关键差距都没有方差、置信区间或显著性检验，且-Table-1-疑似存在录入错误"><a href="#质疑：所有关键差距都没有方差、置信区间或显著性检验，且-Table-1-疑似存在录入错误" class="headerlink" title="质疑：所有关键差距都没有方差、置信区间或显著性检验，且 Table 1 疑似存在录入错误"></a>质疑：所有关键差距都没有方差、置信区间或显著性检验，且 Table 1 疑似存在录入错误</h4><ul>
+<li><strong>原文依据</strong>：Table 1–5 全文没有任何误差棒、种子数或统计检验；两个基准仅各 100 个片段、单次评测。Table 1 真实基准中 AnyView-DVS 与 EgoSim 两行的 S_env&#x2F;S_update 数值<strong>完全相同</strong>（0.332&#x2F;0.319），而同一表中两方法其余指标（如 Trans. Err. 0.079 vs 0.114、FVD 1834.9 vs 1012.7）差异明显。</li>
+<li><strong>为什么重要</strong>：结论依赖的核心差距（S_env 相对最强适配基线 MetaWorld +0.047、相对 GEN3C +0.051）是否大于 run-to-run 波动，无法从现有材料判断；疑似相同数值削弱了表格的可信度（可能是复制粘贴错误，也可能确为巧合）。</li>
+<li><strong>当前能够得出的判断</strong>：当前材料不足以确认这些差距的统计稳定性；疑似笔误需要作者核对（审稿人判断，不排除巧合）。</li>
+<li><strong>如何验证或补强</strong>：多种子训练与评测，报告 bootstrap 置信区间与配对显著性检验；公开逐片段分数；核对 Table 1 两行数值。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：消融实验无法隔离核心机制——“联合生成”贡献最小、没有因果证据，且存在”信息量增加”的替代解释"><a href="#质疑：消融实验无法隔离核心机制——“联合生成”贡献最小、没有因果证据，且存在”信息量增加”的替代解释" class="headerlink" title="质疑：消融实验无法隔离核心机制——“联合生成”贡献最小、没有因果证据，且存在”信息量增加”的替代解释"></a>质疑：消融实验无法隔离核心机制——“联合生成”贡献最小、没有因果证据，且存在”信息量增加”的替代解释</h4><ul>
+<li><strong>原文依据</strong>：Table 4 中联合生成的边际贡献（变体 (7)→(8)）只有 S_env +0.035、S_update +0.044，是三个组件增量中最小；最大跃迁 (2)→(3)（+0.111）同时捆绑”自我手部姿态”与”历史 warp”两个改动；共享动作条件与共享环境记忆都向模型<strong>增加了输入信息</strong>（对方姿态、跨流锚帧）。论文没有任何注意力统计、表示探针或条件干预实验来证明”跨流信息交换”这一机制叙事（§3.2–§3.4 的因果表述均为作者解释）。</li>
+<li><strong>为什么重要</strong>：论文的标题性主张是”把 ego 流作为同一世界的耦合观测”，联合生成是其唯一对应机制；若该机制的收益小且无因果证据，核心卖点就只剩条件工程与数据&#x2F;指标贡献。</li>
+<li><strong>当前能够得出的判断</strong>：存在”组件有效”的相关证据（三处移除均有下降），但机制解释证据不足；”输入信息更多”与”机制正确”两个解释没有被分开检验。</li>
+<li><strong>如何验证或补强</strong>：固定信息量的对照（例如把对方姿态改为 reference token 而非条件通道）、重复多次消融并报告方差、注意力&#x2F;探针分析、对记忆内容做干预（故意 warp 错帧观察是否按要求退化）。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：部分结论与表述超出证据范围——真实基准的”GT-几何”实为估计值、合成基准相机控制并非最优、扩展性只有定性展示"><a href="#质疑：部分结论与表述超出证据范围——真实基准的”GT-几何”实为估计值、合成基准相机控制并非最优、扩展性只有定性展示" class="headerlink" title="质疑：部分结论与表述超出证据范围——真实基准的”GT 几何”实为估计值、合成基准相机控制并非最优、扩展性只有定性展示"></a>质疑：部分结论与表述超出证据范围——真实基准的”GT 几何”实为估计值、合成基准相机控制并非最优、扩展性只有定性展示</h4><ul>
+<li><strong>原文依据</strong>：(i) 指标宣称”Ground-truth geometry is used only to establish co-visible correspondences”（Fig. 4 注），但真实数据的度量深度由 DA3 估计（附录 C.2）、相机位姿来自 CoMind 多设备 SLAM，10 cm 深度容差下的”共视对应”本身带误差；(ii) 正文 §4.3 称合成基准上”improves camera control”，而 Table 1 Synthetic 中 AnyView-DVS 的 Trans. Err. 0.23 优于 ME-World 0.293、Rot. Err. 9.004 亦略优 9.057；(iii) 附录 A.2 的三智能体与 221 帧自回归只有 Fig. 10 的定性图，正文结论写”extend naturally”，无任何指标或失败率。</li>
+<li><strong>为什么重要</strong>：影响评测协议的有效性与结论边界——真实基准所有数字都建立在估计几何上；”camera control 全面改善”的表述被自家表格否认；”自然扩展”缺少定量证据。</li>
+<li><strong>当前能够得出的判断</strong>：真实基准指标存在系统误差但方向未知（估计深度误差可能同时影响所有方法，相对比较或仍有效，论文未讨论）；相机控制的表述应更正；扩展能力目前无法确认。</li>
+<li><strong>如何验证或补强</strong>：报告真实基准上估计深度与人工&#x2F;激光参考的误差、做几何误差敏感性分析；修正表述或给出 AnyView 在相机控制上的优势解释；补充三智能体&#x2F;长时程的定量指标与分层分析（按共视率、交互时长）。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：可复现性尚未成立——代码、权重与训练代码均未发布，数据管线依赖多重外部模型与未披露筛选细节"><a href="#质疑：可复现性尚未成立——代码、权重与训练代码均未发布，数据管线依赖多重外部模型与未披露筛选细节" class="headerlink" title="质疑：可复现性尚未成立——代码、权重与训练代码均未发布，数据管线依赖多重外部模型与未披露筛选细节"></a>质疑：可复现性尚未成立——代码、权重与训练代码均未发布，数据管线依赖多重外部模型与未披露筛选细节</h4><ul>
+<li><strong>原文依据</strong>：官方仓库（2026-10-09 检查）仅含 README 与项目素材，ToDo 中”Inference code and model weights””Training code”均未勾选；训练条件依赖 CoMind + 多设备 SLAM 子集、DA3、SAM3、Sapiens2、Qwen3.6-35B-A3B 生成标注（附录 C.2），合成数据依赖 Inter-X&#x2F;InterHuman 与自建 Blender 管线（附录 C.1）；部分筛选阈值（如墙穿分数、极端接近过滤）细节未完全报告。</li>
+<li><strong>为什么重要</strong>：无代码&#x2F;权重时，任何第三方都无法验证 Table 1–5 的数字；数据管线中每个外部模型的选择都可能改变条件质量，进而改变指标。</li>
+<li><strong>当前能够得出的判断</strong>：论文的超参与架构描述较完整（附录 D），具备”方法级”复现的充分信息，但”结果级”复现当前不可能；仓库承诺发布代码，时间未定。</li>
+<li><strong>如何验证或补强</strong>：发布推理&#x2F;训练代码与权重、数据构建脚本；公开逐片段评测代码与打分结果；报告外部模型版本号。</li>
+<li><strong>严重程度</strong>：次要问题（截至本报告日期对复现构成实际阻碍，但作者承诺发布）。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现多智能体具身场景中现有世界模型只处理粗动作、且现有一致性指标可能被输入条件”喂”出高分，因此提出把多条 ego 流放入同一 DiT 联合去噪，并用跨智能体投影的共享动作条件与双通道共享环境记忆（warp 几何证据 + 干净锚帧）实现同步生成，配套真实+合成数据与 S_env&#x2F;S_update&#x2F;S_id 三个新指标。实验在自建的两个 100 片段基准（真实 CoMind 与合成场景）上表明：ME-World 在共享世界一致性、细粒度动作控制与视频质量上优于六个零样本基线与四个受控适配的多智能体基线；其中指标设计（Table 5 的控制验证）与对方动作控制的提升（Table 4 中 Full-Body-F1 0.563→0.803）证据较强，但”联合生成是核心机制”仍缺少因果证据、且不存在任何方差&#x2F;显著性报告。本文最有价值的部分是问题设定、双通道记忆设计与”只在无 warp 证据区域测一致性”的指标隔离思路；最大的审稿风险是把域内微调对零样本基线的优势读成架构优势，以及缺少统计稳健性。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。三类失败模式（动作&#x2F;环境&#x2F;状态更新一致性）定义明确且与指标一一对应（§1、Fig. 2、§4.1、附录 B.1.1 的 Eq. (2)–(8)）。</li>
+<li><strong>创新性证据</strong>：中。算法层多为已有组件组合（多视图 DiT + 姿态条件 + warp&#x2F;锚记忆），数据集与评测协议是真实增量；Table 3 的受控适配为”设定内的差异”提供了对照，但论文未声称首次，覆盖论证有限（§2）。</li>
+<li><strong>方法可信度</strong>：中。损失、条件构造、训练细节报告较完整（§3.5、附录 D），但无方差、附录 C 与 D 的 480&#x2F;504 px 口径不一致、代码未发布（§4.1、§4.4、§5）。</li>
+<li><strong>实验支持力度</strong>：中。两个基准、8 个对比方法、受控适配设计较好；但通用基线零样本、无显著性检验、扩展性仅定性、合成相机控制例外未被正文承认（Table 1–2、§4.3、附录 A.2、§5 质疑一&#x2F;二&#x2F;四）。</li>
+<li><strong>可复现性</strong>：弱。截至 2026-10-09 推理代码、权重与训练代码均未发布，数据管线依赖多重外部模型与未完全披露的筛选阈值；超参报告较全，待代码发布后有望转为中等（§4.4、§5 质疑五）。</li>
+<li><strong>综合阅读价值</strong>：中。对研究多智能体生成、世界模型与视频生成评测的读者，其指标隔离思路、双通道记忆设计与受控适配协议具有可借鉴价值；但方法本身增量有限、核心结论受制于统计证据缺失与未公开代码，阅读时应把结论限定在论文报告的两个基准内。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Multi-Agent Egocentric World Model with Fine-Grained Embodied Interaction</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-09 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-09 16:26:09
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/09/2610.12299v1_Multi-Agent_Egocentric_World_Model_with_Fine-Grained_Embodied_Interaction/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/">#世界模型</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%A7%86%E9%A2%91%E7%94%9F%E6%88%90/">#视频生成</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%89%A9%E6%95%A3%E6%A8%A1%E5%9E%8B/">#扩散模型</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%A4%9A%E6%99%BA%E8%83%BD%E4%BD%93/">#多智能体</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%85%B7%E8%BA%AB%E4%BA%A4%E4%BA%92/">#具身交互</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/09/2610.12374v1_AgentGarten_Code_Worlds_for_Evolving_Agents/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">AgentGarten: Code Worlds for Evolving Agents</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/09/2610.12468v1_DreamTrue_Action-Faithful_Robot_World_Model_with_Counterfactual_Post-Training/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">DreamTrue: Action-Faithful Robot World Model with Counterfactual Post-Training</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Multi-Agent Egocentric World Model with Fine-Grained Embodied Interaction</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 105 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

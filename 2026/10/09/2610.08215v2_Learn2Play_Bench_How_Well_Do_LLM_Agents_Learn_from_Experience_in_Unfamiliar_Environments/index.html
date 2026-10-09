@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/09/2610.08215v2_learn2play_bench_how_well_do_llm_agents_learn_from_experience_in_unfamiliar_environments/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Learn2Play Bench: How Well Do LLM Agents Learn from Experience in Unfamiliar Environments?">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/09/2610.08215v2_Learn2Play_Bench_How_Well_Do_LLM_Agents_Learn_from_Experience_in_Unfamiliar_Environments/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-09T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-09T08:26:09.511Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="LLM 智能体">
+<meta property="article:tag" content="人机对比">
+<meta property="article:tag" content="基准评测">
+<meta property="article:tag" content="经验学习">
+<meta property="article:tag" content="自我进化">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Learn2Play Bench: How Well Do LLM Agents Learn from Experience in Unfamiliar Environments? | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">336</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">105</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Learn2Play Bench: How Well Do LLM Agents Learn from Experience in Unfamiliar Environments?</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-09 12:00</span>
+        <span class="mobile">2026-10-09 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-09 16:26:09</span>
+            <span class="mobile">2026-10-09 16:26:09</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">基准评测</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%87%AA%E6%88%91%E8%BF%9B%E5%8C%96/">自我进化</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-%E6%99%BA%E8%83%BD%E4%BD%93/">LLM 智能体</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E7%BB%8F%E9%AA%8C%E5%AD%A6%E4%B9%A0/">经验学习</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E4%BA%BA%E6%9C%BA%E5%AF%B9%E6%AF%94/">人机对比</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Yibo Li、Jinhang Qiu、Zhi Zheng、Qianyun Guo、Jiaying Wu、Shuo Ji、Bryan Hooi（新加坡国立大学 National University of Singapore；项目网站：<a class="link"   target="_blank" rel="noopener" href="https://liushiliushi.github.io/learn2play-bench-website/" >https://liushiliushi.github.io/learn2play-bench-website/<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ）。</p>
+<p>论文：2610.08215v2（v1 于 2026-10-06 提交，v2 于 2026-10-08 修订，本次精读采用最新版 v2）；Hugging Face Daily Papers 2026-10-09 批次，默认顺序第 1 位；精读归档日期：2026-10-09（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.08215" >https://huggingface.co/papers/2610.08215<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.08215v2" >https://arxiv.org/abs/2610.08215v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>（全文 HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.08215v2" >https://arxiv.org/html/2610.08215v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>，本次 HTML 与官方 PDF（62 页）均已获取并交叉核对）</p>
+<p>分析范围：arXiv HTML v2 全文与官方 PDF v2（62 页）：正文 §1–§6、附录 A–D 全部读取；正文 Figure 1–4、Table 1–3，附录 Table 4–15 与 Appendix D 逐游戏条目（细读 D.1、D.16 等）核查；关键数字（Table 1–3、11–13 及 §4 各行）均与 PDF 文本交叉核对；核心图片由 HTML 的 SVG 资源高清渲染（Figure 1–3）或官方 PNG 取得（Figure 4、Appendix D.16）。<strong>材料完整，无无法读取的章节</strong>。编号说明：HTML 正文残留的 “Table 4.3 &#x2F; 4.5” 引用与题注及 PDF 的 Table 2 &#x2F; Table 3 不一致，本报告采用 PDF 与题注编号。论文未报告&#x2F;无法确认项：各 harness 的完整提示词模板与运行版本、20 个游戏的源码（项目网站显示 GitHub 仓库处于「access currently restricted」状态，游戏门户需登录）、GPT-6 Astra 的完整 token 用量（仅有 $150 账单&#x2F;600 episode）、以及超出 3 次 trial 的显著性检验。</p>
+<p>标签：基准评测、LLM 智能体、经验学习、自我进化、人机对比。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文要解决的是评测效度（validity）问题：现有针对”经验学习&#x2F;自我进化智能体（self-evolving agents）”的基准，其任务规则要么写在指令里、要么已被预训练覆盖，因此无法区分”从交互中学到新规则”与”复用已有知识”。作者的做法是新建 Learn2Play Bench——20 个手工设计的文本游戏，规则故意新颖甚至反直觉（例如”偷同事的午餐反而升职”）、反馈确定、自动评分，其中 10 个保持同一实例（fixed）、10 个每局更换可见实例但保留底层规则（re-shuffled），再用统一协议评测 11 个基础模型（backbone）、6 种经验保留方法、3 种智能体运行框架（harness），并与人类玩家对照。主要结论方向一致：”保留完整交互历史比把经验蒸馏成规则更有利”只在 Kimi K3 上四项指标全面成立；”同一 backbone 换 harness 可同时提升性能与降低成本”和”实例洗牌拖慢学习、弱模型更明显”有多个模型支持；人类 Top-1 的峰值分（Max 84.3）高于所有被测智能体（最优 Claude Code + Opus 5 为 81.8），但这是按每游戏 21–30 名参与者中取最优 k 名的选择后统计，口径与智能体的三次 trial 平均并不对称。总体判断：作为评测框架与首批经验发现，证据有边界地成立（限于论文报告的 20 个游戏、黑盒文本接口、无权重更新的设定）；但”分数提升确实等于学到了隐藏规则”这一核心构念主要靠个案日志支撑，尚未被聚合成可检验的量化证据。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>研究背景与具体任务。</strong> 论文关注的场景是：智能体部署到陌生环境（unfamiliar environment），其规则不在预训练知识内——例如”通过陌生指令接口控制机器人时，必须逐个尝试命令、观察运动，才能知道每个命令控制哪些关节”（§1）。这类任务中智能体不能更新模型权重，只能通过把交互反馈沉淀为记忆、规则、推理模式或配置更新来”自我进化”（§2）。论文问的是：<strong>在这种环境下，现有 LLM 智能体到底能多有效地从经验中学习</strong>（§1 核心问句）。</p>
+<p><strong>现有方法通常如何处理、以及具体差在哪儿。</strong> 评测侧，既有基准用任务序列或重复交互衡量提升：StreamBench（输入-反馈流）、MemoryBench &#x2F; Evo-Memory（记忆更新）、LifelongAgentBench（技能累积）、SWE-Bench-CL（连续代码 issue）、MemoryArena（跨会话记忆）（§2）。论文指出它们的共同问题：<strong>任务的底层规则往往来自熟悉的真实场景，可能已经存在于预训练中</strong>，所以”越打越好”既可能来自学习新规则，也可能只是把预训练知识检索了出来（§1）。更接近本文动机的两个基准也被点出局限：J-TTL 用 Jericho 游戏测重复提升，但”公开内容可能已被预训练覆盖”；ARC-AGI-3 测试陌生视觉环境，但成绩被视觉能力混淆（§2）。</p>
+<p><strong>作者的新观察与被忽略的问题。</strong> 这是本文的出发点而非实验发现（属设计动机）：**”更好的任务表现”不等于”更强的学习能力”**，现有评价缺少一个把”规则必须是新的”当作硬约束的受控设置。论文把它具体化为四个设计原则（§3）：规则新颖性（rule novelty）、自动评分、可复现（反馈确定，可重放）、受控变化（跨 episode 改变可见情形以测试迁移）。</p>
+<p><strong>支撑证据与原因归因。</strong> 对”现有评测测不出学习”这一判断，论文给出的是综述性论证与引用（§1、§2），不是新实验。作者认为问题成因是任务设计与模型先验纠缠：只要规则可能出现在预训练分布里，”改进”就永远无法归因（§1）。本文实际解决的具体子问题是：构建一个规则全新、反馈确定、可自动评分的游戏基准，并在同一协议下回答五个研究问题（RQ1–RQ5，research question）：当前智能体学得多好、harness 如何影响学习、人类与 agent 有何不同、学到的知识能否迁移到新实例、更高推理成本是否带来更好表现（§4.2–§4.6）。</p>
+<p><strong>核心假设。</strong> “在新设计、隐藏规则的确定性文本游戏上，跨 episode 的分数提升主要来自从交互中发现规则，而不是预训练知识或纯粹的工具使用能力；并且这个设置足以区分不同 backbone、方法与 harness 的学习能力差异。”</p>
+<p><strong>三类问题的区分：</strong></p>
+<ul>
+<li><strong>领域早已存在的一般问题</strong>：智能体在测试时的经验复用与记忆管理；评测中”提升”归因困难——这些问题在 continual learning &#x2F; self-evolving agent 文献中已被提出（§2）。</li>
+<li><strong>本文的新观察</strong>：尚没有基准把”规则新颖性”作为硬约束，并为每个游戏档案化”规则发现证据”（Appendix D）；本文新增的实证发现包括：保留原始历史 vs 蒸馏规则的差异（§4.2.2）、实例洗牌对学习斜率的普遍拖累及其与模型能力的相关性（§4.5）、harness 对学习与成本的双重影响（§4.3、§4.6）。</li>
+<li><strong>本文实际解决的具体子问题</strong>：构建 20 个游戏、四种指标（Max&#x2F;Mean&#x2F;LG&#x2F;LS）、三层实例控制（fixed &#x2F; re-shuffled &#x2F; 同实例对照）的评测框架，并给出 31 个智能体配置与人类玩家的横向比较。</li>
+</ul>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p><strong>总括。</strong> 本文不是提出新的学习算法，而是提出一个<strong>受控评测基准 + 系统性实证研究 + 人类对照</strong>的组合。技术增量在于：把”规则必须是新的”落实为可操作的游戏设计约束；用”同规则、不同可见实例”的成对条件把”学会规则”与”记住实例”分开（§3、§4.5）；在同一协议下把 backbone、方法、harness、人类四条对比线放在一起，并公开每个游戏的参考分数与评分依据（Appendix A.2.4）；全部评测不更新模型权重（§2 末）。这些都是评测方法层面的设计组合，不是新算法机制。</p>
+<p><strong>创新点 1：20 个隐藏规则的文本游戏基准与固定&#x2F;洗牌双条件设计。</strong></p>
+<ul>
+<li>新增了什么：20 个人工设计的游戏模板（Appendix A.1 的 Table 4&#x2F;5 逐条列出每个游戏”玩家需要学什么”），每个模板可用不同随机种子生成多个实例，实例间布局、角色或隐藏规则参数不同；10 个 fixed（同实例重复，考察对单一实例的记忆精化）+ 10 个 re-shuffled（每局换可见实例、规则固定，考察迁移）；通过 pilot 评测选出 5 个 challenge games（Catnip、DreamGarden、Mola Tea、RedEye、Roadside Observatory）用 10 局评分窗口，其余游戏用 5 局窗口（§3 脚注 1）。</li>
+<li>与最接近方法的差异：J-TTL 复用公开 Jericho 游戏（规则可能已在预训练中），ARC-AGI-3 依赖视觉，StreamBench 类基准的任务是熟悉场景；本基准的差异是<strong>规则的新颖性 + 确定性反馈 + 自动评分 + 实例重洗的对照</strong>四者组合。</li>
+<li>类型：<strong>数据&#x2F;评测设计</strong>，含相当的人工工作量（20 个游戏 + 参考分数体系 + 21–30 名&#x2F;游戏的人类被试），但设计原则（隐藏规则、确定性、可比条件）本身是已有评测思想的组合。</li>
+<li>对应问题：直接回应”无法区分学习与已有知识”。</li>
+<li>原文证据：Appendix A 的游戏与评分细节；§4 的五个 RQ 结果；Appendix D 的逐游戏档案。</li>
+<li>是否”首次”：论文用”新设计游戏”措辞，未声称首创评测思路；related work 中 AutoEnv 也”创建新环境”，是否构成首次需要更完整检索。</li>
+</ul>
+<p><strong>创新点 2：四指标度量体系与参考分数归一化，把”学得多好”拆成水平与趋势。</strong></p>
+<ul>
+<li>新增机制：Max（各 trial 峰值分的平均）、Mean、学习增益（Learning Gain, LG；首尾 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>k</mi><mi>g</mi></msub><mo>=</mo><mi>min</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>3</mn><mo separator="true">,</mo><mo stretchy="false">⌊</mo><msub><mi>T</mi><mi>g</mi></msub><mi mathvariant="normal">/</mi><mn>2</mn><mo stretchy="false">⌋</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">k_g=\min(3,\lfloor T_g/2\rfloor)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9805em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0315em;">k</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0315em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">g</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mop">min</span><span class="mopen">(</span><span class="mord">3</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mopen">⌊</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">g</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mord">/2</span><span class="mclose">⌋)</span></span></span></span> 局均分之差）、学习斜率（Learning Slope, LS；对局均分做线性拟合的斜率）（§4.1，Eq. 见 §4.1 定义式）。原始分按参考分数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>g</mi></msub></mrow><annotation encoding="application/x-tex">C_g</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">g</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 归一化为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>=</mo><mn>100</mn><mi>x</mi><mi mathvariant="normal">/</mi><msub><mi>C</mi><mi>g</mi></msub></mrow><annotation encoding="application/x-tex">z=100x/C_g</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.044em;">z</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mord">100</span><span class="mord mathnormal">x</span><span class="mord">/</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">g</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>；参考分数分三个证据级别：exact（有 oracle&#x2F;证明）、partial（已证明的局部值）、estimated（合法搜索或分数上界的估计）（Appendix A.2.4, Table 6）。挑战游戏在聚合时权重 3、普通游戏权重 1，使两组各占 50% 权重（§4.1、Appendix A.2.3）。</li>
+<li>差异与作用：把”绝对水平”（Max&#x2F;Mean）与”改进速度”（LG&#x2F;LS）分开，正是为了支撑”得分最高的模型不一定学得最快”这类发现（§4.2.1）。</li>
+<li>原文证据：Table 1、Table 13（含 trial SD）；Appendix A.2 的完整公式；Appendix A.2.2 给出 Max 的语义例子（三个 trial 峰值 40、60、80 时 Max &#x3D; 60 而非 80——即 Max 不是单次最高分）。</li>
+</ul>
+<p><strong>创新点 3：方法、harness 与人类的三线对照，其中 harness 维度被显式控制。</strong></p>
+<ul>
+<li>新增内容：在固定 backbone 下比较 6 种经验保留方法（Naive、Memory、Reflexion、EvoTest、ReasoningBank、Agent Workflow Memory（AWM））（§4.2.2）；在固定 backbone 下比较 harness（OpenCode vs Claude Code vs Codex）（§4.3）；人类研究使用同一界面，21–30 名大学生&#x2F;游戏，另以行为统计（动作序列相似度、受挫后恢复率）比较策略差异（§4.4、Appendix B.3.3）。</li>
+<li>与已有比较类工作差异：此前方法比较多为”每篇论文各自用不同模型与协议”（§1 指出这一困难）；本文在同一协议下重跑。</li>
+<li>类型：<strong>实验协议设计</strong>；结论中”harness 改变可同时提升性能、降低成本”是单次比较中很少见的维度（§4.3、§4.6）。</li>
+<li>原文证据：Table 2（harness 对照）、Table 1（方法对照）、Appendix B.3（人类细节）。</li>
+<li>局限（审稿人判断）：方法对照只在 3 个 backbone 上做，且结论并不在每个 backbone 上同方向（详见 §5 质疑二）；harness 差异的机制解释（”模型在自己的 harness 上训练过”）是作者主张，只有文献引用支撑（§4.3）。</li>
+</ul>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉。</strong> 如果想让”学习”可测量，就要把”答案”从模型先验里拿走：把待学规则设计成预训练分布之外的新知识，把环境做成确定性、可重放、自动打分的文本接口，让”改进”只能来自试验与观察；再加一个”同规则、换实例”的对照，区分”记住这一局的答案”与”学会规则本身”。</p>
+<p><strong>运行流程（按实际评测顺序展开；§3、§4.1、Appendix A、Appendix B.2）：</strong></p>
+<ol>
+<li><strong>输入</strong>：每个游戏向智能体呈现目标、当前状态描述与合法动作清单；智能体通过黑盒命令接口（black-box command interface）发出动作，只能看到文本反馈，不能访问游戏源码或 oracle 求解器（§4.1）。Figure 1 右面板以 Poisoner 为例展示了完整协议：环境枚举可选动作（serve_0 &#x2F; serve_1 &#x2F; serve_2），智能体选择 serve_2，环境返回结果描述（”The king eats the dish. Poison doses delivered: 1 of 3”），一局结束时自动给出分数（图示终局分 67 分，三次宴会中成功两次）。</li>
+<li><strong>两类游戏实例控制</strong>：fixed 游戏（10 个）重复同一实例，玩家可以持续精化地图&#x2F;配方&#x2F;动作序列；re-shuffled 游戏（10 个）每局更换菜单、客人、布局等可见要素，但底层规则保持不变，用于测试能否把学到的规则应用到新情形（§3、Appendix A.1）。</li>
+<li><strong>局数与 trial 协议</strong>：普通游戏每局序列 5 episode、挑战游戏 10 episode；每个配置-游戏组合要求 <strong>3 个独立 trial</strong>；每个 trial 从零经验开始，trial 内部保留多少跨局信息由 harness 决定（§4.1、Appendix A.2.1、Appendix B.2 明确 Claude Code 关闭持久记忆、Codex 使用 <code>--ephemeral</code>、OpenCode 每 trial 新 session，以隔离 trial）。</li>
+<li><strong>计分与聚合</strong>：先按参考分数归一化，再在每个游戏内计算 Max&#x2F;Mean&#x2F;LG&#x2F;LS，最后按游戏权重（挑战 3、普通 1）聚合；学习曲线聚合时把不同局长映射到 0–100% 相对进度（§4.1、Appendix A.2.3）。</li>
+<li><strong>无权重更新</strong>：这些配置全部是”测试时学习”——智能体跨局复用经验的方式只有 prompt 上下文&#x2F;记忆文件等外部载体，模型权重保持不变（§2 末、§3）。</li>
+<li><strong>对照配置</strong>：11 个 backbone 统一用 OpenCode harness；6 种方法分别在 Kimi K3、Opus 5、GPT-5 Mini 上固定 backbone 比较；harness 对照（Opus 5 用 OpenCode vs Claude Code；GPT-5.6-SOL 用 OpenCode vs Codex）；人类玩家用同一界面（§4.1–§4.4）。</li>
+<li><strong>输出</strong>：每个配置四项聚合指标（含 trial 标准差，Appendix C）、逐游戏学习曲线与”规则发现证据”标注（S &#x3D; 至少一个 trial 提供完整证据；P &#x3D; 仅有部分证据；– &#x3D; 证据不足；Appendix D）。</li>
+</ol>
+<p>图片：<img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-09/2610.08215_fig1.png"
+                      alt="Figure 1：Learn2Play Bench 总览与 Poisoner 交互协议"
+                ></p>
+<p>Figure 1 的阅读方式：左面板是 20 个游戏模板的图标与名称，标注了三种属性——解谜图标（重洗实例）、锁图标（固定实例）、星标（挑战游戏），它说明基准覆盖的规则类型很广（合成配方、社交禁忌、遗传规律、侦查推理等），并提示每个模板可生成多个实例；右面板是 Poisoner 的交互协议，展示一次完整的”观察-决策-反馈”循环和终局自动计分。为什么需要这两部分：左面板保证”规则新颖性”不是单一题材的偶然（20 个游戏分散在不同推理类型上），右面板展示了度量的最小单元——确定性文本反馈 + 自动分数，这是后续所有 learning curve 能够可复现对比的前提。注意：智能体看不到毒药机制等隐藏参数，它只能从”国王是否吃下”这类二元反馈中推断，这正是”必须通过交互学习”的具体操作化。</p>
+<p><strong>关键约定（评审时容易忽略的点）：</strong> 分数区间因游戏而异（参考分数从 7 到 6300，Table 6），所以跨游戏聚合必须先归一化；Max 定义为”每个 trial 各自峰值分再取平均”，因此同一份日志用不同聚合方式会得到不同名次（Appendix A.2.2 专门给了例子说明）。这些都是本文为”可复现比较”付出的额外设计。</p>
+<p><strong>教学简化示例（显式标注，非论文实验）：</strong> 可以把 re-shuffled 设计想象成”换一张卷子考同一个知识点”：fixed 游戏像反复做同一套题，分数上涨可能来自背答案；re-shuffled 游戏像每次换题面，只有真正掌握规则的人才能保持上升。论文用 Table 3 的”同实例对照 vs 洗牌条件”对比学习斜率，正是这个直觉的量化版本——但如果 agent 的改进只是更熟练地使用工具（比如更会写搜索脚本），这个类比并不能自动成立，这也是 §5 质疑一的核心。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><ul>
+<li><strong>任务与数据</strong>：20 个游戏模板各固定一个 seed 实例（Table 6），普通游戏 5 局评分窗口、挑战游戏（Catnip、DreamGarden、Mola Tea、RedEye、Roadside Observatory）10 局；每个配置-游戏组合跑 3 个独立 trial，无缺失 episode 分数填补（§4.1、Appendix A.2.1、Appendix C）。</li>
+<li><strong>基础模型（backbone）</strong>：11 个被测模型——GPT-6 Astra、Claude Opus 5.5、Claude Opus 5、Claude Sonnet 5、Gemini 3.5 Flash、Gemini 3.7 Flash、GPT-5.6-SOL、GPT-5 Mini、DeepSeek V4 Pro、Kimi K3、Qwen 3.8 Max——统一在 OpenCode harness 下运行（shell 与文件工具、相同 agent loop、replay 协议与记忆格式）（§4.2）。</li>
+<li><strong>方法</strong>：Naive（不留跨局经验）、Memory（把前几局完整历史原样追加进新局 prompt，超上下文预算时丢弃最老的局）、Reflexion、EvoTest、ReasoningBank、Agent Workflow Memory（AWM），分别在 Kimi K3、Claude Opus 5、GPT-5 Mini 上固定 backbone 比较（§4.2、Table 1、Table 7）。除 Naive 外，其余方法均为引用已有工作的实现（非本文提出）。</li>
+<li><strong>harness</strong>：OpenCode（通用开源编码 agent）、Claude Code（配 Opus 5）、Codex（配 GPT-5.6-SOL）；trial 隔离与上下文处理设置见 Appendix B.2。</li>
+<li><strong>人类对照</strong>：每游戏 21–30 名大学生，使用同一界面，禁止使用 AI 工具或代码，按 Max 选出 Top-1&#x2F;3&#x2F;5；额外公布全体参与者平均（Max 43.6）（§4.4、Appendix B.3.1–B.3.2）。行为统计只用 Human Top-3 与 6 个 Opus 5 方法在 fixed 游戏上的观测记录（Appendix B.3.3）。</li>
+<li><strong>指标与成本口径</strong>：Max&#x2F;Mean&#x2F;LG&#x2F;LS（§4.1 公式）；成本用记录的 token 用量估价（除 Opus 5.5 用 2026-10-07 官方价、GPT-6 Astra 用确认账单外，其余用 2026-08-30 价格快照）（Appendix B.5.1）。</li>
+<li><strong>公平性设计</strong>：同游戏实例、同评分窗口、同 trial 协议；方法与 harness 比较都固定 backbone。主实验回答 RQ1–RQ5；Appendix C 回答”结果是否稳定”（31 个配置 × 4 指标的 trial 标准差）；Appendix D 回答”每个游戏里具体发生了什么”（曲线 + 规则发现标注）。</li>
+</ul>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p><strong>（1）backbone：得分最高 ≠ 学得最快（RQ1，Table 1、Fig. 2A）。</strong> Claude Opus 5.5 的 Max 80.1 与 Mean 61.0 全场最高；但学习速度指标由 Qwen 3.8 Max 领先（LG +25.2、LS +6.30，对比 Opus 5.5 的 LG +23.0、LS +5.22）。最弱的 GPT-5 Mini 的 Max 仅 34.0（OpenCode 下）。交互日志显示差异来自反馈使用方式：Opus 5 与 Qwen 3.8 Max 会检验并修正对隐藏规则的假设，而弱模型会重复以前有效的动作、或在一次尝试中同时改变多个因素（§4.2.1 的 Poisoner 案例：GPT-5 Mini 固定按菜单位置点菜，Kimi K3 则用”接受&#x2F;拒绝”反馈推断下一个要测的属性，Appendix B.1.4）。</p>
+<p><strong>（2）方法：保留原始历史只在 Kimi K3 上全面占优（RQ1，Table 1、Fig. 2B）。</strong> 在 Kimi K3 上，不做任何反思&#x2F;蒸馏的 Memory 以 Max 63.3、Mean 48.0、LG +16.9、LS +4.69 四项第一，优于 Reflexion、EvoTest、ReasoningBank、AWM；对比之下 EvoTest 在 Kimi K3 上的 LG 只有 +1.8、AWM +4.8，接近”没有学习”。但这一结论并不跨 backbone 成立：Opus 5 上 EvoTest（Max 66.1）与 Reflexion（64.8）都高于 Memory（60.9）；GPT-5 Mini 上 Reflexion（53.5）最高，且 OpenCode 该模型（34.0）低于全部六种方法。三 backbone 平均（Table 7）里，Memory 的 Mean（44.5）与 LS（+3.04）最好，但 Max 第一是 Reflexion（60.0）。作者给 Memory 的机制解释是：反思与蒸馏会把不完整证据固化成规则，原始历史则保留了可修正的证据（Appendix B.1.3 的 GemForge 案例：EvoTest–Opus 5 因一次合成失败就在 prompt 里禁止了”tier-2&#x2F;tier-3 融合”，连未测试过的可行组合也被排除）。</p>
+<p><strong>（3）harness：同模型换执行框架全面提升（RQ2，Table 2）。</strong> Opus 5 下 Claude Code 对照 OpenCode：Max 81.8 vs 74.5、Mean 62.3 vs 53.8、LG +27.1 vs +21.3、LS +6.59 vs +5.13；GPT-5.6-SOL 下 Codex 对照 OpenCode：Max 74.3 vs 57.0、Mean 54.8 vs 41.1、LG +22.2 vs +14.5、LS +5.66 vs +3.71。作者的解释是模型在自家 harness 上被训练过、且 harness 适配模型能力（§4.3，属作者主张，有引用但无组件级消融）。</p>
+<p><strong>（4）人类对照：峰值领先，均值落后（RQ3，Table 1、Fig. 2C）。</strong> Human Top-1 的 Max 84.3 高于所有智能体配置（最高的 Claude Code + Opus 5 为 81.8；人类 Top-k 不报告 trial SD，Appendix C）；但注意其 Mean 53.5 低于 Claude Code（62.3），也略低于 OpenCode–Opus 5（53.8）。行为统计（Appendix B.3.3）：fixed 游戏上相邻两局动作序列平均相似度人类 0.5379（150 对）vs 智能体 0.6575（918 对）；一局分数回落后下一局刷新个人最好的比例人类 33.3%（13&#x2F;39）vs 智能体 21.8%（52&#x2F;238）。分游戏看，人类 Top-1 在 GemForge、Grapevine 得分更高（策略发现型），OpenCode–Opus 5.5 在 RedEye、Model Auditor 更高（长序列执行与程序化计算型）（§4.4）。全体人类平均 Max 43.6，低于除 OpenCode + GPT-5 Mini（34.0）外的全部智能体配置（Appendix B.3.2）。</p>
+<p><strong>（5）迁移：实例洗牌拖慢学习，且对弱模型更狠（RQ4，Table 3）。</strong> 同规则下把”同实例重复（Control）”换成”每局换实例（Re-shuf.）”，学习斜率下降最大的是 Claude Sonnet 5（4.90→2.23，drop 2.67）、Gemini 3.7 Flash（2.15）、GPT-5.6-SOL（1.94）、Gemini 3.5 Flash（1.73）；Opus 5（0.59）、Claude Code + Opus 5（0.52）、Kimi K3（0.88）受影响最小；Qwen 3.8 Max（−0.41）与 Codex（−0.19）甚至出现负 drop（洗牌条件下拟合斜率略高，属噪声量级）。方法侧（Appendix B.4, Table 9）：Opus 5 配 Memory 的 drop 0.88 最大，AWM（−0.37）与 Naive（−0.08）无损失但也无学习。SynergyCorp 的日志案例显示两种迁移方式：Opus 5 把从旧 boss 学到的”可见桌面特征→偏好动作”映射直接用于新 boss（在 30 个动作预算下常能一次选对有效动作，得 137），Sonnet 5 与 Gemini 3.5 Flash 则对每个新 boss 重新试探（分别得 67 与 84）（Appendix B.4.1）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-09/2610.08215_fig2.png"
+                      alt="Figure 2：三类学习曲线（A：OpenCode 各 backbone；B：Opus 5 各方法；C：人类 Top-k 与代表性 agent）"
+                ></p>
+<p>Figure 2 是全文的核心结果图，三个面板回答不同问题。A 面板（OpenCode backbones）把 11 条曲线画在同一坐标系：上方的 Opus 5.5（深蓝菱形）最高、下方 GPT-5 Mini（棕）最低，中间一族曲线彼此交织——说明 backbone 的选择决定了起点与终点水平，但曲线的整体形状（前快后慢）相似。B 面板（Opus 5 + 6 种方法）的关键在于曲线之间的排序形态：EvoTest（绿）略高于由 Reflexion（蓝）、ReasoningBank（紫）与 Memory（橙）组成的中间簇，而”无跨局经验”的 Naive（灰）在 35–48 一带波动、AWM（青）全程最低（约 34–44）——这个面板支撑了”方法差异影响学习轨迹”的结论，注意同样的 Memory 在 Kimi K3 上（Table 1）却是第一名，说明方法效果依赖 backbone。C 面板（人类与 agent）把 Human Top-1&#x2F;3&#x2F;5（黑&#x2F;深灰&#x2F;浅灰）与 OpenCode–Opus 5（蓝）、EvoTest–Opus 5（绿）对比：Human Top-1 在大部分进度上最高，但在最右端 agent 曲线追近（约 65–67%），而人类 Top-3&#x2F;5 与 agent 曲线在中段开始重合——这提示”人类优势”主要体现在峰值而非全过程中位水平。x 轴是相对进度（普通游戏 5 局、挑战游戏 10 局统一映射到 0–100%，线性插值仅用于画图），所以水平位置不代表绝对局数（§4.1、Appendix A.2.3）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-09/2610.08215_fig5.png"
+                      alt="Appendix D.16 的 Figure 20：Poisoner 原始分数学习曲线（三个面板分别为 backbone、方法、harness；本报告按下载顺序将其命名为 fig5）"
+                ></p>
+<p>成本维度的 Figure 3 留到 §4.4 讨论；先看上面 Appendix D.16（Figure 20）的 Poisoner 曲线，它把”迁移”落到单个游戏上：Poisoner 是 re-shuffled 游戏（每局换菜单、国王偏好固定，参考分 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">C=100</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">100</span></span></span></span>，5 局窗口）。左面板（backbone）显示多种配置在末局达到或接近 100 分（如 Opus 5.5 从第 2–3 局就稳定到 100，Table 61 记录其平均首达局为 2.3），说明”把口味约束从旧菜单迁移到新菜单”这件事对强模型是可行的；中面板（方法）里所有自进化方法都没到 100（末端最高的是 Memory 约 77），显示方法层面对迁移的帮助有限；右面板（harness）里 Claude Code 单调爬升到 100，而 Codex 末局约 88，进一步支持”harness 影响执行与探索效率”的结论（对应 Table 61 中 Claude Code + Opus 5 的 Max 100.0±0.0 与 Codex + GPT-5.6-SOL 的 Max 89.0±19.1）。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>论文的机制论述可以分成三层，强度不同：</p>
+<p><strong>第一层：曲线证据（较强但只说明”发生了学习”）。</strong> 20 个游戏的学习曲线（Fig. 2A&#x2F;B 聚合、Appendix D 逐游戏）显示分数随 episode 普遍上升，且 fixed 与 re-shuffled 条件存在系统性差异（Table 3）；trial 标准差已报告（Appendix C），但如前所述这批曲线只能支持”行为在改善”，不能单独区分改善来自规则学习还是探索&#x2F;工具熟练度。</p>
+<p><strong>第二层：个案日志（存在，但被作者自己限定为示例）。</strong> 论文用档案化的交互记录支撑机制解释：Memory 的优势被归因于”原始证据可修正错误规则”（GemForge 案例，Appendix B.1.3）；探索停止被归因于”找到局部可行策略后不再测试替代方案”（Opus 5 在 GemForge 得出”更高价值宝石无法合成”后重复已知配方，§4.2.3）；规划失败与规则知识分离被 Haunted Inn 案例展示——agent 能陈述相关禁忌却没有为最后一位客人预留安全房间，下一局才改为预留（§4.2.3、Appendix B.1.2）。这些案例都来自记录的动作与可见旁白（非私有思维链），但覆盖范围有限：Appendix B.1.2 明确说明这些是”说明可能机制而非其频率”，Appendix B.1.3 更进一步声明”不能据此断言压缩就是 Memory 与其它方法总体差异的原因”（原文：It does not establish that compression causes the aggregate difference from Memory）。</p>
+<p><strong>第三层：规则发现标注（存在但刻意不聚合）。</strong> Appendix D 为每个游戏定义了局部目标 T1–Tk，并给每个配置标注 S（至少一个 trial 提供完整规则证据）&#x2F;P（部分）&#x2F;–（不足）；论文明确不做总体百分比汇总，理由是”标注标准混合了完整规则发现与成功执行”（Appendix B.1.1），且”高分本身不能证明每条隐藏规则都被掌握”（Appendix D 引言）。此外 Opus 5.5 与 GPT-6 Astra 不参与标注（”仅分数验证不足以证明规则发现”）。</p>
+<p><strong>替代解释是否被排除：部分。</strong> 成本机制有直接的 token&#x2F;调用数据支持（方法每次动作都调模型并重复供给历史：calls&#x2F;episode 27–30 vs OpenCode 8.1，Table 11）；但 (i) 未做”删除&#x2F;打乱历史内容”的干预实验来证明 agent 真的在用学到的规则；(ii) 方法比较不是机制消融（无组件移除实验）；(iii) harness 优势的归因（”模型在自家 harness 上训练过”）没有组件级验证；(iv) 人类-智能体行为差异统计在原文中即被声明为描述性而非因果检验（样本内观测不独立，Appendix B.3.3）。因此按证据分类：性能层面的结论是原文事实；机制层面的结论多为作者主张 + 案例佐证，尚未达到因果验证的强度。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-09/2610.08215_fig4.png"
+                      alt="Figure 4：Memory 方法在四种 backbone 上的学习曲线"
+                ></p>
+<p>Figure 4 单独看 Memory 这一种方法在四个 backbone 上的曲线，是”方法效果依赖 backbone”这个论点的最直观证据：Gemini 3.5 Flash（紫）曲线最高、Kimi K3（蓝）与 Opus 5（绿）居中且几乎重叠，GPT-5 Mini（红）全程压在 40 以下且增长缓慢。它说明两件事：其一，同一个”原样保留历史”的策略在不同模型上收益差别很大——强模型能把原始历史转成有效推断，弱模型则不能；其二，曲线在前 20–30% 进度涨幅最快、之后趋平，提示收益主要来自早期对环境的适应。需要谨慎的地方：四个 backbone 的起点不同（Gemini 3.5 Flash 起点也最高），所以曲线高低不能直接读作”Memory 对 Gemini 最有帮助”，判断增益要看各自的 Naive 或 OpenCode 基线（Table 1&#x2F;13）。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p><strong>论文报告的成本（RQ5，Fig. 3、Table 11–12）。</strong></p>
+<ul>
+<li><strong>单局成本</strong>：全部配置的估计成本区间约为 $0.0063–3.09&#x2F;episode（Table 12）。以 Kimi K3 为例：OpenCode 0.56M tokens&#x2F;局、$0.313&#x2F;局、Max 68.5；对比 Claude Sonnet 5 的 OpenCode 配置 0.73M tokens&#x2F;局、$1.33&#x2F;局、Max 55.9——“单价更贵的模型总成本反而更低”（§4.6，Table 12 数字）。</li>
+<li><strong>harness 省成本</strong>：Kimi K3 下 OpenCode 比 Memory 少 56% 输入 tokens，比 EvoTest、ReasoningBank 分别少 71%、41% 生成 tokens；原因是 OpenCode 一次模型回复可执行多个游戏动作（一次 GemForge 轨迹把 9 个动作合并进 1 次调用，只回传最后 60 行输出），而六种自进化方法每个动作调一次模型并重复供给历史（§4.6、Table 11、Appendix B.5.1）。EvoTest 光”更新”（跨局反思&#x2F;策略演化）每局就生成 11.5K tokens，超过 OpenCode 的全部生成量 7.2K（Table 11）。</li>
+<li><strong>省成本≠有收益</strong>：Reflexion 与 AWM 的总估计成本低于 OpenCode，但 Max 也更低（Kimi K3，Table 11：Reflexion $0.300 对 OpenCode $0.313，Max 61.6 对 68.5）。</li>
+<li><strong>账单与估计的混合</strong>：GPT-6 Astra 是唯一有确认账单的配置（$150 &#x2F; 600 episodes &#x3D; $0.25&#x2F;episode），其 token 用量不完整（4,253 条唯一记录中 13 条缺可用 token 计数），因此被排除在成本-性能前沿之外（Appendix B.5.1 称 token 总量”仍是下界”）。</li>
+<li><strong>论文未报告的成本</strong>：墙钟时延（wall-clock latency）、harness 的完整提示词长度、以及人类实验的时长；游戏设计、参考分数计算与 21–30 名&#x2F;游戏的人类被试招募是本文的人力成本，论文未给出总工量估计。</li>
+</ul>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-09/2610.08215_fig3.png"
+                      alt="Figure 3：Max 分数与平均单局成本（x 轴为对数尺度；虚线为标准价格估计配置的性能-成本前沿）"
+                ></p>
+<p>Figure 3 的读法：每个点是一个配置（形状区分方法、颜色区分模型），纵轴是 Max、横轴是单局平均成本（对数坐标），虚线是”标准价格估计”配置里可达到的最优权衡前沿。它要回答 RQ5：更多钱是否买到更高分。图中几个关键结构：右上角的 Claude Code + Opus 5 与 Codex + GPT-5.6-SOL 用较低成本拿到高 Max（Codex 约 $0.144&#x2F;局、Max 74.3，比值 516.6 Max&#x2F;USD，Table 12）；中部的 Qwen 3.8 Max 在 $0.225&#x2F;局达到 72.5（性价比高于 $2.57&#x2F;局的 OpenCode + Opus 5 的 74.5）；左侧低成本的 Gemini 3.7 Flash &#x2F; GPT-5 Mini &#x2F; DeepSeek V4 Pro 分数也低。结论是成本与性能不单调：换成与模型匹配的 harness 或更省 token 的模型，可以在更低成本下提高 Max（§4.6）。注意 Astra（确认账单配置）不在这条前沿上，其效率比值被论文省略。</p>
+<p><strong>适用范围与边界。</strong> 论文结论成立于：黑盒文本接口、确定性反馈、每配置 3 trial、5–10 episode 窗口、模型权重不变、20 个特定游戏。对连续控制、视觉交互、真实代码库任务或需要权重更新的自进化方法，论文没有实验证据。方法侧结论（Memory &gt; 蒸馏类）只在 3 个 backbone 上测试且方向依 backbone 而变；”harness 很重要”这一条对两个模型对儿成立，但依赖具体 harness-模型的配对关系。作者在 §5 提出的三个开放方向（探索-利用平衡、如何存储规则、如何识别环境变化中不变的规则）也说明这些问题目前仍未解决。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：基准的核心构念”学到了规则”没有被聚合成可检验的证据，分数提升与规则发现之间存在缺口"><a href="#质疑：基准的核心构念”学到了规则”没有被聚合成可检验的证据，分数提升与规则发现之间存在缺口" class="headerlink" title="质疑：基准的核心构念”学到了规则”没有被聚合成可检验的证据，分数提升与规则发现之间存在缺口"></a>质疑：基准的核心构念”学到了规则”没有被聚合成可检验的证据，分数提升与规则发现之间存在缺口</h4><ul>
+<li><strong>原文依据</strong>：Appendix B.1.1 明确记录”不把规则发现标注聚合成总体百分比，因为存档标准混合了完整规则发现与成功执行”；Appendix D 的 S&#x2F;P&#x2F;– 标注只按游戏保留；机制解释全部是个案日志（GemForge、Haunted Inn、Poisoner，§4.2.3、Appendix B.1.2–B.1.4），且 Appendix B.1.3 自己声明”不能据此断言压缩就是方法间总体差异的原因”；得分曲线（Fig. 2、Appendix D）只证明行为改善。另外，论文没有报告任何”模型在交互前不知道这些规则”的直接校验（如受控问答、零交互先验测试），规则新颖性只有设计声明与 pilot 难度估计（§3）。</li>
+<li><strong>为什么重要</strong>：这决定基准是否兑现了它自己的承诺——“区分从交互中学到的东西与预训练知识”（§1）。如果分数提升可以来自更熟练地使用工具、更长的思考预算或 in-context 搜索，那么 Table 1–3 的比较就不能被读作”学习能力”的对比，整篇论文的构念效度（construct validity）受损。</li>
+<li><strong>当前能够得出的判断</strong>：分数随 episode 改进、且 fixed 与 re-shuffled 条件存在系统差异，是可复现的原文事实；”改进&#x3D;学到隐藏规则”目前主要是设计假设 + 案例佐证，证据不足；S&#x2F;P 标注体系已经存在，具备聚合条件但论文选择不做。</li>
+<li><strong>如何验证或补强</strong>：汇总并报告 S&#x2F;P 标注的总体分布与评分者一致性；增加”规则内容干预”实验（如清空&#x2F;打乱记忆中的规则性内容，观察成绩回退）；给出交互前的先验测试以证明规则确实不在预训练中；对同一日志的”工具使用熟练度”与”规则发现”做分项归因。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：关键结论的适用范围被概括性表述放大，且与自己的表格存在矛盾"><a href="#质疑：关键结论的适用范围被概括性表述放大，且与自己的表格存在矛盾" class="headerlink" title="质疑：关键结论的适用范围被概括性表述放大，且与自己的表格存在矛盾"></a>质疑：关键结论的适用范围被概括性表述放大，且与自己的表格存在矛盾</h4><ul>
+<li><strong>原文依据</strong>：摘要与 §1 finding (1) 泛化陈述”保留完整动作与反馈记录比把经验总结成规则或策略更能支持学习”，但 Table 1 中该结论只在 Kimi K3 上四项指标全部成立：Opus 5 上 EvoTest（Max 66.1）与 Reflexion（64.8）高于 Memory（60.9），GPT-5 Mini 上 Reflexion（53.5）最高；Table 7 的三 backbone 平均里 Max 第一也是 Reflexion（60.0）而非 Memory。§4.2.2 声称”OpenCode 在同一 backbone 下优于所有被测自进化方法”，但 GPT-5 Mini 下 OpenCode 的 Max 34.0 低于全部六种方法（Reflexion 53.5、ReasoningBank 51.9、Naive&#x2F;Memory 48.7、EvoTest 47.5、AWM 47.0）（Table 1）。</li>
+<li><strong>为什么重要</strong>：这是论文三大发现中的两条（经验保留、harness&#x2F;框架灵活性）的证据基础；若结论只在部分 backbone 上成立，正确的表述应是”方法效果与 backbone 能力交互”，而不是普适排序；与实际表格矛盾的概括会直接影响读者对结论的信任。</li>
+<li><strong>当前能够得出的判断</strong>：表格数字可核实，矛盾属实；论文未讨论 GPT-5 Mini 上的反向结果，也未解释为什么同一种 harness 在弱模型上反而不如逐动作调用的方法（可能如 §4.2.2 所述”模型决定何时查看反馈”在弱模型上失效，但这是审稿人推断，论文没有验证）。</li>
+<li><strong>如何验证或补强</strong>：扩大方法比较的 backbone 覆盖（至少补 2–3 个中档模型）；对方法×backbone 的交互做配对统计检验；报告方法在弱模型上的失败模式（工具调用错误率、上下文超限率）；修改摘要与引言的概括，使之与 Table 1&#x2F;7 一致。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：人机对比不是同口径比较——人类值是-21–30-人中的-Top-k-选择，agent-值是-3-次-trial-峰值的平均"><a href="#质疑：人机对比不是同口径比较——人类值是-21–30-人中的-Top-k-选择，agent-值是-3-次-trial-峰值的平均" class="headerlink" title="质疑：人机对比不是同口径比较——人类值是 21–30 人中的 Top-k 选择，agent 值是 3 次 trial 峰值的平均"></a>质疑：人机对比不是同口径比较——人类值是 21–30 人中的 Top-k 选择，agent 值是 3 次 trial 峰值的平均</h4><ul>
+<li><strong>原文依据</strong>：Appendix B.3.1 说明人类 Top-1&#x2F;3&#x2F;5 按每游戏 21–30 名参与者中观测到的最高分选择；Appendix A.2.2 说明 agent 的 Max 是各 trial 峰值分的平均；Appendix C 明确”Human Top-k 组不是独立重复 trial，我们不给这些被选组附加 agent 的 trial SD，也不将其解释为总体不确定性”。人类与 agent 的指标构造也不同（人类用 observed episode scores（观测分优先于回放值）；agent 用固定 5&#x2F;10 局窗口，Appendix B.3.1–B.3.3）。若看同口径的全体参与者平均，人类 Max 43.6 低于多数 agent 配置（Appendix B.3.2）。行为统计（序列相似度 0.5379 vs 0.6575；恢复率 33.3% vs 21.8%）在原文中即被声明为”描述性比较而非因果检验”，且观测来自同一被试&#x2F;同一 run 的重复测量，不独立（Appendix B.3.3）。</li>
+<li><strong>为什么重要</strong>：finding (2) 与 §5 讨论的核心叙事是”顶级人类仍然强于 agent，因为探索更广”，但”顶级人类”是极值统计量；这影响结论的公平性表述与”人类上限”的解释力。它不否定现象的定性方向（多处案例支持人类策略更多样），但影响强度判断。</li>
+<li><strong>当前能够得出的判断</strong>：Human Top-1 Max 84.3 是”21–30 人取最优”的描述统计，不能直接对比 agent 的 3-trial 平均；”人类在峰值上仍有优势”在论文数据内成立，但差距的统计显著性未知；”人类探索更广”目前只有行为相关性证据。</li>
+<li><strong>如何验证或补强</strong>：报告人类峰值的分布（全分布或 bootstrap 区间）与 agent 峰值的同规模重采样；将人类样本量匹配到 agent 的 trial 数；对人类与 agent 的行为差异做分层配对检验；披露人类被试的游戏经验与练习效应控制。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：复现材料当前不可得，成本数字依赖多项未完全披露的假设"><a href="#质疑：复现材料当前不可得，成本数字依赖多项未完全披露的假设" class="headerlink" title="质疑：复现材料当前不可得，成本数字依赖多项未完全披露的假设"></a>质疑：复现材料当前不可得，成本数字依赖多项未完全披露的假设</h4><ul>
+<li><strong>原文依据</strong>：Appendix B.2 只披露 trial 隔离设置（Claude Code 关闭 persistent auto-memory、Codex 用 <code>--ephemeral</code>、OpenCode 每 trial 新会话），其余”使用 CLI 或提供商默认设置”；全文未给出任何 harness 的提示词模板、最大上下文&#x2F;token 预算与工具定义清单。项目网站（论文 §1 给出链接，本次核查 2026-10-09）显示代码仓库处于”access currently restricted”，游戏门户 learn2play.fun 需要登录。成本侧：除 GPT-6 Astra 用确认账单外，其余为”标准价格估计”（2026-08-30 快照），缓存复用按 5 分钟生命周期与各模型最小可缓存长度重建；4,253 条唯一记录中 13 条缺可用 token 计数，作者自认 token 总量”仍是下界”（Appendix B.5.1）。620 个配置-游戏 cell 的原始 trajectory 未公布。</li>
+<li><strong>为什么重要</strong>：基准类工作的主要价值是让第三方能独立运行并验证；没有提示词、工具配置与游戏源码，”换一个 harness&#x2F;方法就会变”的核心结论无法被独立复现或反驳。成本是结论 (3)&#x2F;(5) 的支撑指标，其假设（缓存命中、价格快照时间）直接影响 harness 之间”更省”的比较。</li>
+<li><strong>当前能够得出的判断</strong>：评测协议、指标定义、参考分数与 trial SD 的披露相当充分（Appendix A&#x2F;C 是正面示例）；但”把代码跑起来”所需的关键材料当前不可得，作者似在准备公开（仓库链接已存在但受限），公开时间论文未承诺。</li>
+<li><strong>如何验证或补强</strong>：随论文放出游戏源码、harness 配置与提示词、模型快照版本（尤其 GPT-6 Astra、Opus 5.5 这类闭源端点）、原始 trajectory 与成本计算脚本；对成本报告缓存命中率实测值与价格假设的敏感性分析。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：试验次数少、只报标准差、无显著性检验，细粒度排名落在噪声区间内"><a href="#质疑：试验次数少、只报标准差、无显著性检验，细粒度排名落在噪声区间内" class="headerlink" title="质疑：试验次数少、只报标准差、无显著性检验，细粒度排名落在噪声区间内"></a>质疑：试验次数少、只报标准差、无显著性检验，细粒度排名落在噪声区间内</h4><ul>
+<li><strong>原文依据</strong>：Appendix C：每个配置-游戏 cell 仅 3 条完整 trajectory（共 620 个 cell），作者自述”少量 trial 限制了 SD 估计的精度”，且”这是 SD，不是多 trial 均值的标准误或置信区间”。Table 13 中若干相邻配置的区间明显重叠，例如 Kimi K3 下 Memory 63.3±4.0 vs EvoTest 62.4±3.5、Opus 5 下 Memory 60.9±3.9 vs ReasoningBank 60.2±4.8；Table 3 的洗牌 LS drop 里出现两个负值（Qwen 3.8 Max −0.41、Codex −0.19），提示部分条件的 trial 级波动与效应量同阶。全文没有显著性检验或多重比较校正。</li>
+<li><strong>为什么重要</strong>：方法排名、”某 harness 更好”、”洗牌拖慢多少”这些论断的粒度依赖统计支撑；重叠区间意味着部分精细结论（例如 Kimi K3 下 Memory 与 EvoTest 的 Max 差 0.9）当前不可断言。它不推翻大效应结论（例如 GPT-5.6-SOL 的 harness 切换 Max +17.3、Claude Code 对 OpenCode +7.3，切换幅度大于各自 trial SD），但论文没有帮读者区分这两类。</li>
+<li><strong>当前能够得出的判断</strong>：方向性大效应证据较强；相邻名次之间与部分游戏级差异证据不足；应把 Table 13 的 ±SD 作为解读所有排名的必要背景而不是装饰。</li>
+<li><strong>如何验证或补强</strong>：增加独立 trial 数（作者已具备自动化框架，边际成本低）；报告基于 trial 的配对检验与效应量；对关键比较（方法×backbone、harness×模型）给出置信区间；对洗牌 drop 的负值给出解释或更稳健的估计。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现”自我进化智能体”的现有评测无法区分从交互中学到新规则与复用预训练知识，因此提出 Learn2Play Bench：20 个新设计的隐藏规则文本游戏，以固定的四条原则（规则新颖、自动评分、可复现、跨局受控变化）和 fixed&#x2F;re-shuffled 成对条件，把”记住实例”与”学会规则”尝试分开，并在同一协议下比较 11 个 backbone、6 种经验保留方法、3 种 harness 与人类玩家（不更新权重）。实验在 20 个游戏、每配置 3 个独立 trial 的条件下表明：同 backbone 换用模型原生 harness 可四项指标全面提升且在部分组合下降成本（Opus 5 下 Claude Code 对 OpenCode：Max 74.5→81.8；GPT-5.6-SOL 下 Codex 对 OpenCode：57.0→74.3，Table 2）；实例洗牌普遍压低学习斜率且对弱模型更明显（drop 最大 2.67，Sonnet 5；Opus 5 仅 0.59，Table 3）；保留原始历史的 Memory 在 Kimi K3 上四项最优（63.3 &#x2F; 48.0 &#x2F; +16.9 &#x2F; +4.69，Table 1）。其中<strong>证据较强</strong>的是 harness 切换效应（跨两个模型对一致、SD 小于效应量）、洗牌的学习斜率拖累（多模型一致方向）、以及”得分最高≠学得最快”的指标分离（Qwen 3.8 Max 的 LG&#x2F;LS 领先于 Opus 5.5，Table 1）；<strong>仍缺少充分支持</strong>的是”保留原始证据优于蒸馏”的普适性（只在 Kimi K3 成立，Opus 5&#x2F;GPT-5 Mini 上被 EvoTest&#x2F;Reflexion 反超）、人类对 agent 的领先幅度（Top-k 选择口径 + 无显著性检验）、以及”agent 真的学到了隐藏规则”这一核心构念（只有归档个案与设计声明，没有聚合证据，Appendix B.1.1）。本文最有价值的部分是把”学习”从口号变成一套可重放、可迁移测试、含参考分数与 trial 方差的评测框架，并诚实报告了一批负结果（复杂方法不总是更好、更贵不总是更好、换实例可能让学习退化）；最大的审稿风险是核心构念没有被直接测量，加上若干概括性结论超出了其表格证据的覆盖范围。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强——§1 把问题收敛为一个可操作问句，§3 将”规则新颖性”落实为四条设计原则，§4.1 与 Appendix A.2 给出完整指标公式、归一化与权重规则，四个指标各自回答”水平”还是”趋势”有明确分工。</li>
+<li><strong>创新性证据</strong>：中——基准设计（隐藏规则 + 确定性反馈 + 重洗对照 + 参考分数体系）是已有评测思想的系统性组合，harness 对照与人类行为统计提升了增量价值；但”规则不在预训练中”无独立校验，”是否首次”需要更完整检索，方法层面没有新算法。</li>
+<li><strong>方法可信度</strong>：中——评测协议严密（同实例、同窗口、trial 隔离、自动评分、规则发现标注按游戏存档），但三处口径问题（GPT-5 Mini 上”OpenCode 全胜”的反例未讨论、人类 Top-k 与 agent 平均不同口径、机制归因以案例为主）削弱了方法层面的可归因性，且关键材料（提示词、游戏源码）未公开。</li>
+<li><strong>实验支持力度</strong>：中——覆盖面广（31 个配置 × 20 游戏 × 3 trial，成本与方差都有报告），大效应结论有 trial SD 支撑；但每格 3 trial、只报 SD、无显著性检验，细粒度排名（方法之间、部分游戏之间）证据不足，核心”学习”构念依赖个案。</li>
+<li><strong>可复现性</strong>：中——指标、参考分数、评分窗口、trial 协议与大部分模型身份披露充分（Appendix A&#x2F;C 质量高），但 harness 提示词与配置细节、游戏源码、原始 trajectory 与成本脚本当前不可得（项目仓库受限、游戏门户需登录）；成本为含假设的估计且 token 记录存在下界问题。</li>
+<li><strong>综合阅读价值</strong>：高——为 agent 经验学习与自我进化研究提供了可直接复用的评测视角（fixed&#x2F;re-shuffled 对照、四指标分离、harness 变量控制），并给出多条可检验的负结果与开放问题（探索-利用平衡、经验表示形式、环境变化下的不变量识别），对做评测与做方法的研究者都有参考意义。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Learn2Play Bench: How Well Do LLM Agents Learn from Experience in Unfamiliar Environments?</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-09 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-09 16:26:09
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/09/2610.08215v2_Learn2Play_Bench_How_Well_Do_LLM_Agents_Learn_from_Experience_in_Unfamiliar_Environments/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">#基准评测</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%87%AA%E6%88%91%E8%BF%9B%E5%8C%96/">#自我进化</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-%E6%99%BA%E8%83%BD%E4%BD%93/">#LLM 智能体</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E7%BB%8F%E9%AA%8C%E5%AD%A6%E4%B9%A0/">#经验学习</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E4%BA%BA%E6%9C%BA%E5%AF%B9%E6%AF%94/">#人机对比</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/09/2610.12126v1_SuperNav_An_Agentic_Navigation_System_for_Any_Task_in_Any_Scene/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">SuperNav: An Agentic Navigation System for Any Task in Any Scene</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/09/2610.12461v1_OuroWorld_Bringing_Any_3D_World_Alive_as_Diverse_Endlessly_Looping_3D_Cinemagraphs/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">OuroWorld: Bringing Any 3D World Alive as Diverse, Endlessly Looping 3D Cinemagraphs</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Learn2Play Bench: How Well Do LLM Agents Learn from Experience in Unfamiliar Environments?</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 105 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
