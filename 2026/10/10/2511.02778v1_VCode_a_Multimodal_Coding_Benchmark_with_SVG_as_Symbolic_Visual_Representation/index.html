@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/10/2511.02778v1_vcode_a_multimodal_coding_benchmark_with_svg_as_symbolic_visual_representation/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="VCode: a Multimodal Coding Benchmark with SVG as Symbolic Visual Representation">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/10/2511.02778v1_VCode_a_Multimodal_Coding_Benchmark_with_SVG_as_Symbolic_Visual_Representation/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-10T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-09T16:13:11.768Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="SVG">
+<meta property="article:tag" content="代码生成">
+<meta property="article:tag" content="基准评测">
+<meta property="article:tag" content="多模态理解">
+<meta property="article:tag" content="测试时修订">
+<meta property="article:tag" content="视觉问答">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>VCode: a Multimodal Coding Benchmark with SVG as Symbolic Visual Representation | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">343</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">107</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">VCode: a Multimodal Coding Benchmark with SVG as Symbolic Visual Representation</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-10 12:00</span>
+        <span class="mobile">2026-10-10 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-10 00:13:11</span>
+            <span class="mobile">2026-10-10 00:13:11</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%A4%9A%E6%A8%A1%E6%80%81%E7%90%86%E8%A7%A3/">多模态理解</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90/">代码生成</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/SVG/">SVG</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">基准评测</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%A7%86%E8%A7%89%E9%97%AE%E7%AD%94/">视觉问答</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%B5%8B%E8%AF%95%E6%97%B6%E4%BF%AE%E8%AE%A2/">测试时修订</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>Kevin Qinghong Lin（University of Oxford）、Yuhao Zheng（University of Science and Technology of China）、Hangyu Ran（Central South University）、Dantong Zhu（Central South University）、Dongxing Mao（Central South University）、Linjie Li（Microsoft Research）、Philip Torr（University of Oxford）、Alex Jinpeng Wang（Central South University）；前三位作者标注共同一作（∗，PDF p. 1）；论文 PDF 未标注通讯作者，项目页以信封符号标注 Alex Jinpeng Wang 为通讯作者。</p>
+<p>论文：2511.02778v1；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-10（Asia&#x2F;Shanghai）。</p>
+<ul>
+<li><p>Hugging Face 页面：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2511.02778" >https://huggingface.co/papers/2511.02778<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2511.02778v1%EF%BC%88%E5%85%A8%E6%96%87" >https://arxiv.org/abs/2511.02778v1（全文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2511.02778v1" >https://arxiv.org/html/2511.02778v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2511.02778v1" >https://arxiv.org/pdf/2511.02778v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；项目页：<a class="link"   target="_blank" rel="noopener" href="https://csu-jpg.github.io/VCode" >https://csu-jpg.github.io/VCode<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/CSU-JPG/VCode" >https://github.com/CSU-JPG/VCode<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ）</p>
+</li>
+</ul>
+<p><strong>分析范围</strong>：以 v1 为准（2025-11-04 提交，arXiv 版本列表中的唯一版本）。完整读取 arXiv HTML 全文与 27 页 PDF 全文：正文 §1–§6（PDF pp. 1–9）、附录 A 实现细节（PDF p. 13）、附录 B 三个消融表（Table 5–7，PDF p. 14）、附录 C 提示模板 C.1–C.5（PDF pp. 14–17，另与 HTML 内嵌 SVG 中的文本互核）、附录 D 定性可视化（PDF pp. 18–27）；Fig. 1–6、Table 1–7、Eq. 1–3、Algorithm 1 均已核查；Table 2&#x2F;3&#x2F;4&#x2F;5&#x2F;6&#x2F;7 的关键数字在 HTML 与 PDF 两版间逐项交叉核对，两版一致（发现的表间不一致见 §4.3 与 §5，均为两版共有，排除转录错误）。Fig. 2(a)、Fig. 4、Fig. 5 在 HTML 中为矢量 SVG 资源（stats.svg &#x2F; evaluator.svg &#x2F; revision.svg），本报告用 macOS QuickLook 以 1800px 渲染核对。配图 6 张：Fig. 1（teaser.png）、Fig. 2(b)（qa.png）、Fig. 3（vcoder.png）、Fig. 6 上排合成图（ex1–ex4.png 按 2×2 拼接）、Fig. 4 与 Fig. 5 为上述 SVG 渲染图；均已逐张打开核对、确认非零字节。代码仓库与项目页于 2026-10-10 访问：仓库公开（2025-10-29 创建，最后 push 2026-02-21，含 data&#x2F;evaluation&#x2F;vcode-suite&#x2F;example_results 目录，无 license）；项目页与仓库已含有论文之后的新内容（如 Gemini-3-Pro、GPT-5.2 条目），不属于本论文，本报告不采用。论文未报告：SVG 渲染器（正文）、”Success Rate” 列的定义、Table 2 中 VCoder 的确切配置（修订轮数等）、人类研究细节（人数&#x2F;流程）、推理时延与调用成本。</p>
+<p>标签：多模态理解、代码生成、SVG、基准评测、视觉问答、测试时修订。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>VCode 把多模态理解重写成视觉中心编程（visual-centric coding）：给定自然图像，让视觉语言模型（vision-language model, VLM）生成 SVG（Scalable Vector Graphics，可缩放矢量图形）代码，并用 CodeVQA 协议——让策略模型（policy model）只依据渲染（render）出的 SVG 回答原图问题——检验代码是否保真地承载符号信息；在论文评测的 23 个基线系统与 VCoder 上（Table 2），前沿 VLM 普遍明显低于”原图直接作答”的上界，作者进而提出免训练的 VCoder（迭代修订（revision）+ 视觉工具（visual tools）），相对其底座 Claude-4-Opus 取得总分 +12.3 的提升。但这一提升的归因缺少关键对照（无工具对等的强基线、无跨底座替换实验），且评测有效性受”命名提示”泄漏与策略模型敏感性的影响，因此证据足以支撑”该任务有难度、外部工具与修订有帮助”，尚不足以支撑”VCoder 是更优的视觉符号编码方案”这一更强主张。</p>
+<h2 id="1-论文具体想解决什么问题"><a href="#1-论文具体想解决什么问题" class="headerlink" title="1. 论文具体想解决什么问题"></a>1. 论文具体想解决什么问题</h2><p><strong>研究背景与具体任务</strong>。代码已成为智能体推理与行动的精确媒介，但现有编程基准（coding benchmark）以语言为中心：HumanEval、SWE-Bench 等的输入输出均为文本或代码、以执行通过率计分；多模态侧的代码任务（ChartMimic、Design2Code、SVG-Bench、SVGenius 等）主要面向合成视觉资产（图表、网页 UI、矢量图标），且大多需要文本+图像混合输入与查询引导（§1、§2，Table 1）。论文提出的任务：给定一张自然图像 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">V</mi></mrow><annotation encoding="application/x-tex">\mathcal{V}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span></span></span>，模型生成 SVG 代码 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">C</mi></mrow><annotation encoding="application/x-tex">\mathcal{C}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span></span></span></span>，渲染得图像 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover></mrow><annotation encoding="application/x-tex">\widetilde{\mathcal{V}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9433em;"></span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span></span></span></span>，目标是让渲染图在”符号信息 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mo stretchy="false">(</mo><mo>⋅</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">I(\cdot)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mopen">(</span><span class="mord">⋅</span><span class="mclose">)</span></span></span></span>”意义上接近原图，即最小化 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>I</mi><mo stretchy="false">(</mo><mi mathvariant="script">V</mi><mo stretchy="false">)</mo><mo>−</mo><mi>I</mi><mo stretchy="false">(</mo><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mo stretchy="false">)</mo><mi mathvariant="normal">∣</mi></mrow><annotation encoding="application/x-tex">|I(\mathcal{V})-I(\widetilde{\mathcal{V}})|</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mopen">(</span><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1933em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mopen">(</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="mclose">)</span><span class="mord">∣</span></span></span></span>（Eq. 1，§3.1）。核心问题是：视觉表征能否从稠密像素转向紧凑、可解释、可执行的代码（§1 原文表述）。</p>
+<p><strong>现有做法哪里不好</strong>（作者主张 + Table 1 对照）。语言编程基准测不到视觉能力；已有的多模态代码基准或处理合成素材、或允许查询文本引导，尚未检验”模型能否把真实自然图像直接编码为可执行视觉代码”；SVG 专用生成模型（OmniSVG、StarVector）在”自然图像→SVG”上表现很差（Table 2：StarVector 总分 2.8、渲染成功率 8.3%；OmniSVG 25.2）。</p>
+<p><strong>作者发现的新现象</strong>（原文事实，§5.2）。把 23 个前沿&#x2F;开源系统放在同一任务上测后：(i) 推理能力更强的模型整体更好（GPT-5 取得 SigLIP 72.3 与 CodeVQA 总分 46.8，均为基线最优）；(ii) 但最优 SVG 仍远低于”原图直接作答”的上界（46.8 vs 61.7，同一策略 GPT-4o-mini，Table 2）；(iii) MM-Vet 的 Knowledge 维度在所有模型上最低；(iv) CV-Bench（含 3D 深度&#x2F;空间关系）分数贴近随机的 50% 水平；(v) 更长的代码与更高分数相关（如 Qwen2.5-VL-72B 仅 0.3K token、总分 36.0）。作者把它概括为”语言中心编程与视觉中心编程之间的持续差距”（persistent gap between language- and visual-centric coding）。</p>
+<p><strong>作者认为的原因</strong>（§4 开头，作者主张）。三类困难：(i) 长上下文代码生成——完整表达一张图常需数千 token；(ii) 跨模态”盲输出”——渲染结果在执行前不可见，编辑代码时须预判视觉后果；(iii) 低层视觉细度——不规则边界、掩码、颜色必须数值化精确写出，超出语言型模型的固有能力。</p>
+<p><strong>三层问题的区分</strong>（审稿人判断）：</p>
+<ul>
+<li>“多模态模型缺乏细粒度视觉能力”是领域早已存在的一般问题（CV-Bench&#x2F;Cambrian-1 等工作已在测）；</li>
+<li>本文的新观察是把该问题置于”图像→可渲染代码”这一新任务形态下做系统测量，并报告了差距的量级（Table 2 的网格）；</li>
+<li>本文实际解决的具体子问题是工程性的：给定一套可执行的评测协议（CodeVQA）与测试时脚手架（VCoder），使”视觉中心编程”可比较、且有初步的改进路径。</li>
+<li>需要说明：论文只呈现了”推理强度与编码分数正相关”的现象（§5.2），没有同规模受控实验证明因果，也没有量化相关系数；此处是观察到的相关性，不是已验证的机制解释。</li>
+</ul>
+<p><strong>核心假设</strong>（作者主张）：(H1) SVG 代码可作为自然图像的紧凑、可解释、可执行表征（§1）；(H2) 用”渲染图的下游问答正确率”可以度量符号保真度（§3.2）；(H3) 测试时的迭代修订与外部视觉工具能弥补 VLM 的编码短板（§4）。H2、H3 有实验但存在混淆因素（见 §4.3、§5）。</p>
+<h2 id="2-创新点是什么"><a href="#2-创新点是什么" class="headerlink" title="2. 创新点是什么"></a>2. 创新点是什么</h2><p>一句话概括：本文的技术增量不是新模型或新训练方法，而是”任务重定义 + 评测协议 + 测试时脚手架”三件套——把多模态理解重构成”图像→SVG 代码”的视觉中心编程任务，用 CodeVQA（渲染→VQA）替代像素级相似度来度量符号保真，并在不训练的前提下用”注释差异—修订代码”循环与检测&#x2F;分割&#x2F;OCR 工具提升编码质量。由于数据集由 MM-Vet&#x2F;MMMU&#x2F;CV-Bench 复用拼接，VCoder 的组件（图像描述、思考模式、检测器、分割、修订循环）均为已有构件，本文属于”新任务视角与新评测协议 + 已有组件的新组合与工程实现”，而非新的学习思想（审稿人判断）。</p>
+<p>逐项分析：</p>
+<ol>
+<li><p><strong>VCode 基准与任务重定义（§3.1、§3.3，Table 1）</strong>。新增的是一次任务改写：输入只有图像（无问题、无文本引导），输出是可渲染的 SVG 代码；评测数据由三个公开基准复用——MM-Vet 全量 218 对、MMMU 开发集过滤出的单图子集 146 对、CV-Bench 分层抽样的 100 对（空间关系 20、物体计数 20、深度顺序 30、相对距离 30），合计 464 对（§3.3，原文事实）。与最接近已有工作（SVG-Bench、SVGenius、ChartMimic、Design2Code）的差异：对象是自然图像而非图标&#x2F;图表&#x2F;UI，且不接受任何查询文本。这一差异是”新任务视角”，对应的问题是”视觉中心编程没有可测基准”。证据：Table 1 的定位对照矩阵；Table 2 显示 SVG 专用模型在该任务上得分垫底（25.2&#x2F;2.8），说明该任务与”生成美观矢量图”不是同一种能力。若移除该任务设定，”SVG 专家不擅长自然图像”这一发现无从暴露；但需注意，数据集为复用而非新建，按 §2 的标准，此贡献更接近”评测集组装 + 任务改写”，删除”新数据”维度后其创新性主要落在任务视角与协议上（审稿人判断）。</p>
+</li>
+<li><p><strong>CodeVQA 评测协议（§3.2，Eq. 3，Fig. 2(b)）</strong>。新增的是一种间接度量：策略模型 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϕ</mi></mrow><annotation encoding="application/x-tex">\phi</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">ϕ</span></span></span></span> 仅凭渲染图 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover></mrow><annotation encoding="application/x-tex">\widetilde{\mathcal{V}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9433em;"></span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span></span></span></span> 回答原图问题 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">Q</mi></mrow><annotation encoding="application/x-tex">\mathcal{Q}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7805em;vertical-align:-0.0972em;"></span><span class="mord mathcal">Q</span></span></span></span>（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>=</mo><mi>ϕ</mi><mo stretchy="false">(</mo><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mo separator="true">,</mo><mi mathvariant="script">Q</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">A=\phi(\widetilde{\mathcal{V}},\mathcal{Q})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">A</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1933em;vertical-align:-0.25em;"></span><span class="mord mathnormal">ϕ</span><span class="mopen">(</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathcal">Q</span><span class="mclose">)</span></span></span></span>），多选用规则匹配、开放题用 LLM-as-Judge（原文事实）。与 SigLIP 余弦相似度（Eq. 2）相比，它不奖励”外观相似但语义丢失”的渲染；与人工判分相比可自动执行。论文提供的有效性证据：Table 3 中形状线索使 SigLIP 几乎不变（71.5→71.6）但 MM-Vet CodeVQA 从 43.3 升到 54.1，说明两者度量不同侧面（原文事实）；Table 7 显示该指标高度依赖作答策略（54.1&#x2F;55.8&#x2F;63.3）。对应的问题是”如何定义符号保真”。该协议的已知弱点：附录 C.4 的提示明确允许对可识别对象写入名称文本（hint strategy），知识型问题可能被”写名字”而非”画对图”答对；论文未做去除文本标签的消融（详见 §5 质疑一）。按论文报告，若移除该协议，只能退回像素相似度，无法区分”抽象但语义保留”与”相似但关系错误”两类渲染。</p>
+</li>
+<li><p><strong>VCoder 测试时框架（§4，Fig. 3，Algorithm 1）</strong>。新增的是两个可移植能力：(i) Thinking with Revision——每轮先让模型对比原图与当前渲染、写出差异 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi mathvariant="normal">Δ</mi><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo>←</mo><mi>ψ</mi><mo stretchy="false">(</mo><mi mathvariant="script">V</mi><mo separator="true">,</mo><msup><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Delta^{(t)}\leftarrow\psi(\mathcal{V},\widetilde{\mathcal{V}}^{(t)})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.888em;"></span><span class="mord"><span class="mord">Δ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">←</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1933em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">ψ</span><span class="mopen">(</span><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，再据此改码 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi mathvariant="script">C</mi><mrow><mo stretchy="false">(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msup><mo>←</mo><mi>ψ</mi><mo stretchy="false">(</mo><mi mathvariant="script">V</mi><mo separator="true">,</mo><msup><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo separator="true">,</mo><msup><mi mathvariant="normal">Δ</mi><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo separator="true">,</mo><msup><mi mathvariant="script">C</mi><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{C}^{(t+1)}\leftarrow\psi(\mathcal{V},\widetilde{\mathcal{V}}^{(t)},\Delta^{(t)},\mathcal{C}^{(t)})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.888em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">←</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1933em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">ψ</span><span class="mopen">(</span><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord">Δ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，渲染后进入下一轮（Algorithm 1）；这是测试时扩展（test-time scaling）而非训练。(ii) Acting with Visual Tools——Florence-2 提供类别与绝对坐标框、SAM-2 掩码经自适应简化转为稀疏多边形路径、OpenOCR 转录文字，全部转成结构化提示后由模型决定如何采用（§4.2）。与最接近的已有方法（普通 img2svg 单次提示、Img2Text2SVG 两段式）的差异是引入了外部感知闭环与多轮反馈。证据：全套视觉工具在 MM-Vet 上提升 16.6 分（37.5→54.1，Table 3）；修订单独启用的增益较小（Claude-4-Opus 37.5→39.5，GLM-4.5V 33.1→38.3，Table 6&#x2F;Fig. 5）。若移除修订：Table 6 显示分数略降但不消失，且 GPT-4o 第一轮反而降分；若移除工具：模型回到 37–43 分档（Table 3）。需要注意：工具与修订的联合贡献没有被 2×2 完整隔离，且全流程只在 Claude-4-Opus 一个底座上验证，无法判定增益来自脚手架还是底座（审稿人判断，见 §5 质疑二）。</p>
+</li>
+</ol>
+<p><strong>什么不算创新</strong>（审稿人判断）：没有训练新模型或新表征（全文无训练环节，附录 A 仅为推理实现说明）；基础模型、数据、评测问题全部复用现成资源；”更强推理带来更好编码”只是观测到的相关性；VCoder 的各组件（caption&#x2F;thinking&#x2F;检测&#x2F;分割&#x2F;修订循环）均为已有范式，创新在其组合与协议接入。</p>
+<h2 id="3-作者如何解决"><a href="#3-作者如何解决" class="headerlink" title="3. 作者如何解决"></a>3. 作者如何解决</h2><p><strong>直觉说明</strong>。人类画草图时会保留物体位置、数量、结构轮廓等”符号骨架”而省略纹理；VCode 假设 VLM 可以用 SVG 代码做同样的事，并用”渲染—提问”检验骨架是否保真：如果渲染图仍能让下游模型答对原图问题，就说明符号信息被保留了，哪怕外观与照片相差很远。若模型只会语言式推理而缺少细粒度视觉能力，渲染图就会在问答上露馅——这正是论文在 Table 2 观察到的系统性现象（§1、§5.2）。</p>
+<p><strong>按运行流程展开（benchmark 侧）</strong>：</p>
+<ol>
+<li>输入：一张自然图像 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">V</mi></mrow><annotation encoding="application/x-tex">\mathcal{V}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span></span></span>，不给问题（Table 1：”without extra query guidance”）。</li>
+<li>生成：编码模型（coder）<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ψ</mi></mrow><annotation encoding="application/x-tex">\psi</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">ψ</span></span></span></span> 直接输出 SVG 代码 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">C</mi></mrow><annotation encoding="application/x-tex">\mathcal{C}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span></span></span></span>。所有基线走统一提示接口（附录 C.1 Img2SVG；变体：C.2 Img2Text2SVG 先写图像描述再生成代码，C.3 Img2SVG-Thinking 先思考再生成）。这一步的内容完全由模型决定，属单次前向。</li>
+<li>渲染：执行代码得到渲染图 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover></mrow><annotation encoding="application/x-tex">\widetilde{\mathcal{V}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9433em;"></span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span></span></span></span>（论文正文未报告渲染器；仓库实现见 §4.4）。</li>
+<li>度量（三个并列）：SigLIP 相似度——<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">L</mi><mo>=</mo><mi>max</mi><mo>⁡</mo><mi>cos</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">(</mo><mi mathvariant="script">V</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mi>f</mi><mo stretchy="false">(</mo><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{L}=\max\cos(f(\mathcal{V}),f(\widetilde{\mathcal{V}}))</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1933em;vertical-align:-0.25em;"></span><span class="mop">max</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">cos</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mopen">(</span><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mopen">(</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="mclose">))</span></span></span></span>（Eq. 2），编码器为 siglip2-so400m-patch14-384（附录 A）；CodeVQA——策略模型按 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>=</mo><mi>ϕ</mi><mo stretchy="false">(</mo><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mo separator="true">,</mo><mi mathvariant="script">Q</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">A=\phi(\widetilde{\mathcal{V}},\mathcal{Q})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">A</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1933em;vertical-align:-0.25em;"></span><span class="mord mathnormal">ϕ</span><span class="mopen">(</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathcal">Q</span><span class="mclose">)</span></span></span></span> 作答、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">L</mi><mo>=</mo><mi>max</mi><mo>⁡</mo><mn mathvariant="bold">1</mn><mo stretchy="false">[</mo><mrow><mi mathvariant="normal">E</mi><mi mathvariant="normal">v</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi></mrow><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">\mathcal{L}=\max\mathbf{1}[\mathrm{Evaluator}(A)]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop">max</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathbf">1</span><span class="mopen">[</span><span class="mord"><span class="mord mathrm">Evaluator</span></span><span class="mopen">(</span><span class="mord mathnormal">A</span><span class="mclose">)]</span></span></span></span>（Eq. 3），默认策略为 GPT-4o-mini，MM-Vet 由 gpt-4-0613 判分、MMMU&#x2F;CV-Bench 用规则匹配（§5.1、附录 A）；代码长度——按 tiktoken cl100k_base 计 token 数（附录 A）。</li>
+<li>输出：每题一份 SVG 代码、一张渲染图与三项分数；总分为三个子集按题量做实例加权（Table 2 表注：MM-Vet 218 &#x2F; MMMU 146 &#x2F; CV-Bench 100）。</li>
+</ol>
+<p><strong>VCoder 侧（在评测流程之外叠加，Fig. 3）</strong>：</p>
+<ul>
+<li>初始编码后进入修订循环（Algorithm 1）：第 t 轮先”注释差异”——对比原图与渲染图，按附录 C.5 第一阶段的模板列出位置差异（哪一区域缺了什么）、属性差异（颜色&#x2F;形状&#x2F;尺寸&#x2F;对齐）、以及具体的 SVG 属性修改建议（fill、stroke、cx、d 等）；再”按差异改码”——第二阶段把分析转成修改后的完整代码。</li>
+<li>工具增强由固定管线执行（附录 C.4）：目标检测（object detection）给类别（Florence-2）；定位给绝对坐标框与图宽高；分割（segmentation）用 SAM-2 掩码经”自适应简化”变成稀疏多边形点集；光学字符识别（Optical Character Recognition, OCR，OpenOCR&#x2F;SVTRv2）给出文字区域四点坐标与内容，直接以 <code>&lt;text&gt;</code> 标签写入。模型决定”是否&#x2F;如何采用”这些线索，工具调用与提示拼装是固定流程。</li>
+<li>无训练、无梯度更新；推理阶段的变化只是”多轮调用模型与工具、并把差异分析回灌”。最终输出仍是 SVG 代码，但由”工具线索 + 多轮修订”共同塑形。基础模型为 Claude-4-Opus（Table 2 末行）。</li>
+</ul>
+<p><img src="/images/dailypaper/2026-10-10/2511.02778_fig1.png" alt="图 1：VCode 任务示意（论文 Fig. 1，arXiv HTML 原图 teaser.png）。左侧为原始 RGB 图像（&quot;像素表示&quot;）；中间经 VLM 作为 Coder 生成 SVG 代码——坐标、颜色、文字以数值与标签硬编码进代码；右侧为代码渲染出的图像（&quot;代码表示&quot;），目标是保留&quot;农场里有三只羊&quot;这类符号语义而非外观。下方一行给出更多人→卡通→渲染的示例（人物、动物、静物）。图中每一部分对应任务的三个环节：图像输入、代码生成、渲染验证；&quot;渲染&quot;环节之所以必要，是因为只有真正执行代码才能检验位置/数量/关系等符号结构是否被保留——这是本任务与普通图像描述任务的分界。"></p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-10/2511.02778_fig2.png"
+                      alt="图 2：CodeVQA 评测协议示意（论文 Fig. 2(b)，arXiv HTML 原图 qa.png）。最左是原图与问题（&quot;灯是放在 side table 还是 nightstand 上？&quot;）；中间与右侧是同一问题的两张不同渲染：语义保留较好的那张（沙发、边桌、台灯的相对关系画对）让策略模型答出 &quot;Side table&quot;（判对）；语义丢失的那张（家具退化为色块、关系错位）导致策略模型答出 &quot;Nightstand&quot;（判错）。图中&quot;Policy model（策略模型）&quot;图标出现在多个位置，表示作答者可以是人也可以是 VLM。该协议的作用是把&quot;SVG 是否保真&quot;转化为可自动执行的判断：渲染图能支撑下游正确的问答，就认为代码承载了符号信息；这也解释了为什么不能用像素相似度代替——抽象色块图外观差但可能答对，反之亦然。"
+                ></p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-10/2511.02778_fig3.png"
+                      alt="图 3：VCoder 框架（论文 Fig. 3，arXiv HTML 原图 vcoder.png）。左侧为 Thinking with Revision 的三步循环：1. Initial Coding（原图→初始 SVG→渲染）；2. Comment（把原图与渲染并排交给模型，写出差异，如&quot;左上缺失人物&quot;&quot;颜色应为米黄&quot;以及建议修改的 SVG 属性）；3. Recoding（把差异与旧代码一并回灌，生成修订版 SVG）。右侧为 Acting with Visual Tools 的四类结构化线索：Detection 给类别与边框（JSON 坐标），Segmentation 给轮廓路径与多边形点集，OCR 给文字区域坐标与内容（红色数字为这些额外注入的信息）。左半说明&quot;为什么要迭代&quot;——模型看不到渲染后果，需要外部对比反馈；右半说明&quot;为什么要工具&quot;——不规则边界与文字无法靠语言模型凭空写准，把感知结果转成现成坐标后，模型的职责从&quot;测量&quot;变成&quot;使用&quot;。整图对应 §4 的两个支柱，也是 +16.6（工具）与 +2.0～+5.2（修订）两组增益的来源。"
+                ></p>
+<p><img src="/images/dailypaper/2026-10-10/2511.02778_fig4.png" alt="图 4：VCoder 渐进渲染示例（论文 Fig. 6 上排 (a)–(d) 四张子图，本报告按 2×2 拼接；arXiv HTML 原图 ex1–ex4.png）。左上 (a) 原图（一张网络迷因海报）；右上 (b) 初始编码——人物比例与版面明显失真、文字错位；左下 (c) 加入视觉工具后的渲染——恢复了主要几何（人物三角形身体、面部特征与文字块位置）；右下 (d) 经修订后的渲染——修正了人物比例与文字对齐、间距等细节。四格顺序展示同一管线中&quot;初始编码→工具→修订&quot;的贡献：工具阶段解决&quot;有没有画出来&quot;，修订阶段解决&quot;画得准不准&quot;，这正是 §5.4 对定性结果的描述方式，也与 Table 3/Table 6 的数字证据对应（工具是主要增益来源、修订做细部校正）。"></p>
+<p><strong>关键公式</strong>（保持原符号）：任务目标 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo>=</mo><mi>min</mi><mo>⁡</mo><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">∣</mo><mi>I</mi><mo stretchy="false">(</mo><mi mathvariant="script">V</mi><mo stretchy="false">)</mo><mo>−</mo><mi>I</mi><mo stretchy="false">(</mo><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mo stretchy="false">)</mo><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">∣</mo></mrow><annotation encoding="application/x-tex">L=\min\big|I(\mathcal{V})-I(\widetilde{\mathcal{V}})\big|</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2em;vertical-align:-0.35em;"></span><span class="mop">min</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.85em;"><span style="top:-2.85em;"><span class="pstrut" style="height:3.2em;"></span><span style="width:0.333em;height:1.2em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.333em" height="1.2em" viewBox="0 0 333 1200"><path d="M145 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mopen">(</span><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2933em;vertical-align:-0.35em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mopen">(</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="mclose">)</span><span class="mord"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.85em;"><span style="top:-2.85em;"><span class="pstrut" style="height:3.2em;"></span><span style="width:0.333em;height:1.2em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.333em" height="1.2em" viewBox="0 0 333 1200"><path d="M145 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span></span></span></span>（Eq. 1）；SigLIP 相似度 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo>=</mo><mi>max</mi><mo>⁡</mo><mi>cos</mi><mo>⁡</mo><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">(</mo><mi>f</mi><mo stretchy="false">(</mo><mi mathvariant="script">V</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mi>f</mi><mo stretchy="false">(</mo><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mo stretchy="false">)</mo><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">)</mo></mrow><annotation encoding="application/x-tex">L=\max\cos\big(f(\mathcal{V}),f(\widetilde{\mathcal{V}})\big)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2933em;vertical-align:-0.35em;"></span><span class="mop">max</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">cos</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="delimsizing size1">(</span></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mopen">(</span><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mopen">(</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="mclose">)</span><span class="mord"><span class="delimsizing size1">)</span></span></span></span></span>（Eq. 2）；CodeVQA 作答与判分 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>=</mo><mi>ϕ</mi><mo stretchy="false">(</mo><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mo separator="true">,</mo><mi mathvariant="script">Q</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">A=\phi(\widetilde{\mathcal{V}},\mathcal{Q})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">A</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1933em;vertical-align:-0.25em;"></span><span class="mord mathnormal">ϕ</span><span class="mopen">(</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathcal">Q</span><span class="mclose">)</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo>=</mo><mi>max</mi><mo>⁡</mo><mn mathvariant="bold">1</mn><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">[</mo><mrow><mi mathvariant="normal">E</mi><mi mathvariant="normal">v</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi></mrow><mo stretchy="false">(</mo><mi>A</mi><mo stretchy="false">)</mo><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">]</mo></mrow><annotation encoding="application/x-tex">L=\max\mathbf{1}\big[\mathrm{Evaluator}(A)\big]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2em;vertical-align:-0.35em;"></span><span class="mop">max</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathbf">1</span><span class="mord"><span class="delimsizing size1">[</span></span><span class="mord"><span class="mord mathrm">Evaluator</span></span><span class="mopen">(</span><span class="mord mathnormal">A</span><span class="mclose">)</span><span class="mord"><span class="delimsizing size1">]</span></span></span></span></span>（Eq. 3）；修订循环 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi mathvariant="normal">Δ</mi><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo>←</mo><mi>ψ</mi><mo stretchy="false">(</mo><mi mathvariant="script">V</mi><mo separator="true">,</mo><msup><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Delta^{(t)}\leftarrow\psi(\mathcal{V},\widetilde{\mathcal{V}}^{(t)})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.888em;"></span><span class="mord"><span class="mord">Δ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">←</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1933em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">ψ</span><span class="mopen">(</span><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi mathvariant="script">C</mi><mrow><mo stretchy="false">(</mo><mi>t</mi><mo>+</mo><mn>1</mn><mo stretchy="false">)</mo></mrow></msup><mo>←</mo><mi>ψ</mi><mo stretchy="false">(</mo><mi mathvariant="script">V</mi><mo separator="true">,</mo><msup><mover accent="true"><mi mathvariant="script">V</mi><mo stretchy="true">~</mo></mover><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo separator="true">,</mo><msup><mi mathvariant="normal">Δ</mi><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo separator="true">,</mo><msup><mi mathvariant="script">C</mi><mrow><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo></mrow></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{C}^{(t+1)}\leftarrow\psi(\mathcal{V},\widetilde{\mathcal{V}}^{(t)},\Delta^{(t)},\mathcal{C}^{(t)})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.888em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">←</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1933em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">ψ</span><span class="mopen">(</span><span class="mord mathcal" style="margin-right:0.0822em;">V</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathcal" style="margin-right:0.0822em;">V</span></span><span class="svg-align" style="top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord">Δ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">t</span><span class="mclose mtight">)</span></span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>（Algorithm 1）。</p>
+<p><strong>与现有组件的关系</strong>：论文新提出的是 VCode 任务框架、CodeVQA 协议与 VCoder 的编排方式；直接使用的是 Florence-2（检测）、SAM-2（分割）、OpenOCR&#x2F;SVTRv2（文字识别）、SigLIP2（度量编码器）、GPT-4o-mini&#x2F;gpt-4-0613（策略与判分）、以及全部被测的现成 VLM 与原始基准数据。</p>
+<h2 id="4-解决得怎么样"><a href="#4-解决得怎么样" class="headerlink" title="4. 解决得怎么样"></a>4. 解决得怎么样</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p><strong>任务与数据</strong>：三个子集共 464 对——MM-Vet 全量 218（常识感知）、MMMU 开发集单图过滤 146（专业知识）、CV-Bench 分层抽样 100（视觉中心；空间关系 20、物体计数 20、深度顺序 30、相对距离 30）（§3.3，原文事实；图 2(a) 读图值：三类占比分别为 General 47.0%、Professional 31.5%、Vision-centric 21.6%）。</p>
+<p><strong>被测对象</strong>：Table 2 列出 23 个基线系统（11 个闭源：Claude-4.5-Sonnet&#x2F;Claude-4-Opus&#x2F;Claude-4-Sonnet、GPT-5&#x2F;GPT-4o&#x2F;GPT-o3&#x2F;GPT-4.1&#x2F;GPT-4o-mini、Gemini-2.5-Pro&#x2F;Flash、Seed-1.6-Thinking；12 个开源：Llama-4-Scout、Qwen3-VL-235B、Qwen2.5-VL-72B&#x2F;7B、InternVL3.5-241B、Intern-S1、InternVL3-78B、MiniCPM-V-4.5、GLM-4.5V、GLM-4.1V-Thinking、OmniSVG、StarVector），加 1 个 VCoder 配置与 1 行”原图作答上界”（策略同为 GPT-4o-mini）（§5.1、Table 2）。</p>
+<p><strong>指标与裁判</strong>：CodeVQA 为主指标；SigLIP 相似度与代码 token 数为辅（§3.2）。默认策略与判分为 GPT-4o-mini（§5.1），MM-Vet 实际使用 gpt-4-0613 判分（附录 A）——“evaluator”一词在文中兼指作答策略与判分器，存在术语混用。</p>
+<p><strong>对照条件</strong>：统一提示接口、相同输入（§5.1，作者主张）；主实验为 Table 2 的全模型网格；消融覆盖工具模块（Table 3，仅 MM-Vet）、输入模式（Table 4）、特征提取器（Table 5）、修订轮数（Table 6&#x2F;Fig. 5）、不同作答者含人类（Table 7&#x2F;Fig. 4）；附录 D 给约 20 组定性对比。<strong>未报告</strong>：运行次数与方差（variance）、显著性检验（significance test）、渲染器、Table 2 中 VCoder 的修订轮数与调用预算；因此”模型 A 比模型 B 好 2–4 分”这类小差距缺乏统计支撑。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>以下数字均经 HTML&#x2F;PDF 双版核对（位置为原文表格）。</p>
+<ul>
+<li><strong>基线网格（Table 2，GPT-4o-mini 策略，CodeVQA 合计分）</strong>：GPT-5 最强（SigLIP 72.3、总分 46.8）；闭源第二档为 GPT-4.1（45.6）、Gemini-2.5-Pro（44.7）；开源最优是 GLM-4.5V（40.1）与 Intern-S1（40.4）；SVG 专用模型垫底——OmniSVG 25.2、StarVector 2.8（其成功率仅 8.3%）。原图作答上界为 61.7，即最优 SVG 结果仍差 14.9 分（§5.2 原文将其表述为 “substantial headroom”）。</li>
+<li><strong>VCoder（底座 Claude-4-Opus）</strong>：总分 41.7→54.0（+12.3，Table 2 附注）；MM-Vet +16.7（37.5→54.2）、MMMU +6.2（42.5→48.6）、CV-Bench +11.4（49.9→61.3）。相对最强单模型基线 GPT-5（46.8），总分为 +7.2（分析者据 Table 2 复算，论文未报告该差值；论文的 +12.3 是相对自家底座）。</li>
+<li><strong>工具消融（Table 3，MM-Vet，Claude-4-Opus）</strong>：基线 37.5 → 加位置+类别 39.7 → 加形状 43.3 → 仅文字 41.5 → 全套 54.1（+16.6）；SigLIP 65.6→71.6。形状线索对 Spat. 分项最明显（49.5→63.1），而 SigLIP 几乎不动（71.5→71.6），说明其贡献是结构性的。</li>
+<li><strong>输入模式（Table 4，Claude-4-Opus，总分）</strong>：Img2SVG 42.5 → Img2SVG-Thinking 43.5 → Img2Text2SVG 46.4；即”先转语言描述再编码”优于直接看图编码，作者以此说明当前 coder 不适配视觉输入（§5.3）。</li>
+<li><strong>修订（Table 6&#x2F;Fig. 5，MM-Vet，单独启用，两轮）</strong>：Claude-4-Opus 37.5→38.8→39.5（+2.0）；GLM-4.5V 33.1→37.4→38.3（+5.2，涨幅最大）；GPT-4o 35.0→34.1→36.3（<strong>第一轮不升反降</strong>，第二轮才回升）。</li>
+</ul>
+<p><img src="/images/dailypaper/2026-10-10/2511.02778_fig5.png" alt="图 5：修订轮数对 MM-Vet CodeVQA 分数的影响（论文 Fig. 5，由 HTML 内嵌矢量图 revision.svg 经 QuickLook 1800px 渲染后裁剪）。横轴为修订轮数 0/1/2，纵轴为该模型的 MM-Vet 均分，三条线分别对应 Claude-4-Opus（37.5→38.8→39.5）、GLM-4.5V（33.1→37.4→38.3）、GPT-4o（35.0→34.1→36.3），数值与 Table 6 一致（读图值）。该图用于回答&quot;迭代修订值不值&quot;：单启用修订时增益仅约 2–5 分、且并非单调（GPT-4o 第一轮下降），说明 &#39;Thinking with Revision&#39; 本身是弱信号——真正把 MM-Vet 拉到 54 档的是外部视觉工具（见 Table 3），这一对比也是评估 VCoder 两部分贡献的关键依据。"></p>
+<ul>
+<li><strong>作答者对比（Table 7&#x2F;Fig. 4，MM-Vet）</strong>：原图上 Human 50.4、GPT-4o-mini 67.1、Claude-4-Opus 72.4、GLM-4.5V 75.5；换用 VCoder 渲染图后分别降至 40.6&#x2F;54.1&#x2F;55.8&#x2F;63.3。所有作答者在 SVG 上均下降（人类 −9.8，模型 −12.2 至 −16.6），且模型在所有条件下仍高于这一组人类分数——这是作者”人类与 VLM 在符号表征上表现出一致性”主张的数据来源（§5.3）。</li>
+</ul>
+<p><img src="/images/dailypaper/2026-10-10/2511.02778_fig6.png" alt="图 6：不同作答者（&quot;Evaluator&quot;：Human、GPT-4o-mini、Claude-4-Opus、GLM-4.5V）在原图与 VCoder 渲染 SVG 上的 MM-Vet CodeVQA 分数（论文 Fig. 4，由 HTML 内嵌矢量图 evaluator.svg 渲染后裁剪；数值与 Table 7 一致）。左组四柱为原图条件（50.4/67.1/72.4/75.5），右组四柱为 VCoder 渲染图条件（40.6/54.1/55.8/63.3）。该图承担两个论证：(i) 纵向下移表明&quot;用渲染图替换原图后所有作答者都掉分&quot;——作者据此说人类与 VLM 对符号表征的反应方向一致；(ii) 横向柱差（同一条件换个作答者差 8–9 分）表明 CodeVQA 的绝对分数高度依赖作答者，这是本报告质疑其&quot;保真度&quot;度量可直接跨系统比较的依据之一。"></p>
+<ul>
+<li><strong>分维度弱点</strong>（§5.2 原文事实）：MM-Vet 的 Knowledge 维度全体最低（如 GPT-5 20.5）；MMMU 分数拥挤在窄带；CV-Bench 的 3D 组多数贴近随机水平。VCoder 在 CV-Bench 3D 为 65.0，仍低于 GPT-5 的 66.7（分析者据 Table 2 对照），说明其提升并非全面领先。</li>
+<li><strong>与作者叙述不一致的细节</strong>（分析者判断）：§5.2 称”闭源模型在所有基准上持续优于开源”，但 Table 2 中开源 GLM-4.5V（总分 40.1）高于闭源 GPT-4o（39.0）与 Seed-1.6-Thinking（37.5）；”代码长度与表现力高度相关”也存在反例——OmniSVG 输出最长（5.3K token）而总分仅 25.2（论文也承认 “Length is not sufficient on its own”）。</li>
+<li><strong>规模子集效应</strong>：小模型基线显著崩塌（Qwen2.5-VL-7B 总分 14.7、成功率 70.6%；MiniCPM-V-4.5 27.1），说明该任务对能力规模敏感；而 VCoder 仅在单个底座（Claude-4-Opus）上验证，跨规模&#x2F;跨底座表现未知（论文未报告）。</li>
+</ul>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p><strong>“有效”层面的证据较充分</strong>。Table 3（工具各模块）、Table 4（输入模式）、Table 5（SigLIP2 vs DINO-V2）、Table 6（修订轮数）做了变量隔离，能回答”哪个部件有贡献”：工具是主要增益来源（+16.6，MM-Vet）；修订是小幅修正（+2.0～+5.2，且 GPT-4o 首轮为负）；DINO-V2 分数远低（如 VCoder 33.0 vs SigLIP2 72.3，Table 5）支持”语义空间而非低层外观”是该度量的目标。</p>
+<p><strong>“为什么有效”层面的缺口</strong>：</p>
+<ul>
+<li><strong>工具与修订的联合归因未隔离</strong>：Table 3”全套工具”为 54.1，Table 2 的 VCoder 为 54.2——两者几乎相同，说明总分 +12.3 主要来自工具注入的信息，而非”自我修订”机制本身；论文没有在工具之上再做”去掉修订”的对照。</li>
+<li><strong>替代解释未排除</strong>：工具的增益可能来自 Florence-2&#x2F;SAM-2&#x2F;OpenOCR 自身携带的信息量，而非 VLM”使用线索”的能力；论文未报告”工具直出（不经 VLM）”的对照，也未匹配 token&#x2F;调用预算。</li>
+<li><strong>知识维度的机制存疑</strong>：附录 C.4 提示允许对可识别对象写入名称文本，而 MM-Vet 的 Knowledge 恰是地标&#x2F;画作识别类问题；Know 分项在启用工具后从 13.9 跳到 38.8&#x2F;40.8（Table 2&#x2F;3）。”写下名字”与”画对画面”是竞争性解释，论文未做去除命名提示的消融。</li>
+<li><strong>相关性主张未检验</strong>：”推理越强编码越好”与”SigLIP 与 CodeVQA 正相关”（§5.2）均为跨厂商模型的分档观察，未报告相关系数、置信区间或同族受控对照。</li>
+<li><strong>表间数字不一致</strong>（分析者核对；HTML 与 PDF 两版均如此）：(a) Table 2 的 SigLIP 列与 Table 5 的 SigLip2 行对同一系统给出不同值——GPT-5 72.3 vs 70.1、VCoder 71.0 vs 72.3、Claude-4-Opus 65.9 vs 67.2，且 §5.2 依据 72.3 称 GPT-5 为 “top SigLIP”，而 Table 5 的最高值是 VCoder 的 72.3；(b) Table 2 的 VCoder 六个 MM-Vet 分项（46.6&#x2F;63.4&#x2F;38.8&#x2F;41.5&#x2F;58.1&#x2F;72.7，均分 54.2）与 Table 3&#x2F;Table 7 中同名配置（46.0&#x2F;64.4&#x2F;40.8&#x2F;43.0&#x2F;61.6&#x2F;72.7，均分 54.1）全部不同，差异来源未说明；(c) Table 3 基线行 Claude-4-Opus 的 SigLIP 为 65.6，Table 2 同行为 65.9；(d) “Orig. Image” 行总分 61.7 与按论文声明的实例加权公式复算值 62.4 不符（其余各行均可复现到 ±0.1）。</li>
+</ul>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><ul>
+<li><strong>训练成本</strong>：无训练。VCoder 为测试时方法（§4）；附录 A 仅为推理实现：PyTorch、单卡 NVIDIA RTX 4090 24GB，最大输出长度 16,384 token（Qwen2.5-VL 用 8,192）。</li>
+<li><strong>推理成本</strong>：VCoder 每张图需初始编码 + 每轮”分析差异 + 重写代码”的多轮 VLM 调用，外加 Florence-2&#x2F;SAM-2&#x2F;OpenOCR 前向；<strong>论文未报告</strong>调用次数、时延（latency）、金额或 token 总量。表中的 Code Token 仅指生成 SVG 的长度（cl100k_base 计）。</li>
+<li><strong>评测成本</strong>：CodeVQA 依赖闭源服务（默认作答 GPT-4o-mini；MM-Vet 判分 gpt-4-0613）；调用量未报告；Table 2 中 StarVector 成功率 8.3%、Qwen2.5-VL-7B 70.6% 说明长代码输出存在失败&#x2F;截断损耗（”Success Rate” 定义论文未报告）。</li>
+<li><strong>人工标注</strong>：未报告新增人工标注（基准数据复用既有公开数据）；人类研究未报告参与人数、流程与报酬。</li>
+<li><strong>存储与依赖</strong>：数据集（464 题）随代码仓库公开（data&#x2F; 含 mm-vet、mmmu、cv-bench；evaluation&#x2F; 与 vcode-suite&#x2F; 含生成、渲染、修订脚本；无 license）；正文未报告渲染器，仓库脚本 svg_render_img.py 使用 cairosvg 以 3× 比例渲染——此为实现信息，来自仓库而非论文。</li>
+<li><strong>已改善与未改善</strong>：改善——提供了一个可执行的评测协议与系统网格，使”图像→SVG 代码”可比较、可复现地测出差；未解决——保真度仍远低于原图上界、知识&#x2F;3D 维度接近失败、评测依赖固定策略与裁判、SVG 内文本标签的作弊面未封堵、跨底座泛化未知。</li>
+<li><strong>适用边界</strong>：结论仅覆盖三个复用子集（464 题）与 2025 年前后的一批 VLM；不能外推为”提升了通用多模态智能体能力”；VCoder 的效果只在 Claude-4-Opus 底座上成立性未知。</li>
+</ul>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：CodeVQA-的”保真度”度量混杂了文本标签泄漏与策略模型敏感性，未必在测”符号视觉保真”"><a href="#质疑：CodeVQA-的”保真度”度量混杂了文本标签泄漏与策略模型敏感性，未必在测”符号视觉保真”" class="headerlink" title="质疑：CodeVQA 的”保真度”度量混杂了文本标签泄漏与策略模型敏感性，未必在测”符号视觉保真”"></a>质疑：CodeVQA 的”保真度”度量混杂了文本标签泄漏与策略模型敏感性，未必在测”符号视觉保真”</h4><ul>
+<li><strong>原文依据</strong>：附录 C.4 视觉工具提示明确允许”当确信时添加 <code>&lt;text&gt;</code> 元素写出对象的常用名称&#x2F;作品名&#x2F;创作者”（hint strategy 原文）；MM-Vet Knowledge 分项在启用工具后从 13.9 跳到 38.8（Table 2 VCoder）与 40.8（Table 3 全套工具）；Table 7 显示同一批渲染图换作答者后 MM-Vet 均分从 54.1（GPT-4o-mini）变到 63.3（GLM-4.5V），原图上从 67.1 变到 75.5，相差 8–9 分。</li>
+<li><strong>为什么重要</strong>：如果分数提升部分来自”把知识写成文字”和”换一个更强的答题者”，那么 CodeVQA 就不是纯粹的符号视觉保真度量，排行榜（谁的 SVG 更保真）将被提示工程与策略选择共同决定；这直接影响主结论的成立范围。</li>
+<li><strong>当前能够得出的判断</strong>：工具增强中 Knowledge 子维度的跳升与命名提示存在直接关联，竞争性机制成立但未被排除；论文没有提供”禁用命名提示”或”作答时屏蔽渲染图文本层”的对照，无法区分”画对”与”写出”。</li>
+<li><strong>如何验证或补强</strong>：补两组消融——(a) 禁用 hint strategy 重跑工具增强，观察 Know 分项；(b) CodeVQA 时屏蔽渲染图中的文字层（或要求策略只基于几何作答）；并报告多作答者下的分数方差与置信区间。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：VCoder-的增益归因不干净——对照不公平且缺少跨底座与工具对等实验"><a href="#质疑：VCoder-的增益归因不干净——对照不公平且缺少跨底座与工具对等实验" class="headerlink" title="质疑：VCoder 的增益归因不干净——对照不公平且缺少跨底座与工具对等实验"></a>质疑：VCoder 的增益归因不干净——对照不公平且缺少跨底座与工具对等实验</h4><ul>
+<li><strong>原文依据</strong>：Table 2 中所有基线均为单次提示、无工具设定，而 VCoder 使用 Florence-2&#x2F;SAM-2&#x2F;OpenOCR 与多轮修订（§4）；+12.3 是相对其底座 Claude-4-Opus（41.7→54.0），而非表中最强基线 GPT-5（46.8，相对差 +7.2，分析者据 Table 2 复算）；论文未报告任何”GPT-5&#x2F;Gemini 接同套工具与修订”或”Claude-4-Opus 加工具但去修订”的对照；§5.3 称工具增益 “implying the strong potential of the Coder itself to autonomously call tools”，属未经检验的推断。</li>
+<li><strong>为什么重要</strong>：这决定”VCoder 框架有效”与”给 Claude-4-Opus 更多外部信息与算力有效”哪个成立，也决定榜单能否公平解读；若只是”工具移植”，则框架的通用性主张（模型自主调用工具）不成立。</li>
+<li><strong>当前能够得出的判断</strong>：现有证据支持”给定外部工具线索与更多测试时算力，Claude-4-Opus 的 SVG 质量明显提升”；不支持”VCoder 优于更强单模型”——底座与脚手架两个变量纠缠，且工具调用次数&#x2F;token 预算未披露，无法与其他模型的推理预算对齐。</li>
+<li><strong>如何验证或补强</strong>：(a) VCoder 换底座（至少 GPT-5 或 Gemini-2.5-Pro）；(b) 让基线模型接管同一套工具提示与修订轮数的”工具对等”设定；(c) 公开 VCoder 的调用与 token 预算，与基线做预算匹配对照；(d) 报告”工具直出”上限以界定 VLM 在其中贡献的比例。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：关键配置与数字的内部不一致损害可复现性——渲染器、”成功率”、VCoder-配置均未报告"><a href="#质疑：关键配置与数字的内部不一致损害可复现性——渲染器、”成功率”、VCoder-配置均未报告" class="headerlink" title="质疑：关键配置与数字的内部不一致损害可复现性——渲染器、”成功率”、VCoder 配置均未报告"></a>质疑：关键配置与数字的内部不一致损害可复现性——渲染器、”成功率”、VCoder 配置均未报告</h4><ul>
+<li><strong>原文依据</strong>：正文未报告 SVG 渲染器（渲染实现直接影响 SigLIP&#x2F;CodeVQA 分数；仓库实现为 cairosvg——来自仓库，非论文）；”Success Rate (%)” 列在 Table 2 出现但全文无定义；§5.1 称 “primary automatic evaluator is GPT-4o-mini” 与附录 A “MM-Vet 用 gpt-4-0613” 并存，”evaluator”兼指作答策略与判分器；Table 2 的 VCoder 分项与 Table 3&#x2F;7 同名配置不同（54.2 vs 54.1 及各分项）；Table 2 的 SigLIP 与 Table 5 的 SigLip2 不一致（GPT-5 72.3 vs 70.1）；”Orig. Image” 行总分与声明公式复算不符（61.7 vs 62.4，分析者复算）。</li>
+<li><strong>为什么重要</strong>：基准论文的产品就是可复核的数字；渲染器、修订轮数与提示配置决定分数，而表间冲突使读者无法确定”官方配置”应复现哪一组值，也影响第三方在新模型上做公平对比。</li>
+<li><strong>当前能够得出的判断</strong>：存在披露缺口与至少四处需要作者澄清的数字不一致（HTML&#x2F;PDF 两版均如此，两版间又完全一致，排除渲染或转录错误）；在澄清前，逐位复现 Table 2 表格有风险。</li>
+<li><strong>如何验证或补强</strong>：发布完整评测脚本与版本锁（渲染器及参数、OpenOCR&#x2F;SAM-2&#x2F;Florence-2 版本、修订轮数），定义 Success Rate，报告运行次数与方差；以勘误形式统一表间数字。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：VCode-由公开基准复用而来，存在污染与”新鲜度”问题，论文未讨论"><a href="#质疑：VCode-由公开基准复用而来，存在污染与”新鲜度”问题，论文未讨论" class="headerlink" title="质疑：VCode 由公开基准复用而来，存在污染与”新鲜度”问题，论文未讨论"></a>质疑：VCode 由公开基准复用而来，存在污染与”新鲜度”问题，论文未讨论</h4><ul>
+<li><strong>原文依据</strong>：§3.3 明示 MM-Vet 取全量（2023 年公开）、MMMU 取开发集单图子集、CV-Bench 抽样（Cambrian-1 配套数据）；Table 2 中 2025 年发布的前沿模型（GPT-5、Gemini-2.5、Claude-4.x 等）与这些公开图像高度可能重叠于训练语料；全文未出现 contamination（污染）相关讨论、记忆探测或数据隔离证据（此为分析者指出的通用风险，非论文承认的缺陷）。</li>
+<li><strong>为什么重要</strong>：基准的科研价值依赖”考察能力而非记忆”；尤其 Knowledge 类问题，若图像&#x2F;题目在预训练中见过，分数可能反映记忆；这同时关系到该基准的长期价值（公开数据多年后难以区分进步与记忆）。</li>
+<li><strong>当前能够得出的判断</strong>：无法从论文确认污染程度；就本论文的方向性结论（”SVG 结果远低于原图上界”）而言，污染若存在也只会推高所有科目分数、不改变”仍有差距”的定性判断，但会侵蚀”基准可长期区分模型能力”的主张。</li>
+<li><strong>如何验证或补强</strong>：披露与各模型训练截止时间的隔离情况；补充新近采集、模型不可能见过的留出子集作为对照；报告对图像做小幅扰动后的分数稳定性。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h4 id="质疑：人类研究细节缺失，”与人类对齐”的结论超出证据"><a href="#质疑：人类研究细节缺失，”与人类对齐”的结论超出证据" class="headerlink" title="质疑：人类研究细节缺失，”与人类对齐”的结论超出证据"></a>质疑：人类研究细节缺失，”与人类对齐”的结论超出证据</h4><ul>
+<li><strong>原文依据</strong>：Table 7&#x2F;Fig. 4 给出 Human 一组分数（原图 MM-Vet 均分 50.4、渲染图 40.6），但全文未报告参与人数、背景、题目子集、作答界面与判分方式（论文未报告）；§5.3 据此写 “VLMs demonstrate a comparable ability to reason from such high-level representations, suggesting that their potential in this aspect is on par with human understanding”，而同一表格中模型（GLM-4.5V 63.3）显著高于人类（40.6）。</li>
+<li><strong>为什么重要</strong>：该主张被用于支撑”符号视觉编码通向类人多模态智能”的结论性陈述（§1 贡献 3、§5.3、§6）；单组、流程未披露的人类数据无法支撑”对齐&#x2F;on par”级别的措辞，也无法排除判分标准对人类的系统偏差（例如开放题从严判分）。</li>
+<li><strong>当前能够得出的判断</strong>：可以支持”在这批渲染 SVG 上，人类作答同样比原图条件困难”（两组均值下降 9.8 分，方向与模型一致）；不能支持”人类与 VLM 表现相当”的绝对比较——现有数据反而显示两者绝对水平差距大。</li>
+<li><strong>如何验证或补强</strong>：披露人类实验协议（样本量、抽样、指导语、判分者），给出个体分数与评分者一致性；将结论收缩到”两种条件下均出现下降”这一可验证观察。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现：会推理的模型不一定”会画”——把图像改写成 SVG 代码后，即便最强模型的渲染图也答不对原图问题（46.8 vs 61.7 的原图上界，Table 2），因此提出 VCode 基准（464 题，复用 MM-Vet&#x2F;MMMU&#x2F;CV-Bench）与 CodeVQA 协议（渲染→VQA），并给出免训练的 VCoder（差异修订 + 检测&#x2F;分割&#x2F;OCR 工具），在 Claude-4-Opus 上把总分从 41.7 提到 54.0。实验在 23 个基线、四组消融（工具&#x2F;输入模式&#x2F;特征&#x2F;修订）与多作答者对比下表明：工具注入的增益明确（+16.6，Table 3），修订的增益较小且不稳定（+2.0～+5.2，Table 6）；其中”任务难且可测”的证据较强，但”VCoder 有效”的归因（工具 vs 底座 vs 修订）与”CodeVQA 保真度”的效力（命名提示泄漏、作答者敏感性）仍缺少充分支持，且表间数字不一致与关键配置缺失影响复现。本文最有价值的部分是把”视觉中心编程”变成可执行、可对比的测量对象，并给出紧凑的协议与工具化基线；最大的审稿风险是：评测协议可被”把知识写进文本”与”换强作答者”两条捷径影响，框架收益又与底座混杂，使”谁的 SVG 更保真”的结论并不稳固。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强（任务、协议、指标、数据构成与统计均明确给出，Eq. 1–3 与 Algorithm 1 完整）。</li>
+<li><strong>创新性证据</strong>：中（新任务视角与 CodeVQA 协议是真实增量；但数据复用、无训练、组件均为现成件，相对 SVGenius&#x2F;SVG-Bench 等的”首次”边界缺少更完整的文献对照）。</li>
+<li><strong>方法可信度</strong>：中（组件动机清晰、消融基本到位；但归因存在底座&#x2F;工具&#x2F;修订混淆，hint strategy 引入度量漏洞）。</li>
+<li><strong>实验支持力度</strong>：中（覆盖 23 个基线、多作答者与人类对照；但无方差与显著性、多处表间数字不一致、关键配置未报告）。</li>
+<li><strong>可复现性</strong>：中（数据与评测脚本已开源、提示模板全文给出；但渲染器与部分配置正文缺失、无 license、作答与判分依赖闭源 API、表间数字冲突待澄清）。</li>
+<li><strong>综合阅读价值</strong>：高（新任务形态与系统化的失败分析、可复用的评测协议与工具化基线，对做多模态评测、代码生成与视觉推理方向的读者有直接参考价值）。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> VCode: a Multimodal Coding Benchmark with SVG as Symbolic Visual Representation</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-10 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-10 00:13:11
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/10/2511.02778v1_VCode_a_Multimodal_Coding_Benchmark_with_SVG_as_Symbolic_Visual_Representation/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%A4%9A%E6%A8%A1%E6%80%81%E7%90%86%E8%A7%A3/">#多模态理解</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E4%BB%A3%E7%A0%81%E7%94%9F%E6%88%90/">#代码生成</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/SVG/">#SVG</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">#基准评测</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%A7%86%E8%A7%89%E9%97%AE%E7%AD%94/">#视觉问答</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%B5%8B%E8%AF%95%E6%97%B6%E4%BF%AE%E8%AE%A2/">#测试时修订</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/09/2603.22435v2_CaP-X_A_Framework_for_Benchmarking_and_Improving_Coding_Agents_for_Robot_Manipulation/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">CaP-X: A Framework for Benchmarking and Improving Coding Agents for Robot Manipulation</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">VCode: a Multimodal Coding Benchmark with SVG as Symbolic Visual Representation</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-text">1. 论文具体想解决什么问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-text">2. 创新点是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3"><span class="nav-text">3. 作者如何解决</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7"><span class="nav-text">4. 解决得怎么样</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 107 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
