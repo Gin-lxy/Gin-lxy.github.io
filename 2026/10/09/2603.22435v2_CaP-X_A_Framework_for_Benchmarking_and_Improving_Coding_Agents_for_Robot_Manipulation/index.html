@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/09/2603.22435v2_cap-x_a_framework_for_benchmarking_and_improving_coding_agents_for_robot_manipulation/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CaP-X: A Framework for Benchmarking and Improving Coding Agents for Robot Manipulation">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/09/2603.22435v2_CaP-X_A_Framework_for_Benchmarking_and_Improving_Coding_Agents_for_Robot_Manipulation/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-09T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-09T13:18:46.438Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="代码即策略">
+<meta property="article:tag" content="具身智能体">
+<meta property="article:tag" content="基准评测">
+<meta property="article:tag" content="强化学习">
+<meta property="article:tag" content="推理时计算">
+<meta property="article:tag" content="机器人操作">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>CaP-X: A Framework for Benchmarking and Improving Coding Agents for Robot Manipulation | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">339</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">106</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">CaP-X: A Framework for Benchmarking and Improving Coding Agents for Robot Manipulation</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-09 12:00</span>
+        <span class="mobile">2026-10-09 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-09 21:18:46</span>
+            <span class="mobile">2026-10-09 21:18:46</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">基准评测</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E4%BB%A3%E7%A0%81%E5%8D%B3%E7%AD%96%E7%95%A5/">代码即策略</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%93%8D%E4%BD%9C/">机器人操作</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%85%B7%E8%BA%AB%E6%99%BA%E8%83%BD%E4%BD%93/">具身智能体</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">强化学习</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%8E%A8%E7%90%86%E6%97%B6%E8%AE%A1%E7%AE%97/">推理时计算</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>Letian Fu（NVIDIA &#x2F; UC Berkeley；v2 中标注为通讯作者，Correspondence: <a class="link"   href="mailto:&#109;&#x61;&#x78;&#x2e;&#x66;&#117;&#x2e;&#108;&#x65;&#116;&#105;&#97;&#110;&#x40;&#x62;&#101;&#114;&#107;&#x65;&#x6c;&#101;&#121;&#x2e;&#101;&#100;&#117;" >&#109;&#x61;&#x78;&#x2e;&#x66;&#117;&#x2e;&#108;&#x65;&#116;&#105;&#97;&#110;&#x40;&#x62;&#101;&#114;&#107;&#x65;&#x6c;&#101;&#121;&#x2e;&#101;&#100;&#117;<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>）、Justin Yu（UC Berkeley）、Karim El-Refai（UC Berkeley）、Ethan Kou（UC Berkeley）、Haoru Xue（NVIDIA &#x2F; UC Berkeley）、Huang Huang（Stanford University）、Wenli Xiao（Carnegie Mellon University）、Guanzhi Wang（NVIDIA）、Dantong Niu（NVIDIA &#x2F; UC Berkeley）、Fei-Fei Li（Stanford University）、Guanya Shi（Carnegie Mellon University）、Jiajun Wu（Stanford University）、Shankar Sastry（UC Berkeley）、Yuke Zhu（NVIDIA）、Ken Goldberg（UC Berkeley）、Linxi “Jim” Fan（NVIDIA）；脚注标注 Equal contribution 与 Equal advising（v1 第一作者署名为 “Max Fu”，v2 更正为 Letian Fu 并新增 Dantong Niu）。</p>
+<p>论文：2603.22435v2；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-09（Asia&#x2F;Shanghai）。</p>
+<ul>
+<li><p>Hugging Face 页面：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2603.22435" >https://huggingface.co/papers/2603.22435<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2603.22435v2%EF%BC%88%E5%85%A8%E6%96%87" >https://arxiv.org/abs/2603.22435v2（全文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2603.22435v2" >https://arxiv.org/html/2603.22435v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2603.22435v2" >https://arxiv.org/pdf/2603.22435v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；项目页：<a class="link"   target="_blank" rel="noopener" href="https://capgym.github.io/" >https://capgym.github.io<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ，本次核查时该页面上的 Paper&#x2F;Code 链接均为占位符，无法跳转到代码仓库或数据集）</p>
+</li>
+</ul>
+<p><strong>分析范围</strong>：以 v2（2026-07-02 修订）为准，完整读取了 arXiv HTML 全文与 58 页 PDF 全文（正文 §1–§8，附录 A–K；其中附录 G 为低层 API 全量文档，做了结构与接口清单级通读，未逐行核对全部函数实现）。全部图表编号（Fig. 1–26、Table 1–9）已核查；关键数字在 HTML 与 PDF 两版间交叉核对（HTML 中被 LaTeX 渲染屏蔽的符号，如 π0&#x2F;π0.5、88.5%、N&#x3D;7、N&#x3D;20 等，以 PDF 版补全，两版数字一致）。v1&#x2F;v2 对照：下载 v1 HTML 做了逐节比对——v2 新增附录 K（评审澄清：人类基线协议与 88.5% 上界、计时表 Table 9、VDM 选型说明），把原 §7 拆为”Conclusion”并把 Future Works 移入附录 A（附录整体改字母），重写摘要&#x2F;引言&#x2F;相关工作，修正作者署名，§4.2 增加 “CaP-Bench++” 框架段，Table 1 与 Fig. 1 图注扩写；正文实验数字未发现版本间实质变化（Table 2&#x2F;3&#x2F;4、Fig. 5&#x2F;6&#x2F;8 核心数字两版一致）。配图 6 张：图 1&#x2F;2&#x2F;3&#x2F;6（论文 Fig. 1、Fig. 2、Fig. 7、Fig. 12）取自 arXiv HTML 原始图片；图 4（论文 Fig. 5）由 HTML 随附 SVG 矢量重渲染；图 5（论文 Fig. 8）由 PDF 第 7 页以 8 倍分辨率（约 576 DPI）渲染裁剪——因该图 SVG 独立渲染存在图案伪影，改用 PDF 版；6 张均已逐张打开核对内容、文件非零字节。受限项：项目页无有效代码&#x2F;数据链接（无法确认开源实物的发布状态）；CaP-RL 的奖励函数细节与训练算力、CaP-Agent0 真实世界成功率的定量数字均未报告。</p>
+<p>标签：代码即策略、机器人操作、具身智能体、基准评测、强化学习、推理时计算。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>CaP-X 是一个围绕 code-as-policy（代码即策略）机器人控制的”评测 + 改进”一体化框架：它用交互式环境 CaP-Gym、八个分层评测档位 CaP-Bench、免训练智能体 CaP-Agent0 和带可验证奖励的强化学习 CaP-RL，系统回答”coding agent（编码智能体）写机器人控制代码时，性能有多少来自智能体本身、多少来自人类设计的脚手架”。论文在 12 个前沿模型、7 个核心任务 × 100 次试验的受控设置下报告了主要证据：成功率随原语抽象层级升高而单调上升（对设计者脚手架存在依赖），而多轮反馈 + 视觉差分 + 自动技能库 + 并行集成推理能把低层原语上的平均成功率从 24% 提升到 68%（Fig. 8），在 4&#x2F;7 个任务上达到或超过人类单轮专家脚本。但结论的边界要画在三处：人类对照与模型对照的资源口径不对等（人类是离线反复调试后的脚本，模型是零样本单次生成）、LIBERO-PRO 上 VLA 基线评测协议未披露（OpenVLA 与 π0 全列 0.00）、消融为累加式无法隔离机制；这些限制使”接近人类水平”的表述只在本框架自设条件下成立。</p>
+<h2 id="1-论文具体想解决什么问题"><a href="#1-论文具体想解决什么问题" class="headerlink" title="1. 论文具体想解决什么问题"></a>1. 论文具体想解决什么问题</h2><p><strong>研究背景与具体任务</strong>。机器人操作（robot manipulation）长期存在两条控制路线：一条是程序化控制——从经典的 TAMP（Task-and-Motion Planning，任务与运动规划）到人工编写的感知-规划-控制流水线，优点是结构显式、可解释、几何精确，缺点是要靠工程师手工拆分任务、处理边界情况，耗时且难以泛化到开放环境（§1）；另一条是 VLA（vision-language-action，视觉-语言-动作）模型——从大规模视觉运动数据中学策略，在叠衣、全身移动操作等接触密集任务上表现强，但可解释性差、对环境变化与新机体泛化困难，需要额外采数据重训练（§1）。论文关注的第三条路线是 code-as-policy（代码即策略，CaP）：让语言&#x2F;视觉语言模型直接生成可执行的机器人控制程序。背景事实是，现代 coding agent（编码智能体）在软件工程基准上已展示出合成可执行代码、定义函数、调试失败的能力（§1，引 Jimenez et al. 2024），因此”用编码智能体替代人类工程师写入控制回路的程序”在原理上可行。</p>
+<p><strong>现有方法怎么做、哪里不好</strong>。论文对先前 CaP 工作的批评非常具体（§1、§6）：较早的系统（Liang et al. 2023、Singh et al. 2023）依赖<strong>人类设计的高层原语（high-level primitives）</strong>——例如 <code>stack_objs_in_order()</code> 这类把感知、几何推理和控制全部打包的宏函数。后果是：其一，这类原语自带大量任务结构先验，<strong>无法区分观测到的性能有多少来自智能体、多少来自设计者提供的脚手架（scaffolding）</strong>；其二，先前工作没有系统刻画”随着脚手架被拿掉，智能体性能如何变化”，也没有回答”增加推理时计算（test-time computation）——迭代调试、技能合成、集成推理、多模态落地（grounding）——能否补偿低层接口上的困难”（§1，作者主张）。</p>
+<p><strong>作者发现的新现象与支撑证据</strong>（均在 §3 讨论，原文事实）：</p>
+<ol>
+<li><strong>抽象层级越高成功率越高，但表达力被锁死</strong>。Fig. 3 显示随档位从 S4（低层原语且无用法示例）→ S1（高层宏 + 全状态观测），不同模型的平均成功率单调上升（闭合源平均约从 19% 升到 57%，开源约 11%→45%；读图值，图未逐点标数）；作者将增益归因于高层原语”压缩了搜索空间”，同时明确其代价是”行动空间被人类先验逐步约束，形成泛化天花板、掩盖低层推理失败”（§3.3 Takeaway 2）。支撑证据是三层证据链：成功率曲线（Fig. 3）、代码编译成功率曲线（Fig. 4，说明 S3&#x2F;S4 的部分失败确实来自代码正确性）以及 API 用法示例的增益对照（Fig. 18 平均 15%→18%，但最强的 gemini-3-pro 反而 32%→28% 下降）。</li>
+<li><strong>直接喂原始图像的多轮反馈反而变差，转成文本的视觉差分更好</strong>。Fig. 5 中，多轮 + 执行轨迹文本（M1）在多数模型上优于单轮（平均 36% vs 34%）；直接交错原始 RGB（M2）相对 M1 下降（平均 34%，gemini-3-pro 43% vs 53%）；把图像转成结构化文本的 VDM（Visual Differencing Module，视觉差分模块，M3）在三者中最好（平均 39%）。作者假设 M2 的下降来自”跨模态对齐缺口”——基础模型很少被训练去同时推理软件代码和物理执行图片（§3.3）。</li>
+<li><strong>前沿模型单轮零样本仍远低于人类调试后的静态脚本</strong>。Fig. 1 上图把 12 个模型按发布时间画成功率，人类参考线为 88.5%——这是 7 位论文作者（每人 2 年以上机器人编程经验）在完全相同的 API 集合上反复试错、调试到高可靠性后的单轮成功率（Fig. 1、§3.3 Takeaway 1、Appendix K.1）；论文结论是”没有任何模型达到人类写出的静态程序水平”。</li>
+<li><strong>低层原语 + 多轮反馈可以反超高层单轮</strong>。Fig. 6 以 Gemini-3-Pro 为例：平均成功率 S3 24%＜S2 39%＜M4 54%＜M3 60%；其中 M4（多轮 + VDM + 低层 API）在 4 个桌面任务上超过 S2。作者据此提出”推理时计算规模化假设”：鲁棒性可以在运行时通过推理、验证与自我纠错合成出来，而不是只能来自人类先验（§3.3）。</li>
+</ol>
+<p><strong>问题产生的原因（作者主张，注意区分证据层级）</strong>。设计者脚手架依赖被归因于”高层原语把结构先验写入 API”（Fig. 3 的证据只表明相关性：成功率随抽象上升，未直接测量智能体内部推理能力的变化）；M2 的下降被归因于跨模态对齐缺口（论文自述为 “hypothesize”，无直接检验实验）；多轮增益被归因于检验假说与故障恢复机制（§3.3 定性观察 + M1–M4 对照，有行为学证据但无归因性消融）。此外 §4 在引出并行推理时称”失败往往源于测试时探索不足而非能力不足”，这是作者主张，论文未给出该判断的直接证据。</p>
+<p><strong>三层问题的区分</strong>（审稿人判断）：</p>
+<ul>
+<li><strong>领域早已存在的一般问题</strong>：CaP 系统脆、依赖任务专用 API、难泛化——这是引言承认的既有认识；</li>
+<li><strong>本文做出的新观察</strong>：第一次在受控档位体系下量化”性能-抽象层级”依赖（Fig. 3）、报告 M2 反直觉退化（Fig. 5）、并系统展示推理时计算在低层原语上的补偿幅度（Fig. 6、Fig. 8）；</li>
+<li><strong>本文实际解决的具体子问题</strong>：搭建可交互、可分层、仿真与真机共用的评测与训练平台（CaP-Gym&#x2F;CaP-Bench），并给出一个在其上翻越脚手架的免训练智能体（CaP-Agent0）与一个对编码智能体本身做 RL 后训练的示范（CaP-RL）。</li>
+</ul>
+<p><strong>核心假设</strong>（作者主张）：(H1) 抽象层级、交互轮数、视觉落地方式三个轴可以在匹配条件下独立控制并测量（Table 1、§3 协议）；(H2) 推理时计算（多轮 + 文本化视觉反馈 + 技能库 + 集成）可以补偿低层原语带来的损失并逼近人类（Fig. 6、Fig. 8）；(H3) 以”代码作为动作空间（code-as-action-space）”为界面，仿真中学到的策略可零样本迁移到真机（§5、Table 4）。H1 由基准设计直接支撑；H2 有实验支撑但存在算力与口径混淆（见 §4.3、§5）；H3 仅在 2 个方块类任务 × 25 次真机试验上验证（Table 4）。</p>
+<h2 id="2-创新点是什么"><a href="#2-创新点是什么" class="headerlink" title="2. 创新点是什么"></a>2. 创新点是什么</h2><p>一句话概括：本文的技术增量不是新算法，而是<strong>一个把”编码智能体控制机器人”这一研究问题工程化、可测量化的开放框架</strong>——它由四件东西组成：统一仿真-真机原语栈的交互式环境（CaP-Gym）、按三维度分档的基准与人类参考协议（CaP-Bench）、一个免训练的智能体组合（CaP-Agent0），以及一个把 RLVR（reinforcement learning with verifiable rewards，可验证奖励的强化学习）直接用在编码智能体上的示范（CaP-RL）；其中真正”新”的是基准与测量体系，CaP-Agent0 是已有组件的新组合，CaP-RL 是已有 RLVR 方法在新对象上的应用（审稿人判断）。</p>
+<p>逐项分析：</p>
+<ol>
+<li><strong>CaP-Gym：REPL 式交互环境 + 无状态原语服务（§2、§2.1、Appendix G）</strong>。新增机制：把物理仿真器（Robosuite、LIBERO-PRO、BEHAVIOR）包在一个 Gymnasium 风格的层级循环里，”一个回合 &#x3D; 智能体收到观测、生成一个完整 Python 程序、环境执行到底”，程序内部可调用任意多个感知&#x2F;控制原语；计算密集的感知与控制全部实现为无状态服务（stateless services）以支持高吞吐并行评测。与控制原语”只给逆运动学&#x2F;规划器而不给关节命令”（PyRoki 等），让智能体在任务级笛卡尔空间推理、把执行可行性交给控制器；感知原语抽象成结构化语义对象（SAM3 语言条件分割、Molmo 2 开放词表指认等）。与最接近工作的差异：先前的 CaP 库是任务专用、面向单轮执行的 API 集合；CaP-Gym 提供跨 187 个任务（7 Robosuite + 130 LIBERO-PRO + 50 BEHAVIOR）、同一套原语栈同时接仿真与真机的统一环境。这一步是<strong>工程抽象＋新组合</strong>；证据是 CaP-RL 的训练程序零样本迁移真机（§5、Table 4）与真机演示（Appendix B）；若移除该设计，分层基准与”仿真写的代码跑真机”这两条主线都无法成立（审稿人推断，论文未做移除对照）。</li>
+<li><strong>CaP-Bench：抽象 × 交互 × 落地三维度分档的基准与人类参考（Table 1、§3）</strong>。新增内容：8 个档位（单轮 S1–S4，多轮 M1–M4；S1 特权真值状态、S2 非特权 RGB-D 感知、S3 低层原语含用法示例、S4 无示例、M1 仅 stdout&#x2F;stderr、M2 加原始 RGB、M3 加 VDM 文本、M4 &#x3D; M3 + 低层 API），统一用 zero-shot Pass@1（零样本单次通过）协议、每任务每档 100 次试验，并以”同 API、离线迭代到高可靠”的人类脚本作参考（Appendix K.1）。与最接近的已有基准的差异（§6，作者归纳）：机器人操作基准测的是固定策略接口而非”可执行程序合成 + 分档 API + 多轮调试”；代码基准缺具身感知；具身智能体基准不要求跨抽象层级写机器人控制代码。<strong>这是全文最实质的新贡献</strong>——它使”脚手架依赖”第一次可以按轴量化；证据是各档位之间的成体系差异（Fig. 3–6）；若移除分档设计，”依赖设计者脚手架”与”M2 退化”这两个核心论断都无从产生。</li>
+<li><strong>CaP-Agent0：免训练组合（§4、Fig. 7、Fig. 8）</strong>。三个组件都是已有思想的新组合：多轮 VDM（每轮把场景描述与”与上一帧相比发生了什么变化”转成文本）、跨试验持久的自动技能库（从 12 个模型 × 7 任务的全部成功 S3 轨迹里用正则抽取函数定义、再由 Gemini-3-Pro 归纳出 9 个与任务无关的原语，Appendix H.1）、并行集成推理（每轮 9 个候选——单模型 9 次或三模型各 3 次、温度 0.1–0.9——由一个中心编码智能体合成，并投票决定 “FINISH&#x2F;REGENERATE”，Appendix H.2&#x2F;H.3）。与最接近工作（Chameleon 式多轮调试智能体、技能库积累系统）的差异在于把它整体放到”低层原语 + 机器人控制”场景并做了累积消融。证据是 Fig. 8 左：S3 24 → M4 55 → +SL 59 → +1M 66 → +3M 68；对应问题即 §1 的”推理时计算能否补偿低层接口”。移除任一组件的后果只在累加实验中被度量（无逐项移除对照，见 §5 质疑三）。</li>
+<li><strong>CaP-RL：把 RLVR 用在编码智能体本身（§5、Appendix E）</strong>。新增流程：对 Qwen2.5-Coder-7B-Instruct 用 GRPO（Group Relative Policy Optimization）做在策略后训练，奖励来自物理仿真里的可验证任务结果；与既有”让 LLM 生成奖励函数给另一个策略用”的路线（§6 明确定位了差异）不同，这里被训练的对象就是写控制代码的模型本身；训练特意使用 S1 特权档位以稳定奖励信号，50 次迭代&#x2F;任务。证据是 Table 4（仿真 3 任务 25&#x2F;4&#x2F;30 → 80&#x2F;44&#x2F;93）与 Appendix E 的代码前后对照（从”跳过抓取直接放置”的步骤跳步模式，变为完整的”识别→抓取→搬运→释放”因果链并使用包围盒动态计算堆叠高度）。这属于<strong>已有方法（GRPO+RLVR）在新对象（机器人控制代码生成）上的应用</strong>，新颖性中等，但迁移论证（code-as-action-space）有真机数据支撑。</li>
+</ol>
+<p><strong>不能算作创新的部分</strong>（审稿人判断）：使用更强的基座模型（Gemini-3-Pro 等）本身不是贡献；VDM 的技术含量是”用 VLM 做图像差分描述”，思想朴素，论文也未与其它视觉反馈形式做超越 M2&#x2F;M1 的更多对照；”免训练”（training-free）表述下实际依赖 9 倍查询与多个闭源前沿模型的推理算力，这是组合策略而非能力来源。</p>
+<p><strong>原创边界说明</strong>：根据本文 related work 与实验对比，只能确认作者声称的差异（分档评测、三维度控制、sim-to-real 的 code-as-action-space）；”首个&#x2F;首次”式主张（如项目页宣称 “the first comprehensive benchmark”）未经更完整文献检索验证，本报告不作背书。</p>
+<h2 id="3-作者如何解决"><a href="#3-作者如何解决" class="headerlink" title="3. 作者如何解决"></a>3. 作者如何解决</h2><p><strong>直觉性说明</strong>。论文的核心思路可以概括为两句话：先把”机器人工程师写控制系统”整件事搬进一个可以让编码智能体反复执行代码、看执行结果、再改代码的闭环里；然后做两件相反的事情——一方面<em>拆掉</em>人类工程师提供的脚手架（把高层宏函数换成底层原语），用分层基准测量性能如何坍缩；另一方面<em>让智能体自己在运行时把结构长回来</em>（多轮反馈、把图像变成文字、沉淀可复用技能、并行采样多解），而不把结构预先写死在 API 里。人类专家的静态脚本是”离线调试的终点”，智能体则被要求”在部署时在线达成同等鲁棒性”（Appendix K.1 明确了这个对照意图）。</p>
+<p><strong>按运行流程展开</strong>（以 CaP-Agent0 为主线的实际执行链，Fig. 7）：</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-09/2603.22435_fig1.png"
+                      alt="图 1：论文 Fig. 1（上）把 12 个模型的 CaP-Bench 成功率按发布时间画散点，并以红色虚线标出人类专家迭代调试后的 88.5% 上界——它的作用是把&quot;前沿模型写机器人代码还不如人类工程师&quot;这一动机量化；下排展示 CaP-Gym 集成的三类仿真环境与真机形态（Robosuite、LIBERO-PRO、BEHAVIOR），说明同一套原语栈服务桌面、双臂与移动操作。为什么需要它：上图定义了全文要缩小的差距，下图定义了差距所在的舞台"
+                ></p>
+<ol>
+<li><strong>输入</strong>。每个试验（trial）开始时，智能体收到：(a) 任务指令（自然语言）；(b) 初始观测（仿真给 RGB-D、内参、相机位姿、本体状态；真机给头&#x2F;腕相机图像与力觉等，Appendix B.2）；(c) 当前档位的 API 文档——高层档位是宏函数（如 <code>stack_objs_in_order()</code> 一类原语的接口），低层档位是每包原生 API 的函数签名与 docstring；S3&#x2F;M4 额外含 “Example:” 用法示例，S4 把示例剥掉（Appendix G 开篇说明）。多轮档位每续一轮还会收到上一轮代码的 stdout&#x2F;stderr；M3&#x2F;M4 还叠加 VDM 生成的文本观测（§3.2）。</li>
+<li><strong>关键步骤与组件</strong>。CaP-Gym 的回合循环（§2）：智能体写出一整段 Python 程序 → 程序在 Python 沙盒中执行 → 程序内部调用感知原语（SAM3 语言条件分割、Molmo 2 开放词表指认、OpenCV&#x2F;Open3D）与控制原语（PyRoki 的 IK&#x2F;运动规划；真机侧含 <code>goto_pose</code>、<code>plan_grasp</code> 等，Appendix B.2）→ 环境执行到程序结束 → 返回 stdout&#x2F;stderr（以及可选的视觉观测）。<strong>一个试验内环境从不重置</strong>，因此”失败后恢复”必须由后续轮次的代码自己完成（§3 协议）。</li>
+<li><strong>模型决定什么、固定流程控制什么</strong>。模型决定：程序逻辑、调用哪些工具与参数、是否加诊断打印、是否重试、以及是否宣布完成（多轮档位由候选投票 + 合成智能体输出 “FINISH&#x2F;REGENERATE”，Appendix H.3）。固定流程控制：原语实现、IK&#x2F;规划求解、VDM 的提示模板、集成的合成提示词、每轮 9 个候选的采样温度（单模型 0.1–0.9、多模型 0.1&#x2F;0.5&#x2F;0.9）、技能库的注入方式（Appendix H.2&#x2F;H.3）。</li>
+<li><strong>训练与否</strong>。CaP-Agent0 完全免训练（training-free），能力来自提示、反馈回路与技能库（§4）；CaP-RL 则训练基座模型本身：GRPO 在 S1 特权档位上对 Qwen2.5-Coder-7B-Instruct 做在策略后训练，奖励是可验证的环境结果（任务成败），3 个任务每任务 50 次迭代（§5、Appendix E）。论文未给出 GRPO 的组大小、KL 系数、每提示 rollout 数、学习率等超参，也未报告训练硬件与时长——这些均为<strong>论文未报告</strong>。</li>
+<li><strong>推理阶段的变化</strong>。RL 后模型的行为变化有定性证据：从”跳步 + 幻觉状态”（未抓取就移动到放置点并张爪）变为完整因果序列（先 <code>close_gripper</code> 再搬运），并用 <code>return_bbox_extent=True</code> 动态计算堆叠高度替代硬编码偏移（Appendix E 代码对照）；训练只用特权档位，但评测迁移到带噪感知的 S2 与真机（Table 4）。</li>
+<li><strong>输出</strong>。一段可执行的 Python 程序——在仿真中直接驱动 Robosuite&#x2F;LIBERO-PRO&#x2F;BEHAVIOR 环境，在真机上驱动 Franka Panda 或 AgiBot G1（含移动底盘指令与双臂控制原始语，Appendix B.2&#x2F;B.3）。所谓 “code-as-action-space” 即指：跨仿真与真机迁移的是”复用同一套感知与控制工具来组织代码”的能力，而不是从像素到关节角的映射（§5）。</li>
+</ol>
+<p><strong>关键机制与效果图</strong>（图 2–图 6）：</p>
+<p><img src="/images/dailypaper/2026-10-09/2603.22435_fig2.png" alt="图 2：论文 Fig. 2 用同一个任务&quot;lift the red cube&quot;对照两个抽象层级下 Gemini-3-Pro 生成的代码。左图（High-Level）只需 5 步：取抓取位姿、开爪、接近、抓取、抬起——所有感知与几何都被折叠进 `sample_grasp_pose` 等宏函数里，这正是&quot;设计者脚手架&quot;的形态；右图（Low-Level）展开为：获取观测（Perception）、SAM3 文本分割红方块并挑最高分掩码（Object grounding）、基于深度与掩码规划抓取（Grasp planning）、把抓取位姿从相机系变换到世界系（Frame transform）、提取位置姿态并转四元数（Pose extraction）——每一段都是智能体必须自己写对、且可能写错的逻辑。为什么需要它：这张图是全部档位设计的认知底座——S1/S2 与 S3/S4 的差异不是&quot;难易&quot;，而是&quot;结构来自人类还是来自模型&quot;"></p>
+<p><img src="/images/dailypaper/2026-10-09/2603.22435_fig3.png" alt="图 3：论文 Fig. 7 是 CaP-Agent0 的完整管线。左侧三块（Task Description 任务描述、API Documentation 接口文档、Skill Library 技能库）构成输入上下文；上中部的 Parallel Query 让多个编码智能体并行采样（Candidate Code Solutions），再由 Ensemble Agent 合成一段最终代码——这一步是&quot;预判失败&quot;而非&quot;事后修复&quot;（Appendix H.5）；右侧 Python Sandbox 里是机器人环境（仿真或真机）与 Coding Primitives（Molmo、OpenCV、NumPy、PyBullet、SciPy、Open3D、Grounding DINO、SAM 3 等工具图标）；下方的两路回注——运行输出 stdout/stderr（Env. Feedback）与 VDM 生成的场景描述/差分文本（Env. Description）——构成多轮闭环。为什么需要它：它把 §4 的三项设计（VDM、技能库、并行集成）放在一张运行时流程里，说明改进发生在&quot;每一轮的观测构造与动作合成&quot;两个位置，而不是模型权重里"></p>
+<p><img src="/images/dailypaper/2026-10-09/2603.22435_fig4.png" alt="图 4：论文 Fig. 5 是&quot;多轮交互 × 视觉落地&quot;两轴的主对照：同一批模型在四档设定下的平均任务成功率（7 个核心任务 × 100 次试验/任务）。四档含义（§3.2、Table 1）：S2 为单轮 + 高层宏 + 噪声感知的基线；M1 在每轮追加代码执行的 stdout/stderr 文本（智能体可主动打印诊断变量）；M2 再把当前 RGB 原图直接送回上下文（仅多模态模型可用，故开源纯语言模型档没有橙色柱）；M3 改用 VDM（Visual Differencing Module，视觉差分模块）把场景与帧间变化转写成文本。读图要点：M1 在多数模型上高于 S2（平均 36% vs 34%）；M2 在所有可测的视觉模型上低于 M1（gemini-3-pro 43% vs 53%）；M3 平均最高（39%）。为什么需要它：它是&quot;把图变成文字&quot;这一设计选择的直接证据链（§3.3 Takeaway 3），也是 CaP-Agent0 采用 VDM 的依据；图注中 M3&quot;consistently improves&quot;的措辞与逐模型数字的出入见本报告 §4.2 与 §5 质疑五"></p>
+<p><img src="/images/dailypaper/2026-10-09/2603.22435_fig5.png" alt="图 5：论文 Fig. 8 是 CaP-Agent0 的消融与人类对照。左图（Ablation）为累加式消融的水平柱：S3（低层原语单轮基线）24 → M4（低层原语 + 多轮 VDM）55 → +SL（叠加自动技能库）59 → +1M（单模型 9 路并行采样再合成）66 → +3M（三模型 × 3 温度并行）68，说明&quot;把结构从人类 API 挪到运行时循环&quot;带来近三倍增益；右图（Per-Task Performance）把 CaP-Agent0（斜纹柱）与人类离线调试脚本（粉柱）、S3 基线（浅灰柱）逐任务对照：Lift 97 / Stack 98 / Wipe 100 / Restack 89 四个任务追平或反超人类，而 Insert 0（接触密集任务未得到任何成功）、2A-Lift 74、2A-Hand 20 明显落后。为什么需要它：这是全文核心效果证据，也是本报告质疑一（人类对照口径不对等）与质疑三（累加消融无法隔离机制）的直接数据来源"></p>
+<p><img src="/images/dailypaper/2026-10-09/2603.22435_fig6.png" alt="图 6：论文 Fig. 12（Appendix B.3.2，真机&quot;机械搜索&quot;任务）并排展示在线规划与物理执行：左列自上而下是智能体在真实工作台上生成并执行的五步感知-动作序列——Segment cups with SAM3（用 SAM3 分割杯子）、Plan and execute grasp（规划并执行抓取）、Find the remaining cups（寻找剩余杯子）、VDM 输出&quot;……the object is revealed……&quot;（被遮挡目标露出）、Grasp the lime（抓取青柠），每步小窗口里是模型看到的观测与它调用的原语；右列是同一段程序在真实机器人上的对应执行帧。为什么需要它：它把&quot;仿真里写的代码可零样本迁移到真机&quot;这一主张（H3、§5）从 Table 4 的分数变成可见的物理证据，展示迁移的载体是&quot;复用同一套感知/控制原语来组织代码&quot;，而不是关节级策略"></p>
+<p><strong>瓶颈与额外开销</strong>（论文报告）：每轮代码生成延迟 6.8–23.8 秒、完整多轮试验最高平均 113.6 秒（Table 9）；CaP-Agent0 在 Robosuite 任务上约 2 分钟&#x2F;次试验（Appendix K.1）；感知链路会级联失败（SAM3 把 “alphabet soup can” 分成 “tomato sauce can”）、缺碰撞感知的运动规划会碰倒场景物（Appendix J）；接触密集任务（插销 Peg Insertion）在 CaP-Agent0 上为 0%，作者在 Future Works 提出混合 CaP-VLA 方向（Appendix A）。</p>
+<h2 id="4-解决得怎么样"><a href="#4-解决得怎么样" class="headerlink" title="4. 解决得怎么样"></a>4. 解决得怎么样</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><ul>
+<li><strong>平台与任务</strong>：CaP-Gym 共 187 个任务（7 Robosuite + 130 LIBERO-PRO + 50 BEHAVIOR，§3）；主分析用 7 个核心任务（Cube Lift、Cube Stack、Spill Wipe、Peg Insertion、Cube Re-stack、Two-Arm Lift、Two-Arm Handover），每任务每档 <strong>100 次试验</strong>（§3）。</li>
+<li><strong>模型</strong>：§3 列出 13 个模型名（闭源 7：Gemini-3-Pro、GPT o1、o4-mini、GPT-5.1、GPT-5.2、Claude Haiku 4.5、Claude Opus 4.5；开源 6：GPT-OSS-20B&#x2F;120B、Qwen3 235B、Qwen-2.5-Coder-7B-Instruct、Kimi K2、DeepSeek-V3.1），但全文与 Fig. 17&#x2F;18 均按 <strong>12 个模型</strong>统计（两图均无 Qwen-2.5-Coder-7B-Instruct，它只出现在 CaP-RL 作 RL 基座）——名单与”12 models”口径存在一处不一致（审稿人判断，论文未解释）。</li>
+<li><strong>协议</strong>：zero-shot Pass@1；试验内可多轮、环境不重置；人类参考为同 API 的离线调试脚本（Appendix K.1：7 位作者、人均 2 年以上经验、迭代至 88.5% 平均单轮成功率；简单抓放任务约 1 天内完成，接触密集&#x2F;双臂任务每任务需 2–3 周）。</li>
+<li><strong>扩展评测（CaP-Bench++，§4.2）</strong>：LIBERO-PRO 30 个任务 × 50 次试验，对照 OpenVLA、π0、π0.5 三个 VLA 策略（Pos 初始位置扰动与 Task 指令扰动两列）；BEHAVIOR 2 个长时程移动操作任务 × 25 次试验（对照 Human 与 S3）。</li>
+<li><strong>CaP-RL（§5&#x2F;Table 4）</strong>：Qwen2.5-Coder-7B-Instruct；3 任务；S1 特权档训练；仿真 N&#x3D;100、真机（Franka Emika）N&#x3D;25；对照基座与人类专家。</li>
+<li><strong>指标</strong>：任务成功率（主）、代码编译成功率、平均稠密奖励（Fig. 17）；此外报告导航成功率（BEHAVIOR）、RL 前后的成功率对照。各档与附录分工：主实验回答”抽象&#x2F;交互&#x2F;落地三轴各自与联合效果”（Fig. 3–6），消融回答”CaP-Agent0 各组件贡献”（Fig. 8），附录 C 给全模型 × 全任务矩阵，附录 J 给 LIBERO-PRO 逐任务明细，附录 K 给协议与成本澄清。</li>
+</ul>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p><strong>1）人类差距（Fig. 1、§3.3 Takeaway 1；100 次试验&#x2F;任务，S 档单轮零样本）</strong>：12 个模型中没有任何一个达到人类 88.5% 的平均单轮成功率；Fig. 1 上图显示成功率随模型发布时间上升，但最高的近期模型点位离 88.5% 线仍有明显距离。注：Fig. 1 未在图注中说明每个点位对应哪一个档位（本报告推测为低层单轮类指标，但无法从原文确认——分析者标注）。</p>
+<p><strong>2）抽象层级的单调效应（Fig. 3、Fig. 4；12 模型均值，读图值）</strong>：闭合源模型平均成功率约从 S4 的 19% 升至 S1 的 57%，开源约 11%→45%；代码编译成功率上，闭合源平均 S3≈89%→S1≈100%，开源 S3≈66%→S2≈94%。单模型上 gemini-3-pro 从 S3 的约 28% 升到 S1 的约 65%（为图中最高）。提升最大的档位切换是 S2→S1（高层宏 + 真值状态）——即”设计者脚手架”贡献了很大一部分成功率（与 §1 的问题定义一致）。</p>
+<p><strong>3）多轮与视觉落地的分离（Fig. 5；7 任务平均，100 次试验&#x2F;任务）</strong>：平均 S2 34 &#x2F; M1 36 &#x2F; M2 34 &#x2F; M3 39；gemini-3-pro 46&#x2F;53&#x2F;43&#x2F;56、gpt-5.2 35&#x2F;45&#x2F;38&#x2F;45、claude-opus-4.5 42&#x2F;41&#x2F;36&#x2F;44、gpt-oss-120b 36&#x2F;39&#x2F;—&#x2F;41、deepseek-v3.1 31&#x2F;36&#x2F;—&#x2F;38、Qwen-235b 25&#x2F;37&#x2F;—&#x2F;36（”—“表示纯语言模型无 M2 档）。两处需要注意：M2 &lt; M1 在全部能跑 M2 的视觉模型上成立（支持”原始图像直喂反而变差”），但 M3 vs M1 并非全面更优——gpt-5.2 打平（45&#x3D;45）、Qwen-235b 略降（36 &lt; 37），与图注”consistently improves”的措辞不完全一致（审稿人判断）。</p>
+<p><strong>4）CaP-Agent0 的累积增益与逐任务对照（Fig. 8；gemini-3-pro 基线，100 次试验&#x2F;任务）</strong>：平均成功率 S3 24 → M4 55 → +SL 59 → +1M 66 → +3M 68（标签数字为图中标注值）。逐任务上，CaP-Agent0（+3M）在 4&#x2F;7 任务达到或超过人类单轮脚本：Lift 97（人类 93）、Stack 98（人类 73）、Wipe 100（人类 100）、Restack 89（人类约 46，读图值）；但 Insert 0（人类约 79）、2A-Lift 74（人类约 94）、2A-Hand 20（人类约 90）——双臂任务与接触密集任务差距显著（人类数值除 Lift&#x2F;Stack&#x2F;Wipe 外为读图值，与 Table 4 中 93&#x2F;73&#x2F;100 一致）。</p>
+<p><strong>5）与 VLA 和人类脚本的扩展对照（§4.2、Table 2，Appendix J；30 任务 × 50 次）</strong>：LIBERO-PRO 上 CaP-Agent0 平均成功率（Pos&#x2F;Task 两列）为 libero-object 0.22&#x2F;0.18、libero-goal 0.26&#x2F;0.17、libero-spatial 0.12&#x2F;0.14；π0.5 为 0.17&#x2F;0.01、0.38&#x2F;0.00、0.20&#x2F;0.01；OpenVLA 与 π0 六列全部 0.00。论文据此说 CaP-Agent0”在指令扰动下保持鲁棒”，并”在初始位置扰动下与 π0.5 可比”——前者证据强（0.18&#x2F;0.17&#x2F;0.14 vs 0.01&#x2F;0.00&#x2F;0.01），后者在 libero-goal 与 libero-spatial 上其实低于 π0.5（0.26 vs 0.38、0.12 vs 0.20，审稿人判断）。BEHAVIOR（Table 3，25 次&#x2F;任务）：任务成功率上 CaP-Agent0 拿到 Radio 56% vs 人类 36% vs S3 24%、Soda Can 72% vs 人类 72% vs S3 32%（导航成功率则人类更高：88% vs 80%；Soda 80% vs 84%）。</p>
+<p><strong>6）CaP-RL（Table 4；仿真 N&#x3D;100、真机 N&#x3D;25）</strong>：仿真 S2 档上 Qwen2.5-Coder-7B 基座 25&#x2F;4&#x2F;30（Lift&#x2F;Stack&#x2F;Wipe）→ RL 后 80&#x2F;44&#x2F;93，对照人类 93&#x2F;73&#x2F;100；真机 24&#x2F;12 → 84&#x2F;76，对照人类 92&#x2F;84。真机数字（84%、76%）是全文少见的真机定量结果，且从 25 次试验得到。</p>
+<p><strong>负面与不显著结果（论文报告）</strong>：Peg Insertion 上 CaP-Agent0 为 0%（Fig. 8）；”强化调试提示词”的尝试反而变差（3M 68.29 → 3M+debug 65.43，Appendix H.4 Table 5）；内嵌 API 用法示例对 gemini-3-pro、claude-haiku-4.5、deepseek-v3.1 三个模型是负增益（32→28、15→13、13→11，Fig. 18）；开源模型编译率在 S3&#x2F;S4 明显更低（Fig. 4）；LIBERO-PRO 上全部方法的绝对成功率都低（最高 0.38），说明该设定的问题远未解决。</p>
+<p><strong>统计口径提醒</strong>：所有主要结果均为单次运行（100 或 25 次试验是环境试验次数，不是对模型随机性&#x2F;种子重复），论文未报告置信区间、方差或显著性检验；50&#x2F;25 次量级下 5–10 个百分点的差异可能在二项噪声范围内（审稿人判断）。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>论文对”方法有效”的证据较强：三轴分别对照（Fig. 3–6）、12 模型复现趋势、累加消融（Fig. 8）、真机迁移（Table 4）。但对”为什么有效”，证据层级明显较低：</p>
+<ul>
+<li>CaP-Agent0 的消融是<strong>累加式</strong>（S3→M4→+SL→+1M→+3M），每一步都同时改变多个量：M4 加了多轮与 VDM；+SL 加了 9 个函数（既加”复用”也加”能力”）；+1M&#x2F;+3M 把每轮采样从 1 次提到 9 次。因此”VDM 的文本落地是主因””技能库带来复用红利”这类机制解释没有被单独隔离；也没有与’同等算力的单模型自一致性基线’对照，无法排除”就是 9 倍采样与更长提示”的替代解释（审稿人判断，论文未做）。</li>
+<li>VDM 的机制有一点间接支持：M2（原图）与 M3（文本）同信息源、不同形式，M3 更好且 M2 在视觉模型上普遍退化，形式上支持”跨模态对齐缺口”假说；但论文自己用 “hypothesize” 措辞，且没有控制图像分辨率、token 预算等混淆项，也没有对模型的”代码-图像联合推理”能力做探针实验。</li>
+<li>RL 的机制证据是定性的代码前后对比（Appendix E：步骤跳步 → 因果序列；硬编码偏移 → 包围盒动态计算），有说服力但样本是单任务示例；训练只用 3 个任务，无法判断奖励信号对更广任务的塑造效果。</li>
+<li>反面证据的处理值得肯定：Appendix H.4 报告提示词增强无效的负面结果，说明作者没有只筛选支持性证据；但这同时提示”多轮与提示工程”的收益边界尚未被系统刻画。</li>
+<li>CaP-Agent0 的”preemptive（预判）vs retroactive（事后修复）”机制说法（Appendix H.5、Fig. 23：平均轮数 M4 3.669 → +1M 2.263 → +3M 1.999）只解释了”集成让轮数变少”，没有独立证据表明代码质量提升的来源是预判而非单次采样质量更高。</li>
+</ul>
+<p>结论：实验支持”该组合在这些任务&#x2F;模型上有效”，尚不支持”每个组件为何必要”的强机制声明；把性能提升自动归因于论文提出的机制（文本落地、技能复用、预判）超出了证据。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p>论文报告的成本（均为原文数字）：</p>
+<ul>
+<li><strong>推理时延</strong>（Table 9，Appendix K.2；Gemini-3-Pro、cube stack、N&#x3D;20）：单轮档 S1 6.8 秒&#x2F;次代码生成、12.9 秒&#x2F;总试验；S2 9.6&#x2F;20.0；S3 23.8&#x2F;28.4；M1 20.1&#x2F;60.8；M3 15.8&#x2F;113.6 秒。作者提醒与 VLA 的单步延迟（π0 约 73 ms&#x2F;动作块、OpenVLA 约 167 ms&#x2F;动作，引文数字）不可直接比较——code-as-policy 一次生成一整段操作序列（Appendix K.2）。</li>
+<li><strong>CaP-Agent0 的评测成本</strong>：Robosuite 任务约 2 分钟&#x2F;次试验（Appendix K.1）；平均轮数 +3M 为 1.999（Fig. 23）。但注意 Table 9 <strong>没有列出 CaP-Agent0 自身的计时</strong>（只有到 M3 的档位），而 CaP-Agent0 每轮要跑 9 个候选 + 1 次合成 + 1 次 VDM 调用，其真实 token 与费用成本<strong>论文未报告</strong>。</li>
+<li><strong>训练成本（CaP-RL）</strong>：50 次迭代&#x2F;任务、3 个任务（§5）；奖励构成之外（”environment rewards”）的细节、GPU 时数、rollout 数<strong>论文未报告</strong>。</li>
+<li><strong>人工成本</strong>：人类参考脚本的开发投入为简单任务 1 天内、接触密集&#x2F;双臂任务每任务 2–3 周（Appendix K.1）。</li>
+<li><strong>外部依赖</strong>：VDM 与集成依赖闭源前沿模型（Gemini-3-Pro；GPT-5.2、Claude Opus 4.5 于 +3M 配置）；感知依赖 SAM3、Molmo 2（真机工具链还含 Contact-GraspNet、SciPy&#x2F;Open3D 等）；仿真依赖 Robosuite&#x2F;LIBERO-PRO&#x2F;BEHAVIOR；评测结果与具体模型版本强耦合（随模型下线不可复现）。存储与系统复杂度<strong>论文未报告</strong>。</li>
+</ul>
+<p><strong>改善与未改善</strong>：改善——低层原语上的平均成功率（24→68）、桌面任务上对静态人类脚本的追平（4&#x2F;7）、指令扰动的鲁棒性、以及真机零样本任务演示与 RL 真机迁移（84%&#x2F;76%）；未改善——接触密集任务（Peg 0%）、双臂协调（2A-Lift 74%&#x2F;2A-Hand 20% 远低于人类）、LIBERO-PRO 的绝对水平（≤0.26）、以及”无需闭源模型”这一目标（框架实际依赖多个闭源前沿模型与多组视觉服务）。结论适用范围：表格式单臂&#x2F;双臂操作任务的仿真评测、以及少量真机演示场景；不覆盖安全关键的连续控制、触觉&#x2F;力控精细任务与长期自主运行。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：人类参考是”离线迭代到高可靠”的脚本，模型对照是零样本单次生成，两边资源口径不对等，Fig-1-Fig-8-的”人类对比”结论因此被高估或低估都可能"><a href="#质疑：人类参考是”离线迭代到高可靠”的脚本，模型对照是零样本单次生成，两边资源口径不对等，Fig-1-Fig-8-的”人类对比”结论因此被高估或低估都可能" class="headerlink" title="质疑：人类参考是”离线迭代到高可靠”的脚本，模型对照是零样本单次生成，两边资源口径不对等，Fig. 1&#x2F;Fig. 8 的”人类对比”结论因此被高估或低估都可能"></a>质疑：人类参考是”离线迭代到高可靠”的脚本，模型对照是零样本单次生成，两边资源口径不对等，Fig. 1&#x2F;Fig. 8 的”人类对比”结论因此被高估或低估都可能</h4><ul>
+<li><strong>原文依据</strong>：Appendix K.1 明确说明人类曲线”不是单次尝试”（not a single-shot human attempt），而是 7 位作者反复读执行轨迹、修 bug 直到高可靠后的脚本（88.5% 均值）；简单任务 1 天、接触密集任务每任务 2–3 周；而 S 档模型侧协议是 zero-shot Pass@1（§3 协议）。Fig. 1 与 Fig. 8 右图均以此人类脚本为对照。</li>
+<li><strong>为什么重要</strong>：它直接影响两条头号结论的边界——“前沿模型还不如人类”以及”CaP-Agent0 在 4&#x2F;7 任务达到或超过人类”。前者比较的是”迭代人类 vs 首答模型”，后者比较的是”在线恢复智能体 vs 离线精调脚本”，两个方向的偏差不同。</li>
+<li><strong>当前能够得出的判断</strong>：论文对协议是透明的（K.1 专门澄清），但”near human-level”的措辞没有携带这些边界条件；结论应表述为”在与人类离线调试脚本的对照中，特定任务的部署期在线智能体可与之相当”，而不是”接近人类编程能力”。</li>
+<li><strong>如何验证或补强</strong>：补充人类首次尝试的 Pass@1 数据；或让人类在相同的多轮交互界面与时间预算下操作（human-in-the-loop 多轮基线）；或报告人类脚本的调试轮数作为”资源轴”与模型多轮的轮数并排比较。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：LIBERO-PRO-上-OpenVLA-与-π0-六列全-0-00、”与-VLA-可比”的核心对照缺少评测协议披露"><a href="#质疑：LIBERO-PRO-上-OpenVLA-与-π0-六列全-0-00、”与-VLA-可比”的核心对照缺少评测协议披露" class="headerlink" title="质疑：LIBERO-PRO 上 OpenVLA 与 π0 六列全 0.00、”与 VLA 可比”的核心对照缺少评测协议披露"></a>质疑：LIBERO-PRO 上 OpenVLA 与 π0 六列全 0.00、”与 VLA 可比”的核心对照缺少评测协议披露</h4><ul>
+<li><strong>原文依据</strong>：Table 2 与附录 J 的 Table 6–8：OpenVLA、π0 在三个套件 × 两类扰动上全部为 0.00；π0.5 在 Task 扰动列也为 0.00&#x2F;0.01&#x2F;0.01，但在 Pos 扰动列达到 0.17&#x2F;0.38&#x2F;0.20。论文没有在主文或附录说明这三个基线用的 checkpoint 来源、是否在 LIBERO 上微调、评测帧数与停止条件（本报告在全文范围内未检索到）。</li>
+<li><strong>为什么重要</strong>：LIBERO-PRO 原始设定（Zhou et al., 2025）评测的是在 LIBERO 上训练过的策略；如果这里的 VLA 是零样本评测，0.00 的对比是失效的，而”CaP-Agent0（免训练）与 VLA 后训练可比或超过”这一卖点会失去一半支撑。</li>
+<li><strong>当前能够得出的判断</strong>：证据不足以判断是”协议问题”还是”确实如此”——论文未报告，当前材料无法确认；但 0.00 全列的异常模式提示存在口径差异。且即使在现有数字下，CaP-Agent0 在 libero-goal 与 libero-spatial 的 Pos 列也低于 π0.5（0.26 vs 0.38、0.12 vs 0.20），”comparable”的措辞对读者有误导风险。</li>
+<li><strong>如何验证或补强</strong>：披露每个 VLA 基线的 checkpoint 与微调协议（应对齐 LIBERO-PRO 原文设置）；分别报告零样本与微调两种协议的结果；对 50 次试验的结果给出逐任务置信区间，避免平均掩盖极差（π0.5 存在单任务 1.00 与 0.00 并存的强异质性）。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：CaP-Agent0-的消融是累加链，无法隔离-VDM、技能库、集成的独立贡献，也无法排除”算力增加”这一替代解释"><a href="#质疑：CaP-Agent0-的消融是累加链，无法隔离-VDM、技能库、集成的独立贡献，也无法排除”算力增加”这一替代解释" class="headerlink" title="质疑：CaP-Agent0 的消融是累加链，无法隔离 VDM、技能库、集成的独立贡献，也无法排除”算力增加”这一替代解释"></a>质疑：CaP-Agent0 的消融是累加链，无法隔离 VDM、技能库、集成的独立贡献，也无法排除”算力增加”这一替代解释</h4><ul>
+<li><strong>原文依据</strong>：Fig. 8 左的链条 S3 24 → M4 55 → +SL 59 → +1M 66 → +3M 68 是逐项叠加；+1M&#x2F;+3M 把每轮推理从 1 次扩到 9 次（Appendix H.2），技能库同时增加了可调用的函数面（9 个原语，Appendix H.1）。论文没有做留一（leave-one-out）消融，也没有与”同算力的单模型 9 次采样 + 自一致性&#x2F;驳回重采样”对照。</li>
+<li><strong>为什么重要</strong>：这关系到创新点的真实来源：如果收益主要来自采样次数，”并行集成是核心机制”的叙事就要改写；”+SL 只加 4 个点”也可能是 API 面扩大而非复用带来的。</li>
+<li><strong>当前能够得出的判断</strong>：现有证据支持”组合有效”，不支持”每个组件各自必要”；后四项增量（+3&#x2F;+4&#x2F;+7&#x2F;+2）在 100 次试验下没有方差报告，单次数值难以判断区分度。</li>
+<li><strong>如何验证或补强</strong>：2×2×2 因子设计（VDM × SL × ensemble）；等算力控制（单模型 9 次自一致性）；多种子重复并报告均值±方差；对技能库做”同数量随机函数”对照以区分”能力面扩大”与”复用”两种解释。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：论文自称”open-access-platform”，但项目页没有可验证的代码-数据入口，且-RL-与成本细节缺失，复现性无法评估"><a href="#质疑：论文自称”open-access-platform”，但项目页没有可验证的代码-数据入口，且-RL-与成本细节缺失，复现性无法评估" class="headerlink" title="质疑：论文自称”open-access platform”，但项目页没有可验证的代码&#x2F;数据入口，且 RL 与成本细节缺失，复现性无法评估"></a>质疑：论文自称”open-access platform”，但项目页没有可验证的代码&#x2F;数据入口，且 RL 与成本细节缺失，复现性无法评估</h4><ul>
+<li><strong>原文依据</strong>：Abstract 称 “open-access framework”，项目页 <a class="link"   target="_blank" rel="noopener" href="https://capgym.github.io/" >https://capgym.github.io<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；本报告 2026-10-09 核查该页，”Paper” 与 “Code” 链接均为占位符（<code>#</code>），未指向仓库、数据集或文档（页面其余内容为宣传性图表，动态组件显示 “Loading chart…”）。此外 CaP-RL 未报告奖励函数定义、组大小、每提示 rollout 数、KL&#x2F;LR、训练硬件；该框架依赖 Gemini-3-Pro、GPT-5.2、Claude Opus 4.5 等闭源模型与 SAM3&#x2F;Molmo 2 等多个视觉服务，模型版本更迭会破坏复现。</li>
+<li><strong>为什么重要</strong>：对”平台&#x2F;基准”类论文，可复现性是产品价值本身；无法访问代码意味着第三方既不能跑基准，也不能核实评测脚本中的口径（如 VLA 基线的评测流程，见质疑二）。</li>
+<li><strong>当前能够得出的判断</strong>：协议文档层面披露较全（档位定义、提示词 H.3&#x2F;H.4、人类协议 K.1、计时 K.2、完整 API 规格 Appendix G），但实物发布与 RL 关键细节当前材料无法确认；不能因为”声称开源”就按已验证复现对待。</li>
+<li><strong>如何验证或补强</strong>：给出带版本标签的代码库与数据&#x2F;评测脚本链接；公开 RL 训练配置与随机种子；披露 token&#x2F;费用预算；为闭源模型记录精确版本与服务参数。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：若干机制性表述与图内数字不符或缺乏检验——“M4-与-M3-平价”在图-6-中不成立、M2-下降只有未验证的假说、Fig-5-与-Fig-6-对同一模型的同一指标给出不同平均值"><a href="#质疑：若干机制性表述与图内数字不符或缺乏检验——“M4-与-M3-平价”在图-6-中不成立、M2-下降只有未验证的假说、Fig-5-与-Fig-6-对同一模型的同一指标给出不同平均值" class="headerlink" title="质疑：若干机制性表述与图内数字不符或缺乏检验——“M4 与 M3 平价”在图 6 中不成立、M2 下降只有未验证的假说、Fig. 5 与 Fig. 6 对同一模型的同一指标给出不同平均值"></a>质疑：若干机制性表述与图内数字不符或缺乏检验——“M4 与 M3 平价”在图 6 中不成立、M2 下降只有未验证的假说、Fig. 5 与 Fig. 6 对同一模型的同一指标给出不同平均值</h4><ul>
+<li><strong>原文依据</strong>：§3.3 称 M4”can reach parity with high-level multi-turn performance (M3)”，但 Fig. 6 中 gemini-3-pro 的 M4 在 7 个任务里有 5 个低于 M3（平均 54 vs 60；Two-Arm Lift 34 vs 50、Two-Arm Handover 6 vs 16），只有 Cube Stack 反超（90 vs 87）；M2 退化的原因（”cross-modal alignment gap”）原文即用 hypothesize，且无排除图像分辨率等混杂的实验；数值上，gemini-3-pro 的 S2&#x2F;M3 平均在 Fig. 5 为 46&#x2F;56，在 Fig. 6 则为 39&#x2F;60（后者可用”含 Re-stack 的 7 任务口径”自洽复算，前者口径论文未说明）。</li>
+<li><strong>为什么重要</strong>：这些是 Takeaway 3 与 CaP-Agent0 设计动机的叙事支柱；数字间不一致会让读者怀疑统计口径管理。</li>
+<li><strong>当前能够得出的判断</strong>：按任务拆分后，”平价”只是桌面任务的局部结论，双臂任务上 M4 明显不如 M3；图间数字差异可能源于任务子集不同（分析者推测 46≈275&#x2F;6、39≈275&#x2F;7 提示 Fig. 5 可能排除了 Re-stack 单轮），但论文未给出说明。</li>
+<li><strong>如何验证或补强</strong>：正文声明每个平均值的任务子集与统计口径；对 M2&#x2F;M3 做同信息量对照（如把图像分辨率、token 数对齐）；把”parity”限定为可复算的具体任务集合。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现，先前 code-as-policy 机器人系统的性能无法与人提供的脚手架分离，且”减少脚手架后能否用推理时计算补偿”从未被系统研究；因此提出 CaP-X——用可交互的 CaP-Gym 承载 187 个仿真任务与真机接口，用分档的 CaP-Bench（抽象 × 交互 × 视觉落地）在 12 个模型 × 7 任务 × 100 次试验上把这一缺口量化，并给出免训练的 CaP-Agent0 与把 GRPO&#x2F;RLVR 直接施于编码智能体的 CaP-RL。实验在受控仿真条件下表明：成功率随抽象层级单调上升（脚手架依赖成立）、原始图像多轮反馈反而退化而文本化视觉差分有效、CaP-Agent0 把低层原语平均成功率从 24% 提到 68% 并在 4&#x2F;7 任务追平人类离线脚本、RL 后训练在 2 个方块任务上实现 84%&#x2F;76% 的真机成功率；其中”档位分离效应”与”多轮-VDM 组合”的证据较强（跨 12 个模型复现、有负面结果对照），但”接近人类水平”与”与 VLA 可比”两类对照因资源口径不对等（质疑一）与基线协议未披露（质疑二）仍缺少充分支持，机制归因也受累加消融所限（质疑三）。本文最有价值的部分是：它把”智能体能力 vs 设计者脚手架”这个此前只能泛泛讨论的问题做成了可复算的分层实验台，并留下了一个清晰的负面清单（M2、Peg、双臂、调试提示词）；最大的审稿风险是：平台论文的承诺（open-access）尚未可验证、关键对照的公平性存疑，若不补披露，这些缺口会实质性削弱”framework”论文的核心主张。</p>
+</blockquote>
+<p><strong>六维判断</strong>（每项依据见前文）：</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强（三轴定义与档位体系明确，Fig. 2&#x2F;Table 1 让”脚手架”概念可操作化）。</li>
+<li><strong>创新性证据</strong>：中（分档基准是实质新贡献；CaP-Agent0&#x2F;CaP-RL 均为已有组件的组合与新应用，机制必要性证据不完整）。</li>
+<li><strong>方法可信度</strong>：中（协议透明、负面结果如实报告；但消融为累加式、机制归因有替代解释未排除）。</li>
+<li><strong>实验支持力度</strong>：中（规模可观：12 模型 × 100 试验 × 8 档；但无方差&#x2F;置信区间、单次运行、部分对照口径不对等）。</li>
+<li><strong>可复现性</strong>：无法确认（协议与提示词披露较全，但项目页无有效代码&#x2F;数据链接、RL 关键细节缺失、强依赖闭源模型版本）。</li>
+<li><strong>综合阅读价值</strong>：高（对具身智能体与机器人学习方向的学生&#x2F;研究者，提供了”编码智能体控制机器人”这一路线迄今最系统的实证地图与负面结果清单）。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> CaP-X: A Framework for Benchmarking and Improving Coding Agents for Robot Manipulation</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-09 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-09 21:18:46
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/09/2603.22435v2_CaP-X_A_Framework_for_Benchmarking_and_Improving_Coding_Agents_for_Robot_Manipulation/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%9F%BA%E5%87%86%E8%AF%84%E6%B5%8B/">#基准评测</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E4%BB%A3%E7%A0%81%E5%8D%B3%E7%AD%96%E7%95%A5/">#代码即策略</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%93%8D%E4%BD%9C/">#机器人操作</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%85%B7%E8%BA%AB%E6%99%BA%E8%83%BD%E4%BD%93/">#具身智能体</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">#强化学习</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%8E%A8%E7%90%86%E6%97%B6%E8%AE%A1%E7%AE%97/">#推理时计算</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/09/2603.04356v1_RoboCasa365_A_Large-Scale_Simulation_Framework_for_Training_and_Benchmarking_Generalist_Robots/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">RoboCasa365: A Large-Scale Simulation Framework for Training and Benchmarking Generalist Robots</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">CaP-X: A Framework for Benchmarking and Improving Coding Agents for Robot Manipulation</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-text">1. 论文具体想解决什么问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-text">2. 创新点是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3"><span class="nav-text">3. 作者如何解决</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7"><span class="nav-text">4. 解决得怎么样</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 106 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
