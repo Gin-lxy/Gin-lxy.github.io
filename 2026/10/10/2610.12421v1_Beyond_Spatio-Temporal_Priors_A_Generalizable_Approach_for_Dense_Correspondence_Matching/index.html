@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/10/2610.12421v1_beyond_spatio-temporal_priors_a_generalizable_approach_for_dense_correspondence_matching/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Beyond Spatio-Temporal Priors: A Generalizable Approach for Dense Correspondence Matching">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/10/2610.12421v1_Beyond_Spatio-Temporal_Priors_A_Generalizable_Approach_for_Dense_Correspondence_Matching/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-10T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-10T08:09:28.926Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="图像编辑与参考引导生成">
+<meta property="article:tag" content="基础模型表征">
+<meta property="article:tag" content="教师引导迭代精炼">
+<meta property="article:tag" content="稠密对应匹配">
+<meta property="article:tag" content="身份保持评估">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Beyond Spatio-Temporal Priors: A Generalizable Approach for Dense Correspondence Matching | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">352</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">109</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Beyond Spatio-Temporal Priors: A Generalizable Approach for Dense Correspondence Matching</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-10 12:00</span>
+        <span class="mobile">2026-10-10 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-10 16:09:28</span>
+            <span class="mobile">2026-10-10 16:09:28</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E7%A8%A0%E5%AF%86%E5%AF%B9%E5%BA%94%E5%8C%B9%E9%85%8D/">稠密对应匹配</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%9B%BE%E5%83%8F%E7%BC%96%E8%BE%91%E4%B8%8E%E5%8F%82%E8%80%83%E5%BC%95%E5%AF%BC%E7%94%9F%E6%88%90/">图像编辑与参考引导生成</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B%E8%A1%A8%E5%BE%81/">基础模型表征</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%95%99%E5%B8%88%E5%BC%95%E5%AF%BC%E8%BF%AD%E4%BB%A3%E7%B2%BE%E7%82%BC/">教师引导迭代精炼</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%BA%AB%E4%BB%BD%E4%BF%9D%E6%8C%81%E8%AF%84%E4%BC%B0/">身份保持评估</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>Luping Liu（香港大学 The University of Hong Kong）、Bingyi Kang（ByteDance Seed）、Yifan Wang（ByteDance Seed、浙江大学 Zhejiang University）、Dong Xu（香港大学）；一作：Luping Liu（工作完成于 ByteDance Seed 实习期间）；通讯作者：Dong Xu；Yifan Wang 亦标注实习期间完成。</p>
+<p>论文：2610.12421v1；来源：Hugging Face Daily Papers 2026-10-09 批次（默认热度序第 10 位；2026-10-10 运行补做）；精读归档日期：2026-10-10（Asia&#x2F;Shanghai）。</p>
+<ul>
+<li><p>Hugging Face 页面：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.12421" >https://huggingface.co/papers/2610.12421<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.12421v1%EF%BC%88%E5%85%A8%E6%96%87" >https://arxiv.org/abs/2610.12421v1（全文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.12421v1" >https://arxiv.org/html/2610.12421v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2610.12421v1" >https://arxiv.org/pdf/2610.12421v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/luping-liu/FreeMatching" >https://github.com/luping-liu/FreeMatching<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ）</p>
+</li>
+</ul>
+<p><strong>分析范围</strong>：完整读取正文 §1–§5 与附录 A–G（含所有公式）；Figure 1–7 与 Table 1–11 全部核对。以 arXiv HTML（LaTeXML 版）为主，官方 PDF（24 页）为对照，对全部关键表格数字（Table 1–11）、配对统计、训练超参与成本条目逐项交叉核对，两版本数值一致；唯一发现的内部不一致为 Table 9 基线行与 Table 2&#x2F;3 数值问题（见 §5 第一条质疑），另有 Table 10 与 Table 4 一处数值巧合待核（见同处）。图片自 HTML 资源下载 Fig. 1–6 共 6 张，逐张打开目检，均非零字节且内容与图注相符。arXiv abs 页确认 v1 为唯一版本（Comments：Accepted at NeurIPS 2026，24 pages, 7 figures, including appendices；类目 cs.CV、cs.LG；CC BY 4.0）。代码仓库仅核查可访问性与许可（实测可访问，主代码 Apache-2.0，提供检查点下载脚本），不使用仓库中论文发布后的任何内容。论文未报告项：所选检查点（由 275k 步检查点初始化）的完整训练成本、UNO+OmniGen2 精炼数据的具体规模与 OmniGen2 数据构造、评测所用 DINOv3 的具体规格、Table 4 主表的置信区间、人类评测的评分者一致性与评测者背景、经典基准上基线（多数不输出共视掩码）的共视区域来源。未遇到无法读取的材料。</p>
+<p>标签：稠密对应匹配、图像编辑与参考引导生成、基础模型表征、教师引导迭代精炼、身份保持评估。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文针对稠密对应匹配（dense correspondence matching）在图像编辑与参考引导生成（image editing and reference-guided generation, IEG）中失效的问题，提出 FreeMatching：以生成式模型 FLUX.2-klein-base-4B 与语义基础模型 DINOv3 的表征为基础，经”经典数据集+跟踪视频+合成场景”的异质监督预训练（supervised pre-training）和教师引导的迭代精炼（teacher-guided iterative refinement）两阶段训练，用单个模型同时覆盖经典匹配与 IEG 身份保持匹配（identity-preserving matching）。在论文自建的 IEG-Bench（约 100 对 UNO 样本）上四个重建指标全面领先所列基线，经典基准上 EPE 有竞争力但光流任务仍落后专用模型 2.5–3.3 倍；主要结论成立与否的关键边界在于”基线是否被同等适配”（Table 9 存在数值疑点）与”评估是否偏向本方法”（评估特征与被评模型共享 DINOv3 表征）。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>背景与任务</strong>：稠密对应匹配长期分为两条线——光流（optical flow，建模时序运动）与稠密匹配（dense&#x2F;geometric matching，建模几何视角变化）。虽有 UniMatch、UFM 等统一框架把两者桥接，但它们仍依赖两类简化先验：平滑运动（smooth motion）与刚性几何（rigid geometry），即论文所谓时空先验（spatio-temporal priors）。作者认为对应匹配实际构成一个连续谱（Fig. 1）：该图以横轴”时间（Short→Long）”、纵轴”空间（Simple→Complex）”展开——上排是光流类（短视频序列，低复杂度），下排是稠密匹配类（静止广基线、多刚体运动），最右列是生成式图像编辑；每格上方是输入对，下方是双向 warp（扭曲形变）结果。</p>
+<p><img src="/images/dailypaper/2026-10-10/2610.12421_fig1.png" alt="图 1：论文 Fig. 1（arXiv HTML 原图 intro11.png，本报告本地文件 images/2610.12421_fig1.png）。稠密对应匹配的连续谱总览：上排 Optical Flow（光流）——Short-Range 为近距人物的短间隔帧对、Long-Range 为街景中蜥蜴与滑板的长时程运动、Generative 为同一匹马在草地与雪景间的生成式变化；下排 Dense Matching（稠密匹配）——Stationary 为静止建筑广基线对、Multi-Rigid Motion 为多刚体运动、Generative 为拳击场景的生成式变换；中轴标注 Dense Correspondence Matching 与 Time Short→Long、Space Simple→Complex 两轴。每格上半是输入图像对、下半是双向 warp 结果。为什么需要它：这张谱系图把问题动机一次性讲清——经典方法在左端被先验支撑、在生成式一列失去先验，把 IEG 定位成&quot;先验覆盖不到&quot;的对应前沿，后续所有设计都与谱系上的位置对应。"></p>
+<p><strong>现有方法在什么条件下表现不好</strong>：在 IEG 场景（如把参考图里的马合成到雪景、改变位姿外观但保留身份）中，变换可保持视觉身份（visual identity）却打破物理连续性（physical continuity），时空先验不再成立；论文 Fig. 4 显示 SEA-RAFT（光流方法）输出扭曲、丢件，RoMa、UFM 等宽基线匹配（wide-baseline matching）方法也有局部扭曲或不完整匹配。</p>
+<p><strong>作者发现&#x2F;主张的新问题</strong>：作者并非发现某个”新现象”，而是指出一个被忽略的任务区域并重新定义任务——把稠密对应形式化为”身份保持对应”：匹配判定不依赖刚性几何或平滑运动，而是匹配”同一底层实例”（same underlying instance）的区域，任何存在可识别对应物的场景都纳入；同时要求预测共视掩码（covisibility mask）以标记目标图中不存在源对应物的区域（新增内容、去遮挡暴露内容）。动机来自人类认知（Human perception can recognize the same instance despite substantial changes in appearance and configuration, §1），但其”证据”主要是定性图示与自建基准上的定量结果，而非认知实验。</p>
+<p><strong>原因解释（作者主张）</strong>：经典框架的先验过强导致特征只服务于几何&#x2F;运动估计；需要身份级的语义对应与共视建模，且该能力可通过结合生成式表征、语义表征、大规模异质监督与自蒸馏式精炼获得。注意：这是设计假设而非已被因果验证的结论——论文观察到”经典方法在 IEG 上差”，但未做机制性实验证明”差的原因是先验约束”（例如没有用同一主干去掉几何先验做对照）。</p>
+<p><strong>核心假设</strong>：三层组合——(1) FLUX 生成式初始化 + DINOv3 语义特征；(2) 经典数据 + 新构造的跟踪视频&#x2F;合成数据异质监督；(3) 无稠密标注的教师引导迭代精炼——足以让单一模型在 IEG 上大幅提升且在经典基准上保持竞争性，并使模型反用作身份保持的定量评估指标。</p>
+<p><strong>区分三类问题</strong>：领域一般问题（对应匹配的泛化）；本文的观察（IEG 是现有先验失效的对应匹配前沿；重建式协议可反向用作数据一致性度量）；本文实际解决的子问题（在上述定义下训练一个覆盖谱系两端的单模型，并给出评测协议）。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p><strong>一段话概括</strong>：真正的技术增量不在任一单独组件，而在”任务重定义 + 表征&#x2F;数据&#x2F;训练的组合设计 + 评测协议的提出与双向使用”四件事的打包：把 IEG 对应定义为身份保持匹配并显式建模共视；用生成式 DiT（Diffusion Transformer）主干承载对应预测；用跟踪器伪标注与可控渲染构造大规模监督；用”EMA 学生初配 ∘ 冻结教师局部修正”的组合伪目标实现无标注精炼；并把重建一致性协议反过来当作身份保持度量。其中多数组件本身是已有机制的组合，原创性主要体现在任务与协议的构造、以及组合方式。</p>
+<p>逐项分析：</p>
+<ol>
+<li><p><strong>任务定义与双向评测协议</strong>（§3.1、§3.5）。新增机制：输出从单一稠密位移场扩展为对应图 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi></mrow><annotation encoding="application/x-tex">C</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span></span></span></span> 与共视掩码 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span></span></span> 的联合预测；评测用重建相似度 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mtext>Score</mtext><mi>m</mi></msub><mo>=</mo><msub><mi mathvariant="script">D</mi><mi>m</mi></msub><mo stretchy="false">(</mo><msub><mover accent="true"><mi>I</mi><mo>^</mo></mover><mi>b</mi></msub><mo separator="true">,</mo><msub><mi>I</mi><mi>b</mi></msub><mo separator="true">;</mo><msub><mi>M</mi><mi>m</mi></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\text{Score}_{m}=\mathcal{D}_{m}(\hat{I}_{b},I_{b};M_{m})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord text"><span class="mord">Score</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">m</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1968em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.0278em;">D</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">m</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9468em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span></span><span style="top:-3.2523em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1389em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">b</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">b</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">m</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>（Eq. 2），正向（图像对已知一致时评估匹配质量）与反向（模型足够强时用重建误差反查数据&#x2F;生成结果的身份保持一致性，充当定量指标）两用。与最接近已有工作的差异：经典对应基准用 EPE 等几何指标；语义对应（semantic correspondence，如 SD-DINO）允许跨实例同类匹配，而本文强调同一实例的身份与局部细节（§5、Appendix G）。性质：任务与协议层面的新思想成分较大；不可替代性证据为 Table 4 全指标领先与 Appendix E 人类评测相关性（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.738</mn></mrow><annotation encoding="application/x-tex">r=0.738</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.738</span></span></span></span>）。反向使用的有效性依赖”匹配模型足够稳健”这一自承认的假设（§3.5），该假设本身未被独立验证。</p>
+</li>
+<li><p><strong>基础模型表征组合</strong>（§3.2、Appendix A）。新增机制：冻结 FLUX VAE 编码 → 潜 token，与冻结 DINOv3 ViT-L&#x2F;16 patch 特征（零初始化线性投影后）相加，双图序列拼接做联合注意力，单次前向输出对应与共视；主干由 FLUX.2-klein-base-4B（undistilled rectified-flow 模型，即未蒸馏的整流流模型）初始化。与 RoMa（DINOv2 特征 + 回归头）、UFM（统一 flow 路径）、UniMatch 的差异主要是表征与主干选择。性质：已有组件的新组合 + 工程实现；证据为 Table 6 的逐阶累加：随机初始化 DiT（无 FLUX 初始化&#x2F;无 DINOv3&#x2F;无新数据&#x2F;无精炼）67.31 → 加 FLUX 初始化 69.28 → 加 DINOv3 特征 72.76 → 加 Video &amp; Blender 数据 76.52 → 加精炼 80.01（DINOv3 相似度 ×100）。每一步只加一个组件，说明各组件在该顺序下有增量；但没有”全配置减一”的对照，”不可替代”未被证明（见 §4.3）。</p>
+</li>
+<li><p><strong>异质监督与新数据构造</strong>（§3.3、Appendix B）。新增：520k 段 ViPE 视频片段用 SOTA 跟踪器 AllTracker 生成稠密伪真值（滑窗 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi><mo>=</mo><mn>16</mn></mrow><annotation encoding="application/x-tex">L=16</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">16</span></span></span></span>、每步 4 次迭代、用可见性掩码处理遮挡）；360k 对 Objaverse 资产经 Blender Cycles 渲染（含几何过滤管线、刚体运动建模与自适应相机，输出 32-bit OpenEXR 光流与 alpha 遮挡掩码）；混合采样比例见 Table 1（经典 7 数据集共 60% + 自建视频 20% + 自建 Blender 20%）。并采用 Huber 鲁棒损失（自适应阈值 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>δ</mi></mrow><annotation encoding="application/x-tex">\delta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0379em;">δ</span></span></span></span>，见 §3 方法）对抗伪标注噪声。性质：数据构造与鲁棒损失应用的工程贡献；证据是 Table 6 第 3→4 步 +3.76，但数据量本身未被控制（无法区分”新数据的内容多样性”与”更多训练数据”的贡献）。</p>
+</li>
+<li><p><strong>教师引导迭代精炼</strong>（§3.4、Appendix C.3）。新增机制：EMA（exponential moving average，指数移动平均）学生副本预测初始对应 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">C_{0}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 并 warp 出中间图 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover accent="true"><mi>I</mi><mo>^</mo></mover><mrow><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">r</mi></mrow></msub><mo>=</mo><msub><mi>I</mi><mi>a</mi></msub><mo stretchy="false">(</mo><msub><mi>C</mi><mn>0</mn></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\hat{I}_{\mathrm{inter}}=I_{a}(C_{0})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0968em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9468em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span></span><span style="top:-3.2523em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1389em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">inter</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">a</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>；冻结教师 RoMa 估计从目标图到中间图的局部修正 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi></mrow><annotation encoding="application/x-tex">S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span>；组合伪目标 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">w</mi></mrow></msub><mo>=</mo><msub><mi>C</mi><mn>0</mn></msub><mo>∘</mo><mi>S</mi></mrow><annotation encoding="application/x-tex">C_{\mathrm{new}}=C_{0}\circ S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0139em;">new</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∘</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span> 训练学生，共视预测向 EMA 输出正则；有效区域取 RoMa 置信度（&gt;0.2）与 EMA 共视（&gt;0.7）的交集；损失 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">w</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">k</mi></mrow></msub><mo>=</mo><mn>10</mn><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">f</mi></mrow></msub><mo>+</mo><mn>0.2</mn><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">s</mi><mi mathvariant="normal">k</mi><mstyle mathcolor="#cc0000"><mtext>\mbox</mtext></mstyle><mo lspace="0em" rspace="0em">−</mo><mi mathvariant="normal">E</mi><mi mathvariant="normal">M</mi><mi mathvariant="normal">A</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\mathcal{L}_{\mathrm{weak}}=10\mathcal{L}_{\mathrm{self}}+0.2\mathcal{L}_{\mathrm{mask\mbox{-}EMA}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">weak</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord">10</span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0778em;">self</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0385em;vertical-align:-0.3552em;"></span><span class="mord">0.2</span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.5198em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">mask</span><span class="mord text mtight" style="color:#cc0000;"><span class="mord mathrm mtight" style="color:#cc0000;">\mbox</span></span><span class="mord mtight"><span class="mord mtight">−</span></span><span class="mord mathrm mtight">EMA</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3552em;"><span></span></span></span></span></span></span></span></span></span>。与纯自训练&#x2F;数据蒸馏（data distillation）的差异：引入外部冻结教师只修局部残差，学生负责跨大变化对齐（作者解释，§3.4）。性质：已有机制（EMA 自训练 + 外部教师）的新组合；证据为 Table 6 第 4→5 步 +3.49，以及 Table 10 的精炼数据域控制；教师选择的不可替代性（如换更弱教师会怎样）未做消融。</p>
+</li>
+<li><p><strong>细粒度身份评估应用</strong>（§4.4、Fig. 5）。将模型输出转为空间热图，在共视区域内逐像素比较 warp 后源图与目标图的 DINOv3 相似度，暴露全局 DINO&#x2F;CLIP 分数掩盖的局部不一致（如气球上的文字）。性质：应用层贡献，证明”匹配质量本身可作为生成数据质量的度量”这一双向收益设想（§5 呼应）。</p>
+</li>
+</ol>
+<p><strong>边界说明</strong>：根据本文 related work 与实验对比，只能确认作者声称的差异；”首次把对应匹配扩展到 IEG”之类主张是否构成首次提出，需要更完整的文献检索（IEG 与语义对应领域交叉工作较多，论文只对比了有限的代表性方法）。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉</strong>：IEG 图像对之间没有可靠的几何&#x2F;运动模型可用，但”同一实例”的局部纹理与语义结构仍然一致——因此把匹配建立在（a）生成式模型学到的外观流形与（b）DINOv3 学到的语义特征上，用大量”有真值”（合成）、”有伪真值”（跟踪视频）和”没有真值但有图像对”（IEG 编辑对）的数据分两阶段打磨：先学会匹配，再用”学生自己先对齐、冻结教师再修残差”的迭代把匹配精度推到教师之上。</p>
+<p><strong>运行流程</strong>（按实际 pipeline 展开）：</p>
+<ol>
+<li><strong>输入</strong>：一对图像 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>I</mi><mi>a</mi></msub></mrow><annotation encoding="application/x-tex">I_{a}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">a</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（源&#x2F;参考）与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>I</mi><mi>b</mi></msub></mrow><annotation encoding="application/x-tex">I_{b}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">b</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（目标&#x2F;生成结果），外部分辨率 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>288</mn><mo>×</mo><mn>512</mn></mrow><annotation encoding="application/x-tex">288\times512</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">288</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">512</span></span></span></span>（Appendix A.1、C.4）。</li>
+<li><strong>表征</strong>：冻结 FLUX VAE 把每图编码为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mn>36</mn><mo>×</mo><mn>64</mn><mo>×</mo><mn>32</mn></mrow></msup></mrow><annotation encoding="application/x-tex">z\in\mathbb{R}^{36\times64\times32}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5782em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.044em;">z</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">36</span><span class="mbin mtight">×</span><span class="mord mtight">64</span><span class="mbin mtight">×</span><span class="mord mtight">32</span></span></span></span></span></span></span></span></span></span></span></span>（下采样 8 倍后 2×2 打包为 576 个 128 维 token）；冻结 DINOv3 ViT-L&#x2F;16 在同分辨率下取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>18</mn><mo>×</mo><mn>32</mn></mrow><annotation encoding="application/x-tex">18\times32</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">18</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">32</span></span></span></span> 个 1024 维 patch 特征，经零初始化线性层投影后加到对应潜 token；两图序列拼接为 1152 个 token，用 FLUX 位置编码保留空间坐标与图像身份；文本条件路径使用缓存空 prompt 嵌入（对应预测只需图像对）。</li>
+<li><strong>主干与前向</strong>：FLUX.2-klein-base-4B DiT 做联合注意力；固定时间步 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>=</mo><mn>500</mn></mrow><annotation encoding="application/x-tex">t=500</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">500</span></span></span></span> 单次前向；取查询图像对应 token 序列，反潜归一化并解包回 32 通道潜网格，经任务专用卷积解码器渐进上采样输出 3 通道——2 通道对应坐标（转成像素坐标得 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi><mo>∈</mo><msup><mi mathvariant="double-struck">R</mi><mrow><mi>H</mi><mo>×</mo><mi>W</mi><mo>×</mo><mn>2</mn></mrow></msup></mrow><annotation encoding="application/x-tex">C\in\mathbb{R}^{H\times W\times 2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7224em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8413em;"></span><span class="mord"><span class="mord mathbb">R</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0813em;">H</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight" style="margin-right:0.1389em;">W</span><span class="mbin mtight">×</span><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span>）、1 通道共视 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi><mo>∈</mo><mo stretchy="false">[</mo><mn>0</mn><mo separator="true">,</mo><mn>1</mn><msup><mo stretchy="false">]</mo><mrow><mi>H</mi><mo>×</mo><mi>W</mi></mrow></msup></mrow><annotation encoding="application/x-tex">M\in[0,1]^{H\times W}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7224em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0913em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">1</span><span class="mclose"><span class="mclose">]</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0813em;">H</span><span class="mbin mtight">×</span><span class="mord mathnormal mtight" style="margin-right:0.1389em;">W</span></span></span></span></span></span></span></span></span></span></span></span>。Fig. 2 展示该架构：两张输入图各经过一个冻结 DINOv3 编码器（雪花图标），其 patch 特征投影后与潜 token 相加（⊕），拼接进入 DiT（火焰图标标识可训练主干），输出分为”Correspondence &amp; Covisibility”（对应与共视，即所需结果）与”Unused output”（复用生成模型解码路径但不参与对应任务的输出）。</li>
+</ol>
+<p><img src="/images/dailypaper/2026-10-10/2610.12421_fig2.png" alt="图 2：论文 Fig. 2（arXiv HTML 原图 model.png，本报告本地文件 images/2610.12421_fig2.png）。架构总览：左侧两张输入图分别经冻结 DINOv3 编码器提取 patch 特征，与 VAE 潜 token 相加后拼接；中间是由 FLUX.2-klein-base-4B 初始化的 DiT 主干，做跨图联合注意力；右侧输出上支为 Correspondence &amp; Covisibility（对应坐标场与共视掩码，论文真正使用的任务输出），下支为 Unused output（图中&quot;未使用&quot;的分支，复用生成式解码路径但不参与对应任务）。为什么需要它：它把&quot;为什么生成式主干能做匹配&quot;讲清楚——冻结编码器提供表征、可训练 DiT 负责跨图注意力、任务头只解码对应与共视；FLUX VAE 的编码细节（潜变量规格、打包方式）在正文与附录 A 补充，未画进本图。"><br>4. <strong>Stage 1 监督预训练</strong>（§3.3、Appendix C.2）：数据混合见 Table 1（ScanNet++ 15%、BlendedMVS 10%、FlyingThings 10%、DynamicReplica 10%、Spring 5%、PointOdyssey 5%、FlyingChairs 5%、自建 Video 20%、自建 Blender 20%；文字明确比例为采样频率而非数据量）。损失：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mtext>pre</mtext></msub><mo>=</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><munder><mo>∑</mo><mrow><mi>x</mi><mo separator="true">,</mo><mi>y</mi></mrow></munder><mo fence="true" stretchy="true" minsize="1.8em" maxsize="1.8em">(</mo><msup><mi>M</mi><mo lspace="0em" rspace="0em">∗</mo></msup><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>y</mi><mo stretchy="false">)</mo><mo>⋅</mo><msub><mi mathvariant="script">L</mi><mtext>Huber</mtext></msub><mo stretchy="false">(</mo><mi>C</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>y</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><msup><mi>C</mi><mo lspace="0em" rspace="0em">∗</mo></msup><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>y</mi><mo stretchy="false">)</mo><mo stretchy="false">)</mo><mo>+</mo><mi>λ</mi><mi mathvariant="normal">∥</mi><mi>M</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>y</mi><mo stretchy="false">)</mo><mo>−</mo><msup><mi>M</mi><mo lspace="0em" rspace="0em">∗</mo></msup><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>y</mi><mo stretchy="false">)</mo><msubsup><mi mathvariant="normal">∥</mi><mn>2</mn><mn>2</mn></msubsup><mo fence="true" stretchy="true" minsize="1.8em" maxsize="1.8em">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{L}_{\text{pre}}=\frac{1}{N}\sum_{x,y}\Bigl(M^{*}(x,y)\cdot\mathcal{L}_{\text{Huber}}(C(x,y),C^{*}(x,y))+\lambda\|M(x,y)-M^{*}(x,y)\|_{2}^{2}\Bigr)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">pre</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.7076em;vertical-align:-1.3861em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">N</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.9em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">x</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">y</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.3861em;"><span></span></span></span></span></span><span class="mopen"><span class="delimsizing size2">(</span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7387em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∗</span></span></span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⋅</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">Huber</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7387em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∗</span></span></span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mclose">))</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">λ</span><span class="mord">∥</span><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.8em;vertical-align:-0.65em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7387em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∗</span></span></span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mclose">)</span><span class="mord"><span class="mord">∥</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8641em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mclose"><span class="delimsizing size2">)</span></span></span></span></span></span>
+<p>其中实现取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mtext>huber</mtext></msub><mo>=</mo><mn>10</mn></mrow><annotation encoding="application/x-tex">\lambda_{\text{huber}}=10</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">huber</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">10</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mtext>mask</mtext></msub><mo>=</mo><mn>0.2</mn></mrow><annotation encoding="application/x-tex">\lambda_{\text{mask}}=0.2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">mask</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.2</span></span></span></span>；坐标归一化到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>C</mi><mo stretchy="true">~</mo></mover><mo>=</mo><mo stretchy="false">(</mo><mn>2</mn><mi>u</mi><mi mathvariant="normal">/</mi><mo stretchy="false">(</mo><mi>W</mi><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo><mo>−</mo><mn>1</mn><mo separator="true">,</mo><mtext> </mtext><mn>2</mn><mi>v</mi><mi mathvariant="normal">/</mi><mo stretchy="false">(</mo><mi>H</mi><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo><mo>−</mo><mn>1</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\widetilde{C}=(2u/(W-1)-1,\ 2v/(H-1)-1)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9433em;"></span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9433em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span></span><span class="svg-align" style="width:calc(100% - 0.1667em);margin-left:0.1667em;top:-3.6833em;"><span class="pstrut" style="height:3em;"></span><span style="height:0.26em;"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="0.26em" viewBox="0 0 600 260" preserveAspectRatio="none"><path d="M200 55.538c-77 0-168 73.953-177 73.953-3 0-7
+-2.175-9-5.437L2 97c-1-2-2-4-2-6 0-4 2-7 5-9l20-12C116 12 171 0 207 0c86 0
+ 114 68 191 68 78 0 168-68 177-68 4 0 7 2 9 5l12 19c1 2.175 2 4.35 2 6.525 0
+ 4.35-2 7.613-5 9.788l-19 13.05c-92 63.077-116.937 75.308-183 76.128
+-68.267.847-113-73.952-191-73.952z"/></svg></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">2</span><span class="mord mathnormal">u</span><span class="mord">/</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">2</span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mord">/</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mclose">)</span></span></span></span>，掩码目标为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><msup><mi>M</mi><mo lspace="0em" rspace="0em">∗</mo></msup><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">2M^{*}-1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.772em;vertical-align:-0.0833em;"></span><span class="mord">2</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∗</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>；Huber 阈值自适应更新：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>e</mi><mi>t</mi></msub><mo>=</mo><mn>0.998</mn><msub><mi>e</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn></mrow></msub><mo>+</mo><mn>0.002</mn><mtext> </mtext><msub><mrow><mi mathvariant="normal">M</mi><mi mathvariant="normal">A</mi><mi mathvariant="normal">E</mi></mrow><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">e_{t}=0.998e_{t-1}+0.002\,\mathrm{MAE}_{t}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8528em;vertical-align:-0.2083em;"></span><span class="mord">0.998</span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord">0.002</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord"><span class="mord mathrm">MAE</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>δ</mi><mi>t</mi></msub><mo>=</mo><mn>2</mn><msub><mi>e</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">\delta_{t}=2e_{t}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0379em;">δ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0379em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.7944em;vertical-align:-0.15em;"></span><span class="mord">2</span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>e</mi><mn>0</mn></msub><mo>=</mo><mn>0.05</mn></mrow><annotation encoding="application/x-tex">e_{0}=0.05</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.05</span></span></span></span>）。训练主干 transformer、语义投影与输出解码器，冻结基础编码器。<br>5. <strong>Stage 2 教师引导迭代精炼</strong>（§3.4、Appendix C.3、Fig. 3）：初始化自 Stage 1 检查点，用 UNO+OmniGen2 图像对（无稠密对应标注）。EMA 副本（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>=</mo><mn>0.95</mn></mrow><annotation encoding="application/x-tex">\beta=0.95</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.95</span></span></span></span>）预测 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">C_{0}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与共视 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>M</mi><mo>ˉ</mo></mover></mrow><annotation encoding="application/x-tex">\bar{M}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8201em;"></span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8201em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span><span style="top:-3.2523em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1667em;"><span class="mord">ˉ</span></span></span></span></span></span></span></span></span></span> 并生成初始 warp；冻结教师 RoMa 估计局部修正 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi></mrow><annotation encoding="application/x-tex">S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span>；组合得伪目标：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>C</mi><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">w</mi></mrow></msub><mo>=</mo><msub><mi>C</mi><mn>0</mn></msub><mo>∘</mo><mi>S</mi></mrow><annotation encoding="application/x-tex">C_{\mathrm{new}}=C_{0}\circ S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0139em;">new</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∘</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span></span>
+<p>学生在有效区域（RoMa 置信度 &gt;0.2 与 EMA 共视 &gt;0.7 的交集、stop-gradient）拟合串行目标，掩码项向 EMA 输出正则；无有效伪对应的 batch 不计损失。训练主干与语义投影，冻结输出解码器、教师与特征编码器；EMA 仅做指数平均。</p>
+<p><img src="/images/dailypaper/2026-10-10/2610.12421_fig3.png" alt="图 3：论文 Fig. 3（arXiv HTML 原图 weak-train2.png，本报告本地文件 images/2610.12421_fig3.png）。教师引导迭代精炼机制示意：左侧 Image A 是含手机的实拍图、右侧 Image B 是目标渲染图；中部上方是 Student–EMA–Teacher 循环——实线箭头表示学生与 EMA 副本随训练演化，虚线箭头表示固定教师只输出局部修正（不接收梯度），连续两个循环面板表示该过程反复迭代；下方 Warped Image 并排对比同一示例的 Initial Warp 与 Refined Warp：初配（仅学生）边缘发虚，精炼后（复合教师修正）手机的轮廓与背景对齐更清楚。为什么需要它：组合两个映射的语义 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">w</mi></mrow></msub><mo>=</mo><msub><mi>C</mi><mn>0</mn></msub><mo>∘</mo><mi>S</mi></mrow><annotation encoding="application/x-tex">C_{\mathrm{new}}=C_{0}\circ S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0139em;">new</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">0</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∘</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span>（学生初配再复合教师修正）仅靠文字难以理解，这张图同时展示&quot;谁提供什么&quot;以及&quot;组合后改善体现在哪&quot;。"><br>6. <strong>训练细节与所选检查点</strong>（Appendix C.4）：AdamW（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mn>1</mn></msub><mo>=</mo><mn>0.9</mn></mrow><annotation encoding="application/x-tex">\beta_{1}=0.9</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.9</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>β</mi><mn>2</mn></msub><mo>=</mo><mn>0.999</mn></mrow><annotation encoding="application/x-tex">\beta_{2}=0.999</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0528em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.999</span></span></span></span>、权重衰减 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><msup><mi>e</mi><mrow><mo>−</mo><mn>2</mn></mrow></msup></mrow><annotation encoding="application/x-tex">1e^{-2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span></span>）、学习率 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>3</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">3\times10^{-5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">3</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span>（3000 步 warmup 后恒定）、BF16 混合精度、全局 batch 32、梯度检查点；论文评估的检查点为 Stage 2 共 10k 次更新后的 EMA 模型，由 275k 步的监督检查点初始化。<br>7. <strong>推理</strong>：单次前向直接给出 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi></mrow><annotation encoding="application/x-tex">C</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span></span></span></span> 与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span></span></span>，无测试时迭代；无工具调用、无多步流程。<br>8. <strong>输出</strong>：后向稠密对应图（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>I</mi><mi>b</mi></msub></mrow><annotation encoding="application/x-tex">I_{b}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">b</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的每个像素指向 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>I</mi><mi>a</mi></msub></mrow><annotation encoding="application/x-tex">I_{a}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">a</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的绝对坐标）与共视掩码；在下游评价协议中，用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi></mrow><annotation encoding="application/x-tex">C</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span></span></span></span> 把源图 warp 到目标帧、在共视区域 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span></span></span> 内计算重建指标。</p>
+<p><strong>哪些由模型决定、哪些由固定流程控制</strong>：对应与共视预测完全由网络单次前向决定；数据构造（AllTracker 滑窗伪标注、Blender 渲染、UNO 对筛选、精炼有效区域判定）都是固定离线流程；精炼中的伪目标由冻结教师 RoMa 决定，属于”外部模型依赖”而非学习得到。<strong>训练了哪些部分</strong>：见上，Stage 1 训练主干+投影+解码器，Stage 2 训练主干+投影（解码器冻结）。</p>
+<p><strong>外部组件命名</strong>（区别于本文提出的组件）：AllTracker（伪标注跟踪器）、Objaverse（3D 资产）、Blender Cycles（渲染）、UNO（IEG 数据来源，参考 [8]）、OmniGen2（精炼&#x2F;适配数据另一来源，论文未引用也未描述其构造）、RoMa（精炼教师）、FLUX.2-klein-base-4B 与 DINOv3（初始化权重）、Qwen3-VL-8B 与 SAM 3（IEG 数据对象区域标注，用途存疑，见 §5 关于数据透明度的质疑）。数据构造见 Fig. 6：三行分别对应 Video（真实视频帧对，展示自然运动）、Blender（合成多物体场景对，由同一场景不同视角&#x2F;状态渲染给出像素级精确几何）、IEG（参考-生成对，同一主体被编辑或重组）——横向对比三类监督信号的差异：自然运动、精确几何、身份保持但物理断裂的生成变化，也正是 Table 1 采样比例背后的三类来源。</p>
+<p><img src="/images/dailypaper/2026-10-10/2610.12421_fig6.png" alt="图 6：论文 Fig. 6（arXiv HTML 原图 dataset.png，本报告本地文件 images/2610.12421_fig6.png）。三类监督数据样例总览，每行给出 Image A 与 Image B 一列：Video（自建跟踪视频）为真实视频帧对，含人物与场景的自然运动；Blender（自建合成）为多物体合成场景对，物体经历随机刚体变换与视角变化；IEG（编辑与参考生成）为参考图与生成结果对，主体身份保持而场景、外观被改变。为什么需要它：它把 Table 1 的采样比例（经典 60%、Video 20%、Blender 20%）落到具体样例上，直观说明三类信号各自的监督性质——视频提供真实非刚性运动但伪标注含噪、合成提供无噪精确几何但域受限、IEG 对提供无标注但目标域的分布。"></p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><ul>
+<li><strong>任务与数据集</strong>：经典对应（classical correspondence）——几何匹配用 ETH3D（室外）与 ScanNet-1500（室内），光流用 Sintel（合成，Clean&#x2F;Final）与 KITTI-2015（真实）；下游相对位姿估计（relative pose estimation）按 RoMa 流程报告 AUC@5°&#x2F;10°&#x2F;20°。身份保持对应用自建 IEG-Bench：从 UNO 数据集留出的多参考子集（multi-reference subset）中挑选约 100 对高难度图像（C.1、D.4）；UNO 单参考子集专供 Stage 2 精炼（声称两个子集严格分离）。指标计算仅在共视区域进行，且论文声明”recompute the results ourselves”（C.1）；未报告基线（多数不输出共视掩码）在经典基准上共视区域的具体来源。</li>
+<li><strong>基线</strong>：经典任务对比 GMFlow、SEA-RAFT、UniMatch、RoMa、UFM；IEG-Bench 对比 SEA-RAFT、UniMatch、RoMa、UFM，并有 FreeMatching&#x2F;UFM&#x2F;RoMa 三方”10k 适配”对照（Table 5）。</li>
+<li><strong>评价指标</strong>：经典任务用 EPE（End-Point Error，端点误差）与 1px&#x2F;2px&#x2F;5px 阈值错误率、位姿 AUC；IEG 用重建协议的四个互补指标——Ref-MSE（参考掩码内均方误差）、LPIPS（感知相似度）、SigLIP 2 与 DINOv3 特征余弦相似度；适配对照中追加 Full-MSE（全图）、Ref-DINOv2、OpenCLIP；另设”identity baseline”（不做 warp、用恒等对应）作 sanity 对照。</li>
+<li><strong>公平性控制</strong>：IEG 适配对照中三模型用同一批 UNO+OmniGen2 数据、同为 10k 更新、同 16×H20、同 batch 32（Table 7 报告计量）；参考掩码为人工核验后冻结、对所有方法一致（D.5）；Table 5 为图像级配对统计（10,000 次 bootstrap 重采样，seed 20260728，报告 95% 置信区间与胜率）。未做逐基线超参调优报告（见 §5 关于适配预算的质疑）。</li>
+<li><strong>主实验&#x2F;消融&#x2F;附录分工</strong>：主实验 &#x3D; Table 2&#x2F;3（经典）+ Table 4（IEG-Bench）；消融 &#x3D; Table 6（逐阶累加系统构建）、Table 10（精炼数据域控制：Stage-1 8.08 → 10k-Flow 7.26 → 10k-IEG 6.22 Ref-MSE）、Table 9（适配后经典 EPE）；附录 E &#x3D; 人类评测（10 名盲评者、0–3 分 MOS）；Appendix F &#x3D; 概率性扩展（未做实验，仅建模）、Appendix G &#x3D; 与 SD-DINO 的定性对比。</li>
+</ul>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><ul>
+<li><strong>IEG-Bench 主结果（Table 4，未适配对照）</strong>：FreeMatching 四项指标全优——Ref-MSE 6.22（次优 RoMa 8.08）、LPIPS 45.41（次优 48.91）、SigLIP 2 90.77（次优 UniMatch 87.86）、DINOv3 80.01（次优 RoMa 70.15）；identity baseline 为 23.65&#x2F;81.97&#x2F;86.67&#x2F;52.38。注意一个论文未讨论的 sanity 现象：SEA-RAFT 的 SigLIP 2（85.18）低于 identity baseline（86.67），即其 warp 结果的语义对齐反而不如不 warp——侧面说明该基准上”错配的 warp 会破坏语义”，指标并非无条件偏好 warp。</li>
+<li><strong>10k 适配对照（Table 5）</strong>：FreeMatching 仍全优（Ref-MSE 6.22、Full-MSE 10.99、Ref-DINOv2 54.31、OpenCLIP 70.56；UFM 8.55&#x2F;13.48&#x2F;39.65&#x2F;56.48；RoMa 9.70&#x2F;16.57&#x2F;47.14&#x2F;61.18）；配对 Full-MSE 优势 2.48（95% CI [1.54, 3.43]）优于 UFM、5.57（[4.06, 7.13]）优于 RoMa；图像级胜率 Full-MSE&#x2F;Ref-DINOv2&#x2F;OpenCLIP 对 UFM 为 68%&#x2F;95%&#x2F;91%、对 RoMa 为 73%&#x2F;78%&#x2F;87%（D.5）。注意：RoMa 适配后 Ref-MSE 从 8.08（Table 4）退化到 9.70（Table 5），UFM 从 10.41 改善到 8.55——论文未讨论 RoMa 的退化。另注意 Full-MSE 对 UFM 的胜率仅 68%，说明均值优势存在但并非逐对全胜。</li>
+<li><strong>经典基准（Table 2，适配后模型）</strong>：ETH3D EPE 10.23（第二 RoMa 11.26）、ScanNet-1500 EPE 8.56（第二 RoMa&#x2F;UFM 12.03），为全表最好；位姿 AUC 与 RoMa 相当（ETH3D @20° 78.23 vs 78.61，ScanNet @20° 70.03 vs 70.90），略逊；ScanNet 1px 阈值 91.21 略低于 RoMa 91.91；ETH3D 5px 20.71 略差于 UFM 20.63。即”EPE 领先、阈值错误率与位姿各有胜负”。</li>
+<li><strong>光流（Table 3，同一模型）</strong>：Sintel Clean EPE 1.05 vs UniMatch 0.40、SEA-RAFT 0.43；Sintel Final 1.36 vs UniMatch 0.75；KITTI 4.95 vs UniMatch 1.52、SEA-RAFT 1.97（且差于适配 UFM 的 4.75）。§4.1 的表述”competitive”在光流上依赖与”适配三元组”的比较，读者应自行按全表校准（见 §5 关于结论范围的质疑）。</li>
+<li><strong>逐阶构建（Table 6）</strong>：DINOv3 相似度 67.31（随机初始化 DiT+经典数据）→ 69.28（+FLUX 初始化）→ 72.76（+DINOv3 特征）→ 76.52（+Video &amp; Blender）→ 80.01（+精炼）。</li>
+<li><strong>细粒度身份评估（§4.4、Fig. 5）</strong>：Fig. 5 由两组、每组两行构成，每行四列——Image A（源）、Image B（Nano Banana 编辑结果）、Warped Image（用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi></mrow><annotation encoding="application/x-tex">C</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span></span></span></span> 把 A warp 到 B 帧）、DINO similarity（在共视区域内逐 patch 的相似度热图，深蓝&#x3D;一致、亮黄&#x3D;不一致）。右组第二行的蓝色气球示例中，红框标出气球上的文字：编辑后文字被改动，warp 结果与目标在文字处出现亮色（不一致）区域，而全局指标会掩盖这种局部偏差；其余行（草地上的狗、玩偶插画、池塘场景）展示正常情况下的热图形态。该图的意义是把”对应匹配”变成”生成数据的空间解析质量检查器”。</li>
+</ul>
+<p><img src="/images/dailypaper/2026-10-10/2610.12421_fig5.png" alt="图 5：论文 Fig. 5（arXiv HTML 原图 baseline3.png，本报告本地文件 images/2610.12421_fig5.png）。细粒度身份评估展示：两组示例（左组为草地上的狗与玩偶插画，右组为池塘场景与蓝色气球），每行四列为 Image A 源图、Image B 由 Nano Banana 编辑生成的目标图、Warped Image 用预测对应把源图 warp 到目标帧的结果、DINO similarity 共视区域逐 patch 相似度热图（深蓝一致、亮黄不一致）；红框标出气球上的文字区域——编辑改动了文字，热图在该处高亮不一致，而全局 DINO/CLIP 分数会把它平均掉。为什么需要它：它是&quot;匹配模型反用作身份保持度量&quot;这一应用的核心展示，空间解析的热图正是相对全局指标的增量所在，也呼应 Appendix E 中 DINOv3 度量与人工评分的一致性。"></p>
+<ul>
+<li><strong>人类评测（Appendix E、Table 11）</strong>：MOS 2.25（RoMa 1.39、UFM 1.13、SEA-RAFT 0.49），盲评、方法匿名、显示顺序随机；人类评分与 DINOv3 分数的 Pearson 相关 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.738</mn></mrow><annotation encoding="application/x-tex">r=0.738</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.738</span></span></span></span>。未报告置信区间、评分者一致性或评测者背景；样本为 10 名评测者。</li>
+<li><strong>定性（Fig. 4）</strong>：Fig. 4 的行是 6 个 UNO 示例（儿童与兔子、鬣蜥与吉他、蘑菇与儿童、足球与薯条、座椅与玩偶、鸭子等），列为 Image A、Image B 与五个方法的 warp 结果；论文的观察是竞品出现局部扭曲&#x2F;丢件（如薯条桶、鸭子区域）、FreeMatching 更连贯。注意图注写的是”The references in Image B are composed into Image A (<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi><mo>→</mo><mi>A</mi></mrow><annotation encoding="application/x-tex">B\rightarrow A</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">A</span></span></span></span>)；Each method warps Image A toward Image B”，即该图示例里 A 为合成结果、B 为参考，warp 方向 A→B；而 Fig. 5 的 Nano Banana 示例标注”A edits into B (<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>A</mi><mo>→</mo><mi>B</mi></mrow><annotation encoding="application/x-tex">A\rightarrow B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">A</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span>)”、warp 源图到目标——两图示例的叙事方向不一致，但都符合”把含参考内容的图 warp 到含参考内容的另一侧”以便比较的用法，论文未解释两种设定的关系。</li>
+</ul>
+<p><img src="/images/dailypaper/2026-10-10/2610.12421_fig4.png" alt="图 4：论文 Fig. 4（arXiv HTML 原图 baselinen.png，本报告本地文件 images/2610.12421_fig4.png）。IEG-Bench 定性对比：6 行是 UNO 多物体参考-生成图对（儿童与兔子、鬣蜥与吉他、蘑菇与儿童、薯条与足球、座椅与玩偶、鸭子等），列为 Image A、Image B 与五个方法（SEA-RAFT、UniMatch、RoMa、UFM、FreeMatching）把 A 侧 warp 到 B 侧的结果；竞品出现局部扭曲、丢件与模糊（如薯条桶、鸭子区域），FreeMatching 的 warp 更连贯。为什么需要它：它是 Table 4 数字之外的直观证据，说明差距出现在哪类局部区域；局限是仅 6 个样例的定性展示，且图注中 A/B 的参考-生成角色叙述（B→A）与 Fig. 5 的叙事方向（A→B）不一致，论文未解释两种设定的关系。"></p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><ul>
+<li>**消融是否说明”为什么有效”<strong>：Table 6 是顺序累加（每次加一个组件），能支持”在该顺序下每个组件都有增量”，但</strong>不支持”必要且不可替代”**——没有从完整配置中逐个移除的对照；且逐阶消融所用的度量恰是 DINOv3 相似度，而 DINOv3 特征本身是所消融组件之一（”加 DINOv3 特征提高 DINOv3 分数”存在循环性风险，见 §5 关于评估偏置的质疑）。此外 ID1 基线的”随机初始化 DiT”的具体规模未报告，无法区分 FLUX 初始化的增益来自”生成式先验”还是”预训练权重质量&#x2F;规模”。</li>
+<li><strong>精炼数据域控制</strong>（Table 10）：把精炼数据从 IEG 对换成无标注光流对（10k-Flow）与 IEG 对（10k-IEG），两者都优于 Stage-1（8.08 → 7.26 → 6.22 Ref-MSE），且 10k-Flow 在 Sintel Clean 上最好（0.98）、10k-IEG 在其余基准最好——说明增益与精炼数据的域有关，不是纯正则化的普遍红利；10k-IEG 相比 Stage-1 还降低了全部五个经典基准的 EPE（如 ScanNet 8.85→8.56）。这是较有说服力的机制性对照。</li>
+<li><strong>能否排除替代解释</strong>：部分。数据量（新增 520k+360k 数据贡献了 +3.76）没有被数据规模对照隔离；训练预算（FLUX 初始化、精炼步数）与组件效应未分离；教师 RoMa 的能力上界未被单独评估——但 Table 4 显示 FreeMatching（6.22 Ref-MSE）已优于其教师 RoMa（8.08），说明学生不是简单逼近教师；反之，若教师是能力上限，论文应报告此现象，但未做教师替换&#x2F;教师能力消融。人类相关（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.738</mn></mrow><annotation encoding="application/x-tex">r=0.738</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.738</span></span></span></span>）支持指标方向不是纯特征工程产物，但样本与统计细节不足。</li>
+<li><strong>结论</strong>：论文证明了”组合方法在这套评测上有效”；对”为什么有效”提供了有序增量的证据（Table 6、10），但未到因果隔离的程度。§3.4 关于”学生负责跨大变化、教师负责局部残差”的分工解释仍属作者主张，没有对 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi></mrow><annotation encoding="application/x-tex">S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span> 的修正场做分布分析或教师&#x2F;学生误差分工的定量分解。</li>
+</ul>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><ul>
+<li><strong>训练成本</strong>：论文报告”原始训练配置”为 150k 次 Stage-1 + 10k 次 Stage-2 更新、16×A100-40GB，Stage 1 约 2 天（768 A100 GPU-hours）、Stage 2 约 5 小时（80 A100 GPU-hours）；但明确说明这是”rebuttal 中报告的配置”，而所评估的检查点是从 <strong>275k 步</strong> 检查点初始化的——<strong>所选检查点的完整训练成本论文未报告</strong>（Appendix C.4 自己指出该差异）。这是成本口径上的重要缺口。</li>
+<li><strong>适配成本</strong>（Table 7）：10k 次 IEG 适配在 16×H20、batch 32 下，FreeMatching 42.0、UFM 16.8、RoMa 30.8 H20 GPU-hours——即适配对照中 FreeMatching 用了 UFM 的约 2.5 倍计算量。</li>
+<li><strong>推理成本</strong>（Table 8，单张 H20、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>288</mn><mo>×</mo><mn>512</mn></mrow><annotation encoding="application/x-tex">288\times512</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">288</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">512</span></span></span></span>、batch 1）：FreeMatching 121.9 ms&#x2F;对、峰值显存 15.18 GiB；UFM 51.3 ms&#x2F;2.35 GiB；RoMa 102.5 ms&#x2F;2.58 GiB——时延约为 UFM 的 2.4 倍，显存约为基线的 6 倍。作者在 Appendix A 承认推理效率是未来工作方向。</li>
+<li><strong>数据与人工</strong>：520k 视频片段的伪标注依赖 AllTracker（离线一次性成本未报告）；360k Blender 渲染成本未报告；IEG-Bench 参考掩码为”AI 辅助人工标注”（模型预测作候选 + 人工筛选核验，D.5）；人类评测 10 人。视频数据因版权不随代码仓库发布（B.2 与仓库一致）。</li>
+<li><strong>外部依赖</strong>：FLUX.2-klein-base-4B、DINOv3（权重访问需接受条款）、RoMa（教师）、Qwen3-VL-8B 与 SAM 3（标注管线）、UNO&#x2F;OmniGen2 数据生成器——系统复杂度较高，且部分依赖第三方模型许可。</li>
+<li><strong>改善了哪些&#x2F;未解决哪些</strong>：改善了 IEG 图像对上的身份保持对应（仅限论文评测条件）与”把匹配模型当身份保持度量”这一新用法；未解决：极端遮挡、拓扑变化、剧烈非刚性形变（作者自列），性能上限受基础模型限制（作者自列），经典光流上仍落后专用模型，概率性歧义建模（Appendix F）未做任何实验，真实训练成本未报告，OmniGen2 数据构成未描述。<strong>适用范围</strong>：结论适用于”以 UNO 生成样本为主的约 100 对 IEG-Bench + 论文所选经典基准（自评口径）”这一具体设置；对其它编辑&#x2F;生成模型（如 Fig. 5 的 Nano Banana 仅定性）的外推无法确认。</li>
+</ul>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：Table-9-中”适配后”的-UFM-RoMa-经典指标与-Table-2-3-的未适配数值逐项完全相同，使”similarly-adapted”的对照无法验证"><a href="#质疑：Table-9-中”适配后”的-UFM-RoMa-经典指标与-Table-2-3-的未适配数值逐项完全相同，使”similarly-adapted”的对照无法验证" class="headerlink" title="质疑：Table 9 中”适配后”的 UFM&#x2F;RoMa 经典指标与 Table 2&#x2F;3 的未适配数值逐项完全相同，使”similarly adapted”的对照无法验证"></a>质疑：Table 9 中”适配后”的 UFM&#x2F;RoMa 经典指标与 Table 2&#x2F;3 的未适配数值逐项完全相同，使”similarly adapted”的对照无法验证</h4><ul>
+<li><strong>原文依据</strong>：Table 9 的 UFM (10k-IEG) 行 Sintel Clean&#x2F;Final&#x2F;KITTI&#x2F;ScanNet&#x2F;ETH3D &#x3D; 0.92&#x2F;1.48&#x2F;4.75&#x2F;12.03&#x2F;12.98，RoMa (10k-IEG) 行 &#x3D; 1.24&#x2F;2.49&#x2F;5.91&#x2F;12.03&#x2F;11.26；与 Table 3 的 UFM、RoMa 行以及 Table 2 的 ScanNet（12.03、12.03）、ETH3D（12.98、11.26）逐项完全一致（共 10 个两位小数数值）。§4.1 正文据此声称 “After 10k IEG refinement, FreeMatching achieves lower EPE than the similarly adapted UFM and RoMa variants on ScanNet and ETH3D”，并指向 Table 9。另：Table 10 中 FreeMatching-S1 的 Ref-MSE（8.08）与 Table 4 中 RoMa 的 Ref-MSE（8.08）亦完全相同，属需要一并核对的巧合。</li>
+<li><strong>为什么重要</strong>：该对照支撑”扩展到 IEG 的同时不牺牲经典任务+所有方法公平适配”这一贡献；若基线行并非真实适配后的复测，比较就退化为”适配后的 FreeMatching vs 未适配的基线数值”，公平性与结论表述均需重写。这是可直接从论文内部核实的问题，也是审稿人最容易抓的点。</li>
+<li><strong>当前能够得出的判断</strong>：存在两种可能：(a) 适配对两基线的经典 EPE 零影响——五个基准、两个模型、十个数全部两位小数相同，统计上几乎不可能来自独立复评；(b) 表内数值未随适配更新（复制口径）。当前材料无法区分；论文正文、两版（HTML&#x2F;PDF）均如此呈现，属论文内部不一致。</li>
+<li><strong>如何验证或补强</strong>：公布 UFM&#x2F;RoMa 适配检查点在五个基准上的独立复评结果（哪怕与原始一致也需说明”一致”并给证据）；或提供适配前后逐项对比列、评估脚本与日志；冻结参考值与检查点哈希以便第三方复算。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：主评测指标与被评方法共享表征（DINOv3-既是模型组件又是评委），参考掩码又以-FreeMatching-预测为初始候选，IEG-Bench-的主结论可能带评估偏置"><a href="#质疑：主评测指标与被评方法共享表征（DINOv3-既是模型组件又是评委），参考掩码又以-FreeMatching-预测为初始候选，IEG-Bench-的主结论可能带评估偏置" class="headerlink" title="质疑：主评测指标与被评方法共享表征（DINOv3 既是模型组件又是评委），参考掩码又以 FreeMatching 预测为初始候选，IEG-Bench 的主结论可能带评估偏置"></a>质疑：主评测指标与被评方法共享表征（DINOv3 既是模型组件又是评委），参考掩码又以 FreeMatching 预测为初始候选，IEG-Bench 的主结论可能带评估偏置</h4><ul>
+<li><strong>原文依据</strong>：§3.2&#x2F;Appendix A.1 中 FreeMatching 注入 DINOv3 ViT-L&#x2F;16 特征；Appendix D.3 的评测”use the DINOv3 model [14]”，未说明规格是否与训练同源（SigLIP 2 明确写了 Large 版本，DINOv3 没有）；Table 4 的 DINOv3 差距（80.01 vs 70.15，+9.86）显著大于 SigLIP 2（90.77 vs 87.86，+2.91）；Table 6 逐阶消融的唯一指标也是 DINOv3 相似度；D.5 说明参考掩码是”AI-assisted human annotations”，”FreeMatching predictions provide initial candidates, which annotators manually screen, annotate, and verify”，之后冻结并用于所有方法。</li>
+<li><strong>为什么重要</strong>：如果评估区域由被评模型的预测引导、评估特征与被评模型同族，最高分的那个指标（DINOv3）以及 Table 4&#x2F;6 的结论可能被系统性抬高；这直接影响”substantially improves correspondence quality”的强度与 Table 6 消融的解读。</li>
+<li><strong>当前能够得出的判断</strong>：偏置无法从现材料排除，但有多重缓解证据：四项指标方向一致，且不含掩码的 Full-MSE 与独立特征 Ref-DINOv2、OpenCLIP 也支持 FreeMatching（Table 5）；胜率非 100%（对 UFM 的 Full-MSE 胜率 68%），说明优势是统计性的而非人为构造。综合判断：结论大概率成立，但幅度（尤其是 DINOv3 指标）可能被高估；评估用 DINOv3 的规格属于”论文未报告”。</li>
+<li><strong>如何验证或补强</strong>：披露评估 DINOv3 的具体型号（与训练特征是否同一模型&#x2F;规格），或改用与训练无关的第三方特征重复主表；用完全独立（不经过模型预测种子）重新标注的掩码重跑 Table 4；将 Full-MSE 等无掩码指标提为主汇报口径。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：基线适配按”更新步数对齐”而非”计算量对齐”，且-RoMa-适配后反而变差，不能排除基线被欠适配"><a href="#质疑：基线适配按”更新步数对齐”而非”计算量对齐”，且-RoMa-适配后反而变差，不能排除基线被欠适配" class="headerlink" title="质疑：基线适配按”更新步数对齐”而非”计算量对齐”，且 RoMa 适配后反而变差，不能排除基线被欠适配"></a>质疑：基线适配按”更新步数对齐”而非”计算量对齐”，且 RoMa 适配后反而变差，不能排除基线被欠适配</h4><ul>
+<li><strong>原文依据</strong>：§4.2 与 Table 5 说明三方均为”10k adaptation updates”、同一批 UNO+OmniGen2 数据；Table 7 显示同硬件同 batch 下实际计算量差距明显（FreeMatching 42.0 vs UFM 16.8 vs RoMa 30.8 H20 GPU-hours）；Table 4→Table 5 中 RoMa 的 Ref-MSE 从 8.08 退化到 9.70，而 UFM 从 10.41 改善到 8.55；论文未报告适配所用超参、是否逐基线调优，也未讨论 RoMa 的退化。</li>
+<li><strong>为什么重要</strong>：IEG-Bench 上”大幅提升”的比较对象若是被欠适配或不适配配方的基线，差距会被高估；这篇论文的核心声明正是”相对当代泛化方法的大幅改进”。</li>
+<li><strong>当前能够得出的判断</strong>：证据不足以判定基线被欠适配，但”同一步数、不同计算量、统一配方”的结合，加上 RoMa 退化未被解释，使”similarly adapted”的公平性存疑（论文未报告任何逐基线调优记录）。</li>
+<li><strong>如何验证或补强</strong>：逐基线调优适配超参并报告各自最好的适配结果；或按 GPU-hours 对齐计算预算重跑；补充适配过程中 IEG-Bench&#x2F;经典基准的中间检查点曲线以证明双方都收敛到平台期。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：精炼-适配数据的构成不透明（OmniGen2-无引用无描述；Qwen3-VL-SAM-3-标注管线在报告的目标函数中无着落），训练-评测分离无法完全验证"><a href="#质疑：精炼-适配数据的构成不透明（OmniGen2-无引用无描述；Qwen3-VL-SAM-3-标注管线在报告的目标函数中无着落），训练-评测分离无法完全验证" class="headerlink" title="质疑：精炼&#x2F;适配数据的构成不透明（OmniGen2 无引用无描述；Qwen3-VL&#x2F;SAM 3 标注管线在报告的目标函数中无着落），训练-评测分离无法完全验证"></a>质疑：精炼&#x2F;适配数据的构成不透明（OmniGen2 无引用无描述；Qwen3-VL&#x2F;SAM 3 标注管线在报告的目标函数中无着落），训练-评测分离无法完全验证</h4><ul>
+<li><strong>原文依据</strong>：C.3&#x2F;C.4 反复出现 “UNO+OmniGen2 image pairs”，但 OmniGen2 在全文中没有引用条目、没有规模、没有生成配置、没有与 IEG-Bench 的关系说明（B.4 只描述基于 UNO 的数据整理）；B.4 描述用 Qwen3-VL-8B 提取共同物体、SAM 3 生成并集掩码，声称这些”object-region annotations”与 EMA 精炼的有效性掩码不同，但 C.3 结尾明确 “The reported refinement objective uses these correspondence and mask targets, without an additional object-containment loss”——即这些标注在报告的实际训练中用途不明；C.1 声称 UNO 两子集”ensuring a strict separation”，但未定义 OmniGen2 数据与评测集的隔离规则；精炼数据的总对数未报告。</li>
+<li><strong>为什么重要</strong>：数据泄漏风险直接影响 Table 4&#x2F;5 数字的可信度；”without dense correspondence annotations” 的边界、以及复现训练的可行性都取决于这些数据细节；标注管线”描述了但未使用”是论文内部叙述不一致。</li>
+<li><strong>当前能够得出的判断</strong>：UNO 子集分离有明确声明可查；OmniGen2 部分属于”论文未报告”，无法确认与评测集是否解耦；Qwen3-VL&#x2F;SAM 3 管线的实际用途无法从论文确认（可能用于数据筛选或早期版本，但作者未说明）。</li>
+<li><strong>如何验证或补强</strong>：补充精炼&#x2F;适配数据的完整说明（规模、来源、生成器版本与提示、去重与分层规则、与 IEG-Bench 的隔离校验）；说明 Qwen3-VL&#x2F;SAM 3 标注在最终训练中的确切用途，或删除相关段落；公开数据准备脚本与校验统计。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：结论范围与”competitive”表述需要收窄——光流基准仍显著落后专用模型，IEG-Bench-仅由-UNO-约-100-对构成，人类评测规模有限"><a href="#质疑：结论范围与”competitive”表述需要收窄——光流基准仍显著落后专用模型，IEG-Bench-仅由-UNO-约-100-对构成，人类评测规模有限" class="headerlink" title="质疑：结论范围与”competitive”表述需要收窄——光流基准仍显著落后专用模型，IEG-Bench 仅由 UNO 约 100 对构成，人类评测规模有限"></a>质疑：结论范围与”competitive”表述需要收窄——光流基准仍显著落后专用模型，IEG-Bench 仅由 UNO 约 100 对构成，人类评测规模有限</h4><ul>
+<li><strong>原文依据</strong>：Table 3（Sintel Clean EPE 1.05 vs UniMatch 0.40、SEA-RAFT 0.43；KITTI 4.95 vs 1.52&#x2F;1.97）；Table 4&#x2F;5 的全部 IEG 评测来自 UNO 构造的 IEG-Bench（”approximately 100”对，C.1、D.4）；Fig. 5 的 Nano Banana 示例仅定性；Appendix E 人评为 10 名评测者、无评分者一致性统计、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.738</mn></mrow><annotation encoding="application/x-tex">r=0.738</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.738</span></span></span></span> 未给置信区间；Table 4 主表无置信区间（仅 Table 5 的 Full-MSE 有 95% CI 与胜率）。</li>
+<li><strong>为什么重要</strong>：这决定论文结论的适用边界——“competitive on classical benchmarks”在光流上依赖与”适配三元组”的比较、并非全表口径（§4.1 文字虽承认 UniMatch 最低 EPE，但摘要级读者不会看到该限定）；IEG 的强结论建立在单一生成器家族的约 100 对样本上，对其它编辑&#x2F;生成系统（如 Nano Banana）只有定性证据。</li>
+<li><strong>当前能够得出的判断</strong>：论文表述有节制、未越界声称 SOTA，但摘要与本文章节标题层面的”competitive&#x2F;substantially improves”比证据覆盖的范围略宽；外推到其它生成模型或更大规模评测”无法确认”。</li>
+<li><strong>如何验证或补强</strong>：在第二种、第三种编辑&#x2F;生成模型的数据上扩展 IEG-Bench（哪怕小规模定量）；为 Table 4 补充配对置信区间；扩大人类评测规模并报告评分者间一致性（如 Krippendorff’s <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi></mrow><annotation encoding="application/x-tex">\alpha</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span></span></span></span>）。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现稠密对应匹配的两大经典范式受”平滑运动、刚性几何”先验约束，在图像编辑与参考引导生成中失效，因此提出 FreeMatching：以 FLUX.2-klein-base-4B 与 DINOv3 的生成式&#x2F;语义表征为骨干，通过”经典数据 + 520k 跟踪视频伪标注 + 360k Blender 合成对”的异质监督预训练和”EMA 学生 ∘ 冻结 RoMa 教师修正”的教师引导迭代精炼两阶段训练，实现单个模型的身份保持对应与共视预测，并把重建一致性协议反向用作身份保持度量。实验在经典基准上表明 EPE 达到或接近最好、光流上仍落后专用模型，在自建 IEG-Bench（约 100 对 UNO 样本）上四项重建指标全面领先，并有配对置信区间、逐阶消融、精炼数据域控制与 10 人盲评支持；其中”精炼有效、多指标一致、人评与 DINOv3 相关”的证据较强，但”基线被同等适配”（Table 9 数值疑点、适配预算不对齐）、”评估无偏”（评估特征与被评模型共享 DINOv3、掩码以模型预测为种子）与”训练数据透明”（OmniGen2、Qwen3-VL&#x2F;SAM 3 管线）仍缺少充分支持。本文最有价值的部分是把”对应匹配”从几何估计任务扩展为生成数据质量的度量接口这一双向协议，以及可复用的无标注精炼组合目标；最大的审稿风险是基线适配公平性与评估偏置仍无法完全排除，使 IEG 上的领先幅度存疑。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。§3.1 将任务形式化为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>C</mi></mrow><annotation encoding="application/x-tex">C</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span></span></span></span> 与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span></span></span> 的联合预测，评测协议（Eq. 2）与双向用法定义明确，且论文自己标出了反向使用的假设边界。</li>
+<li><strong>创新性证据</strong>：中。任务重定义、异质数据构造与”组合伪目标”精炼有实质增量；但组件多为已有机制的组合（DiT 初始化、DINOv3 特征、Huber、EMA 自训练、RoMa 教师），Table 6 为顺序累加而非全配置减一，个别组件的不可替代性未被证明。</li>
+<li><strong>方法可信度</strong>：中。架构、损失、冻结范围与超参报告详实，伪目标与有效区域设计合理；但评估环节与被评模型共享 DINOv3 表征、掩码种子来自模型预测、精炼数据构成不透明，可信度被这些边界削弱。</li>
+<li><strong>实验支持力度</strong>：中。覆盖经典与 IEG 两类任务，含配对 bootstrap 置信区间、胜率、逐阶与数据域消融、人类盲评；但 Table 9 存在内部不一致疑点、Table 4 主表无 CI、IEG-Bench 来源单一且规模小、RoMa 适配退化未被解释。</li>
+<li><strong>可复现性</strong>：中。论文加上可访问的代码仓库（Apache-2.0、含检查点下载脚本与训练入口）值得肯定；但 520k 视频轨迹因版权不发布、OmniGen2 数据未描述、所选检查点的训练成本与配置错位、部分评测细节（评估 DINOv3 规格、基线共视区域来源）未报告。</li>
+<li><strong>综合阅读价值</strong>：高。对研究对应匹配、生成质量评估与基础模型复用的学生而言，论文的任务重定义、双向重建协议与”教师修残差 + 学生桥大变化”的精炼思路都具有直接启发性，即使部分实验存在边界，其问题框架值得追踪后续工作。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Beyond Spatio-Temporal Priors: A Generalizable Approach for Dense Correspondence Matching</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-10 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-10 16:09:28
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/10/2610.12421v1_Beyond_Spatio-Temporal_Priors_A_Generalizable_Approach_for_Dense_Correspondence_Matching/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E7%A8%A0%E5%AF%86%E5%AF%B9%E5%BA%94%E5%8C%B9%E9%85%8D/">#稠密对应匹配</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%9B%BE%E5%83%8F%E7%BC%96%E8%BE%91%E4%B8%8E%E5%8F%82%E8%80%83%E5%BC%95%E5%AF%BC%E7%94%9F%E6%88%90/">#图像编辑与参考引导生成</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%9F%BA%E7%A1%80%E6%A8%A1%E5%9E%8B%E8%A1%A8%E5%BE%81/">#基础模型表征</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%95%99%E5%B8%88%E5%BC%95%E5%AF%BC%E8%BF%AD%E4%BB%A3%E7%B2%BE%E7%82%BC/">#教师引导迭代精炼</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%BA%AB%E4%BB%BD%E4%BF%9D%E6%8C%81%E8%AF%84%E4%BC%B0/">#身份保持评估</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/10/2607.08448v5_Harness_VLA_Steering_Frozen_VLAs_into_Reliable_Manipulation_Primitives_via_Memory-Guided_Agents/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Harness VLA: Steering Frozen VLAs into Reliable Manipulation Primitives via Memory-Guided Agents</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/09/2603.22435v2_CaP-X_A_Framework_for_Benchmarking_and_Improving_Coding_Agents_for_Robot_Manipulation/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">CaP-X: A Framework for Benchmarking and Improving Coding Agents for Robot Manipulation</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Beyond Spatio-Temporal Priors: A Generalizable Approach for Dense Correspondence Matching</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 109 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
