@@ -94,7 +94,7 @@
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
 <meta property="article:published_time" content="2026-10-09T04:00:00.000Z">
-<meta property="article:modified_time" content="2026-10-09T08:26:09.510Z">
+<meta property="article:modified_time" content="2026-10-11T19:15:06.926Z">
 <meta property="article:author" content="GIn">
 <meta property="article:tag" content="数据采集协议">
 <meta property="article:tag" content="机器人上下文学习">
@@ -544,8 +544,8 @@
     
         <span class="article-date article-meta-item">
             <i class="fa-regular fa-wrench"></i>&nbsp;
-            <span class="desktop">2026-10-09 16:26:09</span>
-            <span class="mobile">2026-10-09 16:26:09</span>
+            <span class="desktop">2026-10-12 03:15:06</span>
+            <span class="mobile">2026-10-12 03:15:06</span>
             <span class="hover-info">更新</span>
         </span>
     
@@ -631,108 +631,85 @@
 <li><strong>本文发现的新观察</strong>：把”提示歧义”明确为机器人 ICL 的核心障碍，给出可操作的”应遵循&#x2F;应忽略”分解；经验上发现组合语义可自发解耦、可供性必须显式教、动作语义难度居中（Table 4）；语言条件基线在多任务共存场景下的捷径行为（Fig. 5）。</li>
 <li><strong>本文实际解决的具体子问题</strong>：在 RoboTwin 2.0（仿真，AgileX 平台）与 Franka 真机上，用 8 个训练中从未出现的任务，验收”从单段人类视频做零样本操作”这一能力，并交付一套可复制（论文报告口径）的数据采集协议与训练管线。</li>
 </ul>
-<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p><strong>总括。</strong> SimpleICL 的真正技术增量是”协议重、模型轻”：它没有提出新算法，而是 (i) 把机器人 ICL 的学习目标显式定义为”四类应遵循语义 + 三类应忽略变化”；(ii) 据此给出一套语义判别式数据构造与分组采集协议（含跨组配对，约零额外成本地批量生成人-机数据对）；(iii) 提供一个刻意最小化的视觉提示编码器（128 个可学习上下文 token（词元）经 cross-attention（交叉注意力）汇成固定尺寸提示表示），可插入现有策略骨干；(iv) 报告了三条关于 ICL 能力边界的经验发现（组合可自发学到、可供性必须显式教、动作居中）。架构主体——Wan2.2-5B 骨干、插值出的 1B 动作 DiT（action DiT，动作扩散 Transformer）、Mixture-of-Transformers（MoT，混合 Transformer）交互、视频 DiT 上的 LoRA（low-rank adaptation，低秩适配）微调、动作时域 32——均沿用 Fast-WAM（Yuan et al., 2026）路线（§4.1），不是本文原创。</p>
-<p><strong>创新点 1：机器人 ICL 的问题定义（应遵循 4 维 + 应忽略 3 维）。</strong></p>
-<ul>
-<li>新增内容（§3.1）：把提示信息显式划分成两类角色。<strong>应遵循</strong>：(1) 动作语义（action semantics）——在抓握、放置、旋转、按压、平移等”动作类别”层面模仿；(2) 物体语义（object semantics）——理解操纵的是特定物体，若执行场景中物体位置与演示不同，应对齐物体实际位姿而非复现演示者的空间轨迹；(3) 组合语义（compositional semantics）——识别动作集合的结构与先后顺序（先抓 A 后抓 B 与反过来语义不同）；(4) 可供性语义（affordance semantics）——从演示推断”怎么操作”（抓杯身还是杯柄）。<strong>应忽略</strong>：(1) 空间错位（spatial mismatches，但”极端位置差异被视为不同语义”）；(2) 人类动作细节（执行速度、手臂形态、手部外观、具体抓取角度、个人习惯）；(3) 场景变化（光照、背景色、非目标干扰物）。</li>
-<li>与最接近工作的差异：HOST、GEN 1.5、Zero-WAM 等并发工作展示了初步 ICL 能力，但”没有界定学习目标”；WAM-TTT、ReCAP 则用测试时适配&#x2F;检索绕开歧义，而不是解决”该学什么”。</li>
-<li>创新类型：<strong>概念性框架贡献</strong>（研究问题的重新表述），不是新机制、也不是数据或指标更换。</li>
-<li>如何对应问题：直接回答”机器人该模仿什么”，并逻辑上消除意图歧义。</li>
-<li>原文证据：整套数据设计与三组语义学习对照实验都由该定义推导而来（§3.2–§3.3、§4.3.2），Table 4 的三组对照正是该定义下可检验的推论。</li>
-<li>移除该设计会怎样：定义不可消融。但需注意，定义中”人类动作细节属于噪声”是论文自设的边界，作者也承认”某些场景可能有意要求按速度等条件化（如匹配演示速度）”，此类任务被明确排除在本文范围外。</li>
-<li>原创性边界：关于”首次”声明，根据本文的 related work 和实验对比，只能确认作者声称的差异；是否构成首次提出，还需要更完整的文献检索。</li>
-</ul>
-<p><strong>创新点 2：语义判别式数据构造 + 分组采集协议（论文最主要的技术增量）。</strong></p>
-<ul>
-<li>新增机制（§3.2，Fig. 2）：<strong>四类判别式数据对</strong>。(A) 动作判别数据：同场景内用不同动作采集多段演示（如按压皂液器 vs 抓取皂液器放到托盘上），迫使模型区分细粒度动作；(B) 物体判别数据：有意扰动位置，使演示中目标物体位置与机器人执行时不同，并引入语义干扰物，同时强制”每场景同一目标物体唯一存在”以保证语义无歧义；(C) 组合判别数据：动作集合相同、时间顺序不同（先抓香蕉后抓苹果 vs 反过来）；(D) 可供性判别数据：同一动作下变化可供性，但要求”人机一致性”——每个数据对内人手与机器人夹爪的抓取位置和方式一致，跨数据对才变化。再加两类增广以制造<strong>不变性</strong>：演示者不变性（裸手、不同颜色手套、不同肤色）与环境不变性（光照、色温、相机视角变化配同一机器人执行轨迹）。</li>
-<li><strong>分组采集与跨组配对</strong>：定义采集组（collection group）&#x3D; 一个场景 + 其内一组可执行任务，每个任务对应一个采集实例；组间切换分 major（整体换新场景）与 minor（同场景扰动：改物体摆放、调光照、换干扰物）。minor 切换使人类演示与机器人执行可以在”相关但不相同”的场景配置间配对——<strong>跨组配对（cross-group pairing）</strong>使提示不再与执行一一对应，模型必须从演示中恢复任务语义。论文报告，单台机器人平台每天最多可产出 3,000 个有效人-机数据对。</li>
-<li>与最接近方法的差异：原生 RoboTwin 数据是任务中心式采集，无关物体被放在交互区之外，”不构成真正的任务歧义”（§4.2，Fig. 4 左）；ICL-oriented 数据把多个任务相关物体同时放进可达工作区、在同场景下采集多个任务（Fig. 4 右）。</li>
-<li>创新类型：<strong>数据构造方法学 + 采集工程协议</strong>（已有思想——判别式采样、不变性增广——在机器人 ICL 场景下的新组合与系统化）。</li>
-<li>如何对应问题：这是对”数据应如何设计”这一开放问题的直接回答；跨组配对是针对”空间错位不变性”的定点机制。</li>
-<li>原文证据：同一架构下 native→ICL-oriented 使仿真语义判别从 40.3 升到 72.1（Table 1）；去掉跨组配对（w&#x2F;o. CP）后平均鲁棒成功率 0.78→0.70、空间错位子项 0.79→0.51（Table 5），并有 Fig. 7 中”轨迹复读”失败的行为例证。</li>
-<li>移除该设计的变化：已有上述消融；但注意 Table 1 的”native vs ICL-oriented”并非单一变量对照——两者数据量（27,500 vs 18,000）与场景结构同时改变（详见 §5 质疑三）。</li>
-</ul>
-<p><strong>创新点 3：极简视觉提示编码模块（unified visual prompt encoding module）。</strong></p>
-<ul>
-<li>新增机制（§3.3、§4.1）：预训练视觉编码器把条件视频编码为帧级嵌入，投影进潜空间；<strong>128 个可学习上下文 token</strong> 通过 cross-attention 查询视频 token 序列，把任意长度的提示汇成固定尺寸表示；该表示被拼接进视频 DiT 与动作 DiT 的上下文（原本含文本与状态嵌入），网络再经 cross-attention 消费它生成动作。模块由 4 层、隐维 3072 组成，约 0.6B 参数。固定 token 数的好处是天然支持任意时长提示、且易于插入标准骨干、可端到端联合优化。</li>
-<li>与最接近方法的差异：作者刻意”没有花哨设计（without bells and whistles）”——消歧负担由定义与数据承担，编码器只提供紧凑接口。这既是”极简&#x2F;可复现”主张的核心，也是其架构新意有限的原因。</li>
-<li>创新类型：<strong>已有组件（查询式 cross-attention 压缩）的组合与简化</strong>，属于工程实现层面。</li>
-<li>如何对应问题：让同一接口兼容长短不一的演示视频，同时把”学什么”的决策权交给数据。</li>
-<li>原文证据：去掉视频条件（w&#x2F;o. video cond.）后，语义判别 61.6（Table 1）、OOD 平均 26.3（Table 2），说明”有视频条件”是必要的；但编码器内部设计（如 token 数、层数、查询机制）没有消融对照。</li>
-<li>移除该设计的变化：无视频条件时 OOD 任务几乎退回语言条件基线水平（26.3 vs 65.9），说明视频条件不是锦上添花，而是 OOD 任务的关键输入。</li>
-</ul>
-<p><strong>创新点 4：关于 ICL 能力边界的三条经验发现（Table 4，§4.3.2）。</strong> 组合语义<strong>无需</strong>为同一场景显式构造不同顺序的对照数据即可自发学到（无对照时 0.93&#x2F;0.97&#x2F;0.93，有对照时 0.97&#x2F;1.00&#x2F;0.90，反而互有高低）；可供性<strong>必须</strong>显式构造同物体不同可供性的数据（量尺 0.77 vs 0.40、带柄杯 0.87 vs 0.60、胶带 0.83 vs 0.47）；动作语义难度居中（纸巾 0.83 vs 0.67、海绵 0.90 vs 0.83，但筷子的对照条件反而更高：0.97 vs 0.93）。作者据此提出细粒度可供性比全局时间&#x2F;组合关系更难学。这是<strong>科学发现性质</strong>的贡献，也是本篇论文里信息量最大的部分；其可信度取决于”意图遵循率”指标的测量方式是否可靠（见 §5 质疑五）。</p>
-<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉性说明。</strong> 论文的核心思路是：机器人 ICL 的困难不在”模型不够大”，而在”要学什么”没有被写清楚。因此把消歧的负担<strong>从模型前移到问题定义与数据</strong>——先明确”哪些语义应遵循、哪些变化应忽略”，再让数据里充满”意图相同但表层不同”的配对，使模型无法走捷径、只能恢复任务语义；策略端只需要一个通用的”演示视频 → 紧凑提示表示”的接口。</p>
-<blockquote>
-<p><strong>教学简化示例</strong>（非论文实验）：演示视频里人手把杯子放到桌面左侧的垫子上；机器人执行时，垫子被移到了右侧。正确行为是”把杯子放到垫子当前的位置”（遵循物体语义），而不是”把手伸向屏幕左侧”（复读轨迹）。要学到前者，并不需要特殊网络，而需要在训练数据中大量存在”演示位置与执行位置不一致、但语义相同的正确示范对”——这正是跨组配对在数据层面做的事。</p>
-</blockquote>
-<p>下面按实际运行流程展开。</p>
-<p><strong>1. 输入。</strong> 一段人类演示视频（作为条件视频，conditioning video）；机器人当前多相机观测（多相机图像先拼接成单张图再送入模型）；骨干网络原本携带的文本与状态嵌入（§3.3、§4.1）。演示视频既可以在时间轴上与执行过程对齐（如 HOST 式做法），本文采用的方式是把整段视频压缩为提示表示。</p>
-<p><strong>2. 提示编码（论文新增的模块）。</strong> 条件视频先经预训练视觉编码器得到帧级嵌入序列，投影到潜空间；随后 <strong>128 个可学习上下文 token</strong> 通过 cross-attention 查询视频 token 序列，将其汇总为固定尺寸的条件 token 嵌入（§3.3）。这一步是”任意长度视频 → 定长表示”的压缩接口。</p>
-<p><strong>3. 策略主干（沿用现有资产）。</strong> 主干为预训练的 <strong>Wan2.2-5B</strong> 视频生成模型；按 Fast-WAM（Yuan et al., 2026）的做法插值得到一个 <strong>1B 参数的动作 DiT</strong>，动作时域（action horizon）设为 32；动作 DiT 与视频骨干通过 <strong>MoT（Mixture-of-Transformers）</strong> 交互。提示编码输出被拼接进视频 DiT 与动作 DiT 的上下文，与文本&#x2F;状态嵌入一起经 cross-attention 进入网络，最终输出动作块（§4.1）。</p>
-<p><strong>4. 训练（需要训练，但无大规模预训练）。</strong> 整个模块与下游策略端到端联合优化：视频 DiT 用 <strong>LoRA（低秩适配）</strong> 微调，其余组件（含 1B 动作 DiT 与 0.6B 提示编码模块）全参数训练（§4.1）。仿真侧训练集为按 §3.2 协议构造的 <strong>18,000 条 ICL-oriented 演示</strong>；作为对照，也用 <strong>27,500 条原生 RoboTwin 演示</strong>训练了同一模型（§4.2）。真机侧论文只说”按 §3.2 框架搭建采集与评测管线”，训练集规模未报告。</p>
-<p><strong>5. 数据侧（协议固定，由人执行）。</strong> 四类语义判别数据对 + 两类不变性增广 + 分组采集（major&#x2F;minor 切换、跨组配对）见创新点 2；这是”哪些行为由模型决定（提示表示、动作生成）、哪些由固定流程控制（数据配比与配对方式）”的分界：模型学的是从提示恢复意图，数据协议保证提示里”意图与噪声”可分离。</p>
-<p><strong>6. 推理阶段。</strong> 给定新任务的演示视频与当前观测，模型直接输出动作，<strong>没有</strong>测试时优化、检索库或人工提示工程；这是与 WAM-TTT（测试时适配）、ReCAP（检索）路线的主要区别。</p>
-<p><strong>7. 输出。</strong> 机器人动作块（horizon 32），在仿真与真机上闭环执行。</p>
-<p>下面结合论文图片说明各组件”做什么、为什么需要”。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p><strong>总括。</strong> SimpleICL（论文提出的极简机器人 ICL 框架）的真正技术增量是”协议重、模型轻”：它没有提出新算法，而是 (i) 把机器人 ICL 的学习目标显式定义为”四类应遵循语义 + 三类应忽略变化”；(ii) 据此给出一套语义判别式数据构造与分组采集协议（含跨组配对，cross-group pairing，可约零额外成本地批量生成人-机数据对）；(iii) 提供一个刻意最小化的视觉提示编码器（unified visual prompt encoding module，统一视觉提示编码模块），可插入现有策略骨干；(iv) 报告了三条关于 ICL 能力边界的经验发现（组合可自发学到、可供性必须显式教、动作居中）。架构主体——Wan2.2-5B 骨干、插值出的 1B 动作 DiT（action DiT，动作扩散 Transformer）、Mixture-of-Transformers（MoT，混合 Transformer）交互、视频 DiT 上的 LoRA（low-rank adaptation，低秩适配）微调、动作时域 32——沿用 Fast-WAM（Yuan et al., 2026）路线（§4.1），不是本文原创；关于”首次提出”，按本文的 related work 与实验对比只能确认作者声称的差异，是否成立需要更完整的文献检索。</p>
+<p><strong>创新点 1：机器人 ICL 的问题定义（应遵循 4 维 + 应忽略 3 维，§3.1）。</strong> 新增内容是学习目标本身：把提示视频携带的信息显式分为应遵循的四类语义（动作、物体、组合、可供性）与应忽略的三类变化（空间错位、人类动作细节、场景变化），并对每类给出边界（如”极端位置差异被视为不同语义”）。与最接近工作的差异：HOST、GEN 1.5、Zero-WAM 等并发工作展示了初步 ICL 能力但没有界定学习目标，WAM-TTT、ReCAP 用测试时适配&#x2F;检索绕开歧义而非回答”该学什么”，因此这属于<strong>概念性框架贡献（研究问题的重新表述）</strong>，不是新机制。它直接对应 §1 的”机器人该模仿什么”（提示歧义）问题，整套数据设计与三组语义对照实验都由该定义推导，证据与边界讨论指向 §4.3。</p>
+<p><strong>创新点 2：语义判别式数据构造 + 分组采集协议（§3.2，论文最主要的技术增量）。</strong> 新增一套数据配方：四类判别式数据对（同场景不同动作、目标物体位置扰动并加干扰物、动作集合相同而顺序不同、数据对内人机抓取方式一致而跨对变化）加两类不变性增广（演示者外观、环境光照与视角），再用”采集组 + major&#x2F;minor 场景切换”组织成可执行流程，minor 切换使人类演示与机器人执行可以在相关但不同的场景间配对（跨组配对），论文报告单台平台每天最多产出 3,000 个有效人-机数据对。与最接近方法的差异：原生 RoboTwin 数据是任务中心式采集、无关物体放在交互区之外，”不构成真正的任务歧义”（§4.2），本协议把多个任务相关物体同时放进可达工作区并在同场景采集多任务。判别式采样与不变性增广都是已有思想，本文的增量是它们在机器人 ICL 场景下的<strong>新组合与系统化</strong>，直接回答 §1”数据应如何设计”；证据指向 §4.2 与 §4.3（Table 1、Table 5）。</p>
+<p><strong>创新点 3：极简视觉提示编码模块（§3.3）。</strong> 新增机制：预训练视觉编码器把条件视频编码为帧级嵌入，128 个可学习上下文 token 经 cross-attention（交叉注意力）查询视频 token 序列，把任意长度提示压成固定尺寸表示，再拼进视频与动作 DiT 的上下文。与最接近方法的差异：作者刻意”没有花哨设计（without bells and whistles）”，消歧负担交给定义与数据，编码器只提供紧凑接口；它属于<strong>已有组件（查询式 cross-attention 压缩）的组合与简化</strong>，是工程实现层面的增量，对应 §1”ICL 起效的最小必要因素是什么”。其必要性只有”去掉整个视频条件”的整体消融作证，编码器内部设计没有对照，证据见 §4.2 与 §4.3。</p>
+<p><strong>创新点 4：关于 ICL 能力边界的三条经验发现（§4.3.2）。</strong> 组合语义无需显式构造对照数据即可自发学到，可供性必须为同一物体显式构造不同可供性的数据，动作语义难度居中——这是<strong>科学发现性质</strong>的贡献，也是全文信息量最大的部分，回答 §1 的”ICL 能否学到细粒度操作可供性”。其可信度取决于”意图遵循率（intent-following rate）”的判定方式，而论文未定义该判定，证据与疑问见 §4.2、§4.3 与 §5 质疑五。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p><strong>直觉性说明。</strong> 论文的核心思路是：机器人 ICL 的困难不在”模型不够大”，而在”要学什么”没有被写清楚。因此它把消歧的负担<strong>从模型前移到问题定义与数据</strong>——先明确”哪些语义应遵循、哪些变化应忽略”，再让数据里充满”意图相同但表层不同”的配对，使模型无法走捷径、只能恢复任务语义；策略端只需要一个通用的”演示视频 → 紧凑提示表示”接口。整条路线（问题定义 → 数据工程 → 零样本泛化）可以先借图 1 过一遍。</p>
 <p><img  
                      lazyload
                      src="/images/loading.svg"
                      data-src="/images/dailypaper/2026-10-09/2609.38173_fig1.png"
-                      alt="SimpleICL 总览（论文 Fig. 1）"
+                      alt="图 1：SimpleICL 总览"
                 ></p>
-<p><strong>Fig. 1（上图）</strong> 是全文的路线图，左半部分是要解决的问题，右半部分是方法与结果。左上”Problem: Visual Prompt Ambiguity”对比了两种提示形态：语言提示简短（”Put the tea bag into the cup.”），视觉提示丰富（物体语义、目标位置、可供性、轨迹&#x2F;速度、手臂姿态……），下方直接抛出”Which to Follow?”——信息越多，歧义越大，这是”需要问题定义”的动机。左下的 “What should ICL learn?” 四格正是 §3.1 的四类应遵循语义：Action（按压 vs 抓取）、Affordance（抓柄 vs 抓身）、Object（目标 vs 干扰物）、Composition（不同先后顺序）。右上”Efficient Data Engineering”给出方法侧的三步链：原则驱动的四类数据设计（Action&#x2F;Object&#x2F;Affordance&#x2F;Composition）→ 分组采集 → 跨组配对，并标注”Cost-free 3x pairs”（约零成本地把配对数量放大到三倍）。右下 “Zero-shot Generalization” 展示目标能力：在”整理货架”这一未见任务上，仅看人类演示（含遮挡、干扰物、误导位置）即完成执行；底部柱状图把八个真机任务的成绩与 Fast-WAM、π0.5 并列（对应 Table 3）。整张图的逻辑是：<strong>问题定义决定数据设计，数据设计决定零样本表现</strong>。</p>
+<p><strong>图 1</strong>（论文 Fig. 1，官方 HTML 原图）：全文路线图，左半是要解决的问题，右半是方法与结果。左上 “Problem: Visual Prompt Ambiguity” 对比两种提示形态：语言提示简短（如 “Put the tea bag into the cup.”），视觉提示丰富（同时携带物体语义、目标位置、可供性、轨迹&#x2F;速度、手臂姿态等信息），下方直接抛出 “Which to Follow?”——信息越多、歧义越大，这是”必须先定义学习目标”的动机；左下 “What should ICL learn?” 四格即问题定义中的四类应遵循语义（Action：按压 vs 抓取；Affordance：抓柄 vs 抓身；Object：目标 vs 干扰物；Composition：不同先后顺序）。右上 “Efficient Data Engineering” 给出方法侧三步链：原则驱动的四类数据设计 → 分组采集 → 跨组配对，并标注 “Cost-free 3x pairs”（约零成本地把配对数量放大到三倍）；右下 “Zero-shot Generalization” 展示目标能力——在”整理货架”这一训练未见任务上，仅看人类演示（含遮挡、干扰物、误导位置）即完成执行，底部柱状图把八个真机任务成绩与 Fast-WAM、π0.5 并列（对应 Table 3）。整张图的逻辑是：<strong>问题定义决定数据设计，数据设计决定零样本表现</strong>。</p>
+<blockquote>
+<p><strong>教学简化示例</strong>（非论文实验）：演示视频里人手把杯子放到桌面左侧的垫子上；机器人执行时，垫子被移到了右侧。正确行为是”把杯子放到垫子当前的位置”（遵循物体语义），而不是”把手伸向屏幕左侧”（复读轨迹）。要学到前者，并不需要特殊网络，而需要在训练数据中大量存在”演示位置与执行位置不一致、但语义相同的正确示范对”——这正是跨组配对在数据层面做的事。</p>
+</blockquote>
+<p>下面按实际运行流程走一遍，每一步注明执行者（模型 &#x2F; 固定流程）以及对应的 §2 创新点。</p>
+<p><strong>1. 问题定义（执行者：人，固定协议；对应 §2 创新点 1）。</strong> 做什么：把提示信息显式划分为两类角色。<strong>应遵循的四类语义</strong>：(1) 动作语义（action semantics）——在抓握、放置、旋转、按压、平移等动作类别层面模仿；(2) 物体语义（object semantics）——理解操纵的是特定物体，若执行场景中物体位置与演示不同，应对齐物体实际位姿而非复现演示者的空间轨迹；(3) 组合语义（compositional semantics）——识别动作集合的结构与先后顺序（先抓 A 后抓 B 与反过来语义不同）；(4) 可供性语义（affordance semantics）——从演示推断”怎么操作”（抓杯身还是杯柄）。<strong>应忽略的三类变化</strong>：空间错位（spatial mismatches，但”极端位置差异被视为不同语义”）、人类动作细节（执行速度、手臂形态、手部外观、具体抓取角度、个人习惯）、场景变化（光照、背景色、非目标干扰物）。为什么这样设计：论文把歧义根源定位在”没有区分哪些信息该跟随、哪些该忽略”，并认为这不靠模型容量解决；定义先行，才能决定数据里该制造哪些判别、注入哪些不变性（§3.1）。作者同时声明边界：需要按演示速度&#x2F;风格条件化的任务被明确排除在本文范围外。这一步不涉及任何模型，是后续数据与训练的设计纲领。</p>
+<p><strong>2. 输入（模型接收什么）。</strong> 一段人类演示视频（作为条件视频，conditioning video）；机器人当前的多相机观测（多相机图像先拼接成单张图再送入模型，§4.1）；骨干网络原本携带的文本与状态嵌入（§3.3）。演示视频不与执行时间轴逐帧对齐（区别于 HOST 的实时对齐做法），而是由提示编码模块把整段视频压成提示表示。</p>
+<p><strong>3. 数据构造与采集（执行者：人类演示者 + 机器人平台，固定协议；对应 §2 创新点 2）。</strong> 这是全流程中唯一不由模型执行的一环——数据按定义制造，模型负责从中学。先看<strong>四类语义判别式数据对</strong>（图 2）：(A) 动作判别数据：同场景内用不同动作采集多段演示（如按压皂液器 vs 抓起皂液器放到托盘上）；(B) 物体判别数据：有意扰动目标物体位置，使演示中的位置与机器人执行时不同，并在目标周围引入语义不同的干扰物，同时强制”每场景同一目标物体唯一存在”以保证语义无歧义；(C) 组合判别数据：动作集合相同、时间顺序不同（先抓香蕉后抓苹果 vs 反过来）；(D) 可供性判别数据：同一动作下变化可供性，但要求”人机一致性”——每个数据对内人手与机器人夹爪的抓取位置和方式一致，跨数据对才变化（抓杯身 vs 抓杯柄）。为什么这样设计：如果数据里意图与场景高度相关，模型会走捷径（shortcut learning，捷径学习）；只有强行制造”同一意图、不同表层”与”不同意图、相同表层”的对照，才能逼模型从演示中恢复语义。</p>
 <p><img  
                      lazyload
                      src="/images/loading.svg"
                      data-src="/images/dailypaper/2026-10-09/2609.38173_fig2.png"
-                      alt="四类语义判别数据（论文 Fig. 2）"
+                      alt="图 2：四类语义判别数据"
                 ></p>
-<p><strong>Fig. 2（上图）</strong> 把 §3.2 的四类判别式数据画成实例，每一格都对应一种”必须被模型区分”的语义，其存在的必要性在于：如果训练数据里意图与场景高度相关，模型就会走捷径。(A) 动作判别（Same Object, Different Action）：同一物体、同一初始场景，演示”按压”与”抓取”，强迫模型按动作类别而非物体身份行动；(B) 物体判别（Same Target, Different Layout）：目标物体位置扰动并加入干扰物——注意这要求模型跟随物体而非复现演示轨迹；(C) 组合判别（Same Goal, Different Action Order）：同样把两件物品归位，但左右顺序不同，强迫模型关注时序依赖；(D) 可供性判别（Same Action, Different Affordance）：抓杯身还是抓杯柄，只在数据对内要求人机一致、跨对变化，使”怎么抓”成为可学的语义维度。</p>
+<p><strong>图 2</strong>（论文 Fig. 2，官方 HTML 原图）：把四类判别式数据画成具体实例，每一格都对应一种”必须被模型区分”的语义。(A) 动作判别（Same Object, Different Action）：同一物体、同一初始场景，演示”按压”与”抓取”，强迫模型按动作类别而非物体身份行动；(B) 物体判别（Same Target, Different Layout）：目标物体位置扰动并加入干扰物，要求模型跟随物体而非复现演示轨迹；(C) 组合判别（Same Goal, Different Action Order）：同样把两件物品归位，但左右顺序不同，强迫模型关注时序依赖；(D) 可供性判别（Same Action, Different Affordance）：抓杯身还是抓杯柄，只在数据对内要求人机一致、跨对变化，使”怎么抓”成为可学的语义维度。四格合起来，就是”应遵循语义”在数据层的落地——每一格都在切断一条捷径。</p>
+<p><strong>两类不变性增广</strong>（同样由采集流程保证）：演示者不变性——采集多位演示者、多种手部外观（裸手、不同颜色手套、不同肤色）；环境不变性——改变条件视频的光照、色温与相机视角，但配对同一条机器人执行轨迹（§3.2）。它们的作用是让”应忽略”维度在数据中真正与任务意图解耦。</p>
+<p><strong>分组采集与跨组配对。</strong> 数据以”采集组（collection group）”为单位组织：一个采集组 &#x3D; 一个场景 + 其内一组可执行任务，每个任务对应一次采集实例；组间切换分两种——major 切换（整体换到全新场景）与 minor 切换（同场景内的扰动：改物体摆放、调光照、换背景干扰物）。minor 切换使人类演示与机器人执行可以在”相关但不相同”的场景配置间配对，这就是<strong>跨组配对（cross-group pairing）</strong>：提示与执行不再一一对应，模型无法照抄，必须从演示中恢复任务语义（§3.2）。论文报告，按此流程单台机器人平台每天最多可产出 3,000 个有效人-机数据对。为什么需要它：若每条机器人轨迹都配一段”几乎相同场景”的演示，模型会把意图绑定到固定布局；跨组配对在数据层打破了这种绑定（其对照效果见 §4.3）。整条协议的执行流程见图 3。</p>
 <p><img  
                      lazyload
                      src="/images/loading.svg"
                      data-src="/images/dailypaper/2026-10-09/2609.38173_fig3.png"
-                      alt="分组采集与跨组配对（论文 Fig. 3）"
+                      alt="图 3：分组采集与跨组配对"
                 ></p>
-<p><strong>Fig. 3（上图）</strong> 说明采集协议如何把这些原则变成可操作流程。顶部三块是采集组的演进：Base Collection Group（一个场景内 Task1&#x2F;2&#x2F;3）→ 经 <strong>Minor Transition</strong>（改变光照、位置、干扰物）得到 Changed Collection Group → 经 <strong>Major Transition</strong> 得到全新场景的 New Collection Group。Minor 切换是机制的关键：它使同一任务在不同场景配置下被反复采集，从而支持底部的 <strong>Cross Group Pairing</strong>——把”基础组”与”扰动组”中的人类演示与机器人执行交叉配对（图中 Task1 Tea→Cup、Task2 Press Pump、Open Box、Pick Cup 等）。为什么需要它：如果每条机器人轨迹都配一段”几乎相同场景”的演示，模型会自然地把意图绑定到固定布局；跨组配对则迫使模型在场景配置与轨迹都不一一对应时仍能恢复任务语义，这也是 Table 5 中空间错位不变性的来源。</p>
-<p><strong>教学性说明（总结）。</strong> 整体范式是”训练式”（需要端到端训练）而非 training-free；但训练依赖的是公开预训练视频模型 Wan2.2-5B 与公开仿真器 RoboTwin 2.0，作者强调不需要大规模机器人预训练或专门数据基础设施——这就是标题中”democratized（民主化）”的含义。论文提出的组件是：问题定义、数据构造&#x2F;采集协议、提示编码模块；直接使用的现有资产是：Wan2.2-5B、Fast-WAM 的插值动作 DiT 与 MoT 配方、LoRA、RoboTwin 2.0、AgileX（仿真平台）、Franka、Intel RealSense D435 相机、3Dconnexion SpaceMouse（遥操作设备）。</p>
+<p><strong>图 3</strong>（论文 Fig. 3，官方 HTML 原图）：采集协议如何把上述原则变成可操作流程。顶部三块是采集组的演进：Base Collection Group（一个场景内 Task1&#x2F;2&#x2F;3）→ 经 Minor Transition（改变光照、位置、干扰物）得到 Changed Collection Group → 经 Major Transition 得到全新场景的 New Collection Group。Minor 切换是机制的关键：它使同一任务在不同场景配置下被反复采集，从而支持底部的 Cross Group Pairing——把”基础组”与”扰动组”中的人类演示与机器人执行交叉配对（图中 Task1 Tea→Cup、Task2 Press Pump、Open Box、Pick Cup 等）。没有这一设计，模型会自然地把意图绑定到固定布局；有了它，场景配置与轨迹都不一一对应，模型只能靠恢复任务语义来完成任务。</p>
+<p><strong>4. 提示编码（执行者：模型，论文新增模块；对应 §2 创新点 3）。</strong> 条件视频先经预训练视觉编码器得到帧级嵌入序列，再投影进潜空间；随后 <strong>128 个可学习上下文 token</strong> 通过 cross-attention（交叉注意力）查询视频 token 序列，把任意长度的演示汇成固定尺寸的条件 token 嵌入（§3.3）。这一输出被拼接进视频 DiT 与动作 DiT 的上下文（原本只含文本与状态嵌入），网络再经 cross-attention 消费它，得到最终策略。实现上，这是一个查询式模块（query-based module）：堆叠 4 个 block、隐维 3072，约 0.6B 参数（§4.1）。为什么用固定 token 数：论文列出三点——(1) 定长天然支持任意时长的提示；(2) 表示可无缝插入标准策略骨干，改动最小；(3) 整个模块与下游策略端到端联合优化，提示表示能适配控制目标（§3.3）。消歧的负担由定义与数据承担，编码器刻意保持简单；相应地，论文只提供”去掉整个视频条件”的整体消融，模块内部设计（token 数、层数等）没有对照（见 §4.2、§4.3）。</p>
+<p><strong>5. 策略主干（直接使用的现有资产，非本文提出）。</strong> 主干是预训练的 <strong>Wan2.2-5B</strong> 视频生成模型；按 Fast-WAM（Yuan et al., 2026）的做法插值得到一个 <strong>1B 参数的动作 DiT（action DiT，动作扩散 Transformer）</strong>，动作时域（action horizon）设为 32；动作 DiT 与视频骨干通过 <strong>MoT（Mixture-of-Transformers，混合 Transformer）</strong> 架构交互（§4.1）。提示编码的输出正是接入这一骨干的上下文。</p>
+<p><strong>6. 训练（哪些部分需要训练）。</strong> 整个框架端到端联合优化：视频 DiT 用 <strong>LoRA（low-rank adaptation，低秩适配）</strong> 微调，其余组件（1B 动作 DiT 与约 0.6B 提示编码模块）全参数训练（§4.1）。仿真侧训练集为按第 3 步协议构造的 <strong>18,000 条 ICL-oriented 演示</strong>；为对照数据变量，同一模型也用 <strong>27,500 条原生 RoboTwin 演示</strong>训练（§4.2）。真机侧论文只说”按 §3.2 框架搭建采集与评测管线”，真机训练集规模、训练超参与损失函数形式均未报告（见 §4.4 与 §5）。</p>
+<p><strong>7. 推理阶段的变化。</strong> 部署时不再训练：给定新任务的演示视频与当前观测，模型直接输出动作，<strong>没有</strong>测试时优化、检索库或人工提示工程——这是与 WAM-TTT（测试时适配）、ReCAP（检索池）路线的主要区别（§2）。因此整体是训练式（training-based）框架而非 training-free，但训练不依赖大规模机器人预训练或专门数据基础设施——这就是标题中”democratized（民主化）”的含义。</p>
+<p><strong>8. 输出。</strong> 机器人动作块（horizon 32），在仿真与真机上闭环执行。</p>
+<p><strong>教学性说明（总结）。</strong> 整条流程的分工是：数据配比、配对方式与不变性注入由固定的采集协议控制，提示表示与动作生成由模型决定。论文提出的组件是：问题定义（第 1 步）、数据构造与采集协议（第 3 步）、提示编码模块（第 4 步）；直接使用的现有资产是：Wan2.2-5B、Fast-WAM 的插值动作 DiT 与 MoT 配方、LoRA、RoboTwin 2.0、AgileX（仿真平台）、Franka、Intel RealSense D435 相机、3Dconnexion SpaceMouse（遥操作设备）。</p>
 <h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p><strong>任务与环境。</strong> 仿真在 <strong>RoboTwin 2.0</strong>（Chen et al., 2025）中进行，执行者与演示者（conditioning）都用 AgileX 平台；真机用 <strong>Franka</strong> 机械臂，配 3 台 Intel RealSense D435 相机，遥操作由 3Dconnexion SpaceMouse 完成（§4.3）。真机评测含 8 个训练中从未出现的任务：称重（weighing）、擦盘（wipe）、倒茶（tea）、拉抽屉（drawer）、按皂液器（soap）、摆放水果（fruit）、整理筷子（chopsticks）、整理货架（shelf）；论文特别说明这些任务用到的海绵&#x2F;盘子、抽屉、水果&#x2F;碗、货架物品、皂液器、目标茶杯均为训练集中未出现的物体（§4.3.1）。</p>
 <p><strong>数据。</strong> 仿真 ICL-oriented 训练集 18,000 条演示；对照训练集为 27,500 条原生 RoboTwin 演示（§4.2）。真机训练集规模未报告。评测方面：仿真用 ICL-oriented 管线组合多个 RoboTwin 任务构成”语义判别测试”，另设计 7 个 OOD（out-of-distribution，分布外）任务（附录 A，Fig. 9：把玩具车放进塑料箱、杯子放进篮子、触碰玩具车、扑克牌放盘子、合上笔记本、方块放垫子、鼠标放碗里）；真机按 Easy&#x2F;Medium&#x2F;Hard 三个难度评测（§4.3.1）。</p>
 <p><strong>基线。</strong> 仿真与真机均对比 <strong>Fast-WAM</strong>（Yuan et al., 2026）与 <strong>π0.5</strong>（Intelligence et al., 2025）；Table 1 另有”同架构、原生数据训练”的 SimpleICL（Ours, Native）作数据变量对照。论文未报告两个基线的训练数据与训练配置（见 §5 质疑一）。</p>
 <p><strong>指标。</strong> 主指标为任务成功率（success rate，%）；Table 4 用”意图遵循率（intent-following rate，%）”，其判定方式未在论文中定义。<strong>论文未报告</strong>评测试验次数、方差、置信区间或显著性检验。</p>
 <p><strong>各实验分组回答什么。</strong> Table 1（仿真语义判别）：数据协议是否提升歧义场景下的判别；Table 2（仿真 OOD 7 任务）：视频条件与未来预测对未见任务的作用；Table 3（真机 8 任务 × 3 难度）：零样本真机性能与基线对比；Table 4（动作&#x2F;组合&#x2F;可供性对照）：判别式数据对三类语义的必要性；Table 5（鲁棒性）：三类”应忽略”变化的鲁棒性与跨组配对的作用；Fig. 8：注意力行为是否”看起来”在提取任务线索。</p>
 <h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p><strong>（1）同一模型换数据：语义判别 40.3→72.1，OOD 平均 24.6→65.9。</strong> Table 1 中，SimpleICL 在原生 RoboTwin 数据上训练时平均成功率 40.3，与 Fast-WAM（原生数据）的 37.6 几乎同级（差距 2.7 点）；换用 ICL-oriented 数据后升至 <strong>72.1</strong>（+31.8）。Table 2 中，OOD 任务的成绩：Ours 平均 <strong>65.9</strong> vs Fast-WAM <strong>24.6</strong> vs w&#x2F;o. video cond. <strong>26.3</strong> vs w&#x2F;o. future pred. <strong>17.9</strong>（均在同一 ICL-oriented 数据上）。这两个表合起来说明：<strong>在当前设置下，数据协议的作用远大于架构差异</strong>（原文事实 + 审稿人判断：该推论受测试集同源性与基线配置不明的影响，见质疑一、三）。</p>
-<p><strong>（2）真机零样本：Easy&#x2F;Medium&#x2F;Hard 的三级成绩与基线对比。</strong> Table 3（成功率）：Easy 级 SimpleICL <strong>0.81</strong>、Fast-WAM 0.80、π0.5 0.72；Medium 级 <strong>0.70</strong> vs 0.65 vs 0.47；Hard 级 <strong>0.68</strong> vs 0.42 vs 0.31。优势集中在”同一观测对应多个任务意图”的 Medium&#x2F;Hard：Hard 级领先 Fast-WAM 26 个点、领先 π0.5 37 个点；最大单任务差距是 Hard 级的整理筷子（Ours 0.77 vs Fast-WAM 0.27 vs π0.5 0.10）与倒茶（0.57 vs 0.27 vs 0.20）。</p>
-<p><strong>（3）并非全面占优：Easy 级与部分子任务上基线更好。</strong> Easy 级平均差距仅 +0.01（0.81 vs 0.80），且逐任务看，Ours 在 <strong>Wipe（0.77 vs Fast-WAM 0.87、π0.5 0.97）</strong> 与 <strong>Tea（0.73 vs Fast-WAM 0.83）</strong> 上落后（Table 3）；仿真 OOD 中提升最小的任务是 Cards_Plate（63.3 vs Fast-WAM 43.3，仅 +20.0；且 w&#x2F;o. VC. 在该任务为 46.7，说明该任务对视频条件的依赖较弱）。<strong>论文对这些负向子任务没有给出解释。</strong></p>
-<p><strong>（4）四条”能力边界”发现（Table 4）。</strong> 意图遵循率：有判别式采集（w&#x2F;. DC）平均 <strong>0.89</strong>，无判别式采集（w&#x2F;o. DC）<strong>0.75</strong>。分解看：<strong>可供性差距最大</strong>（量尺 0.77 vs 0.40、带柄杯 0.87 vs 0.60、胶带 0.83 vs 0.47）；<strong>组合已接近饱和</strong>（零食 0.97 vs 0.93、杯子 1.00 vs 0.97、包 0.90 vs 0.93——对照条件在”包”上甚至略高）；<strong>动作居中</strong>（纸巾 0.83 vs 0.67、海绵 0.90 vs 0.83，但筷子 0.93 vs 0.97，对照更高）。作者由此得出”组合可自发解耦、可供性必须显式教、动作居中”的结论（§4.3.2）。<strong>审稿人判断：结论方向可信，但单点数字与未定义的判定协议使幅度不可靠</strong>（见质疑五）。</p>
-<p><strong>（5）鲁棒性与跨组配对消融（Table 5）。</strong> 完整模型在多类扰动下平均 <strong>0.78</strong>：空间错位 0.79、演示者外观 0.77、演示者风格 0.80、光照 0.78、背景 0.79、杂物 0.75。去掉跨组配对（w&#x2F;o. CP）后平均降到 <strong>0.70</strong>，其中空间错位骤降至 <strong>0.51</strong>（-0.28）、杂物 0.66（-0.09）、背景 0.71（-0.08）；对照条件下其余扰动项几乎不变（App. 0.78、Sty. 0.79、Light 0.73）。<strong>这是全文中变量隔离最干净的一组结果</strong>：跨组配对专门制造的空间不变性，其缺失也专门破坏空间鲁棒性。</p>
+<p><strong>（2）真机零样本：Easy&#x2F;Medium&#x2F;Hard 的三级成绩与基线对比。</strong> Table 3（成功率）：Easy 级 SimpleICL <strong>0.81</strong>、Fast-WAM 0.80、π0.5 0.72；Medium 级 <strong>0.70</strong> vs 0.65 vs 0.47；Hard 级 <strong>0.68</strong> vs 0.42 vs 0.31。优势集中在”同一观测对应多个任务意图”的 Medium&#x2F;Hard：Hard 级领先 Fast-WAM 26 个点、领先 π0.5 37 个点；最大单任务差距是 Hard 级的整理筷子（Ours 0.77 vs Fast-WAM 0.27 vs π0.5 0.10）与倒茶（0.57 vs 0.27 vs 0.20，行为对比见图 4）。</p>
 <p><img  
                      lazyload
                      src="/images/loading.svg"
                      data-src="/images/dailypaper/2026-10-09/2609.38173_fig4.png"
-                      alt="定性对比（论文 Fig. 5）"
+                      alt="图 4：捷径学习失败对比"
                 ></p>
-<p><strong>Fig. 5（上图）</strong> 展示捷径学习失败的两种形态。(a) 拉抽屉（Medium 级）：语言条件基线 Fast-WAM 被右侧的电子秤干扰，开了错误的抽屉；SimpleICL 依据演示视频中的目标识别出了黄色抽屉。(b) 整理筷子（Hard 级）：Fast-WAM 把筷子放到了桌上的圆碗（错误目的地），SimpleICL 则跟随演示中的长条碗。为什么这两组图重要：它们把”提示歧义造成的行为差异”从抽象概念落到了可观察的动作选择上——差异不在运动是否平滑，而在<strong>目标选择</strong>。</p>
+<p><strong>图 4</strong>（论文 Fig. 5，官方 HTML 原图）：展示捷径学习失败的两种形态。(a) 拉抽屉（Medium 级）：语言条件基线 Fast-WAM 被右侧的电子秤干扰，开了错误的抽屉；SimpleICL 依据演示视频中的目标识别出了黄色抽屉。(b) 整理筷子（Hard 级）：Fast-WAM 把筷子放到了桌上的圆碗（错误目的地），SimpleICL 则跟随演示中的长条碗。为什么这两组图重要：它们把”提示歧义造成的行为差异”从抽象概念落到了可观察的动作选择上——差异不在运动是否平滑，而在<strong>目标选择</strong>。</p>
+<p><strong>（3）并非全面占优：Easy 级与部分子任务上基线更好。</strong> Easy 级平均差距仅 +0.01（0.81 vs 0.80），且逐任务看，Ours 在 <strong>Wipe（0.77 vs Fast-WAM 0.87、π0.5 0.97）</strong> 与 <strong>Tea（0.73 vs Fast-WAM 0.83）</strong> 上落后（Table 3）；仿真 OOD 中提升最小的任务是 Cards_Plate（63.3 vs Fast-WAM 43.3，仅 +20.0；且 w&#x2F;o. VC. 在该任务为 46.7，说明该任务对视频条件的依赖较弱）。<strong>论文对这些负向子任务没有给出解释。</strong></p>
+<p><strong>（4）四条”能力边界”发现（Table 4）。</strong> 意图遵循率：有判别式采集（w&#x2F;. DC）平均 <strong>0.89</strong>，无判别式采集（w&#x2F;o. DC）<strong>0.75</strong>。分解看：<strong>可供性差距最大</strong>（量尺 0.77 vs 0.40、带柄杯 0.87 vs 0.60、胶带 0.83 vs 0.47）；<strong>组合已接近饱和</strong>（零食 0.97 vs 0.93、杯子 1.00 vs 0.97、包 0.90 vs 0.93——对照条件在”包”上甚至略高）；<strong>动作居中</strong>（纸巾 0.83 vs 0.67、海绵 0.90 vs 0.83，但筷子 0.93 vs 0.97，对照更高）。作者由此得出”组合可自发解耦、可供性必须显式教、动作居中”的结论（§4.3.2）。<strong>审稿人判断：结论方向可信，但单点数字与未定义的判定协议使幅度不可靠</strong>（见质疑五）。</p>
+<p><strong>（5）鲁棒性与跨组配对消融（Table 5）。</strong> 完整模型在多类扰动下平均 <strong>0.78</strong>：空间错位 0.79、演示者外观 0.77、演示者风格 0.80、光照 0.78、背景 0.79、杂物 0.75。去掉跨组配对（w&#x2F;o. CP）后平均降到 <strong>0.70</strong>，其中空间错位骤降至 <strong>0.51</strong>（-0.28）、杂物 0.66（-0.09）、背景 0.71（-0.08）；对照条件下其余扰动项几乎不变（App. 0.78、Sty. 0.79、Light 0.73）。<strong>这是全文中变量隔离最干净的一组结果</strong>：跨组配对专门制造的空间不变性，其缺失也专门破坏空间鲁棒性。</p>
 <h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>按”只说明有效 vs 说明为什么有效”分层看：</p>
-<p><strong>（1）数据协议的作用有同架构对照（较强）。</strong> Table 1 的 native vs ICL-oriented 是同一模型（SimpleICL）只换训练数据，72.1 vs 40.3 的差距是论文”数据配方是主变量”主张最直接的证据；Table 5 的 w&#x2F;o. CP 消融进一步把部分增益定向到”跨组配对”这一具体机制上，且其影响集中在空间错位一类扰动——与机制预测一致（跨组配对就是为了打破”意图绑定固定布局”的捷径）。</p>
+<p><strong>（1）数据协议的作用有同架构对照（较强）。</strong> Table 1 的 native vs ICL-oriented 是同一模型（SimpleICL）只换训练数据，72.1 vs 40.3 的差距是论文”数据配方是主变量”主张最直接的证据；Table 5 的 w&#x2F;o. CP 消融进一步把部分增益定向到”跨组配对”这一具体机制上，且其影响集中在空间错位一类扰动——与机制预测一致（跨组配对就是为了打破”意图绑定固定布局”的捷径；图 5 给出行为例证）。</p>
 <p><img  
                      lazyload
                      src="/images/loading.svg"
                      data-src="/images/dailypaper/2026-10-09/2609.38173_fig5.png"
-                      alt="跨组配对的作用（论文 Fig. 7）"
+                      alt="图 5：跨组配对的作用"
                 ></p>
-<p><strong>Fig. 7（上图）</strong> 给出该机制的行为级证据：上排是人类演示（茶包在某位置上）与机器人执行的相同初始观测（茶包位置已移动）；左下 w&#x2F;o. Cross-group Pairing 时，机器人把手伸向演示中茶包所在的旧位置（轨迹复读式失败，红叉）；右下 w&#x2F; Cross-group Pairing 时，机器人正确抓取当前场景中位置已移的茶包（绿勾）。这张图与 Table 5 的 0.51→0.79 是同一现象的定性与定量两面。</p>
+<p><strong>图 5</strong>（论文 Fig. 7，官方 HTML 原图）：给出该机制的行为级证据：上排是人类演示（茶包在某位置上）与机器人执行的相同初始观测（茶包位置已移动）；左下 w&#x2F;o. Cross-group Pairing 时，机器人把手伸向演示中茶包所在的旧位置（轨迹复读式失败，红叉）；右下 w&#x2F; Cross-group Pairing 时，机器人正确抓取当前场景中位置已移的茶包（绿勾）。这张图与 Table 5 的 0.51→0.79 是同一现象的定性与定量两面。</p>
 <p><strong>（2）视频条件与”未来预测”的消融只给出联合效应（中等偏弱）。</strong> w&#x2F;o. video cond. 在语义判别尚可（61.6）但 OOD 崩塌（26.3），说明视频条件对”指定新任务”不可或缺；w&#x2F;o. future pred. 则两项都大幅下降（20.2 &#x2F; 17.9），说明未来预测（future prediction）作用很大。<strong>但论文的方法章节从未定义”future prediction”在训练中的具体形式</strong>（§3.3 只描述提示编码器，§4.1 只有三句实现细节，全文没有损失函数或公式），因此无法区分三种可能：去掉视频预测目标、去掉视频预测分支&#x2F;视频骨干、或去掉视频-动作耦合——这使”未来预测对 ICL 至关重要”的主张停留在现象层面。</p>
-<p><strong>（3）注意力可视化是相关性证据，不是因果证据（弱）。</strong> Fig. 8 用两张真机任务（Place Cup on Tray、Move Plate Between Holders）画出对条件视频的注意力时间线。</p>
+<p><strong>（3）注意力可视化是相关性证据，不是因果证据（弱）。</strong> Fig. 8（本报告图 6）用两张真机任务（Place Cup on Tray、Move Plate Between Holders）画出对条件视频的注意力时间线。</p>
 <p><img  
                      lazyload
                      src="/images/loading.svg"
                      data-src="/images/dailypaper/2026-10-09/2609.38173_fig6.png"
-                      alt="注意力热力图时间线（论文 Fig. 8）"
+                      alt="图 6：注意力热力图时间线"
                 ></p>
-<p><strong>Fig. 8（上图）</strong> 按执行时间分四个阶段解读模型在”看演示视频的哪里”：Initial Stage（初始阶段）注意力只落在人手——先定位”谁在做”；Touch Objects（接触时刻）注意力强度出现第一次峰值——“怎么接触”发生在接触事件附近；Intermediate Movement（中间阶段）注意力以中等强度跟随双手与物体——持续跟踪交互对象；Ending Stage（结束阶段）出现第二次峰值——对应任务完成的时刻。这张图的必要性在于：论文想知道策略是否真的在提取任务相关线索，热力图把这一疑问变成了可视检查。作者由此提出模型具有”时间结构化、以交互为中心（temporally structured and interaction-centric）”的注意力（§4.4）。<strong>审稿人判断：没有干预实验</strong>（如打乱人手区域、遮挡接触帧后性能是否下降），也没有定量统计，因此这只能说明注意力的相关模式，不能证明该模式是性能的因果来源。</p>
+<p><strong>图 6</strong>（论文 Fig. 8，官方 HTML 原图）：按执行时间分四个阶段解读模型在”看演示视频的哪里”：Initial Stage（初始阶段）注意力只落在人手——先定位”谁在做”；Touch Objects（接触时刻）注意力强度出现第一次峰值——“怎么接触”发生在接触事件附近；Intermediate Movement（中间阶段）注意力以中等强度跟随双手与物体——持续跟踪交互对象；Ending Stage（结束阶段）出现第二次峰值——对应任务完成的时刻。这张图的必要性在于：论文想知道策略是否真的在提取任务相关线索，热力图把这一疑问变成了可视检查。作者由此提出模型具有”时间结构化、以交互为中心（temporally structured and interaction-centric）”的注意力（§4.4）。<strong>审稿人判断：没有干预实验</strong>（如打乱人手区域、遮挡接触帧后性能是否下降），也没有定量统计，因此这只能说明注意力的相关模式，不能证明该模式是性能的因果来源。</p>
 <p><strong>（4）替代解释未排除。</strong> 除数据协议外，论文没有排除：ICL-oriented 数据的场景多样性&#x2F;任务密度差异（Table 1 里数据量与场景结构同时变化）、真机基线的训练条件差异（Table 3 的对比基础不明）、以及单次评测的随机性（无方差）。<strong>结论：论文证明了”在其管线内，这套数据流程与已训练模型配合能工作”，但没有完全证明”是定义与配对机制本身，而非相关变量，造成了收益”。</strong></p>
+<p><strong>对 §2 创新点逐一核对：</strong>数据协议与跨组配对有 Table 1、Table 5 的同架构对照，提示编码模块只有”去视频条件”的整体消融（Table 1–2）、模块内部设计无对照，问题定义不可直接消融，三条能力边界发现受制于未定义的意图遵循率指标（见质疑五）。</p>
 <h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p><strong>论文实际报告的成本（原文事实）：</strong></p>
 <ul>
 <li><strong>数据采集</strong>：需要实体机器人平台 + 人工演示者；真机采集依赖遥操作设备（SpaceMouse）。作者声称单台平台每天最多可产出 3,000 个有效人-机数据对（§3.2），且 minor 切换 + 跨组配对使额外数据对”几乎零成本”。但<strong>真机训练集的总规模、采集人时与人力投入未报告</strong>。</li>
@@ -809,7 +786,7 @@
         
             <li>
                 <strong>更新于
-                    :</strong> 2026-10-09 16:26:09
+                    :</strong> 2026-10-12 03:15:06
             </li>
         
         <li>
