@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/13/2608.09448v2_vane_reliable_test-time_training_for_vision-language-action_models_via_future_visual_representation_prediction/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="VANE: Reliable Test-Time Training for Vision-Language-Action Models via Future Visual Representation Prediction">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/13/2608.09448v2_VANE_Reliable_Test-Time_Training_for_Vision-Language-Action_Models_via_Future_Visual_Representation_Prediction/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-13T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-12T17:32:38.299Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Test-Time Training">
+<meta property="article:tag" content="未来视觉表征预测">
+<meta property="article:tag" content="机器人操作">
+<meta property="article:tag" content="潜提示优化">
+<meta property="article:tag" content="视觉-语言-动作模型（VLA）">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>VANE: Reliable Test-Time Training for Vision-Language-Action Models via Future Visual Representation Prediction | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">368</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">116</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">VANE: Reliable Test-Time Training for Vision-Language-Action Models via Future Visual Representation Prediction</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-13 12:00</span>
+        <span class="mobile">2026-10-13 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-13 01:32:38</span>
+            <span class="mobile">2026-10-13 01:32:38</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%93%8D%E4%BD%9C/">机器人操作</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%BD%9C%E6%8F%90%E7%A4%BA%E4%BC%98%E5%8C%96/">潜提示优化</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%A7%86%E8%A7%89-%E8%AF%AD%E8%A8%80-%E5%8A%A8%E4%BD%9C%E6%A8%A1%E5%9E%8B%EF%BC%88VLA%EF%BC%89/">视觉-语言-动作模型（VLA）</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Test-Time-Training/">Test-Time Training</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%9C%AA%E6%9D%A5%E8%A7%86%E8%A7%89%E8%A1%A8%E5%BE%81%E9%A2%84%E6%B5%8B/">未来视觉表征预测</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>Hongjin Ji、Guoyang Xia、Luoyang Sun、Fangxiang Feng、Lei Ren（机构：¹The Chinese University of Hong Kong, Shenzhen、²Beijing University of Posts and Telecommunications、³Institute of Automation, Chinese Academy of Sciences、⁴University of Chinese Academy of Sciences、⁵Li Auto Inc.；PDF p.1 脚注：Hongjin Ji&#x2F;Guoyang Xia&#x2F;Luoyang Sun 三人共同一作（Equal contribution），Lei Ren 为项目负责人（Project leader）兼通讯作者（Corresponding author），联系邮箱 <a class="link"   href="mailto:&#x68;&#x6f;&#110;&#103;&#x6a;&#105;&#110;&#106;&#105;&#64;&#x6c;&#105;&#110;&#107;&#x2e;&#x63;&#117;&#x68;&#x6b;&#x2e;&#101;&#x64;&#117;&#46;&#x63;&#x6e;" >&#x68;&#x6f;&#110;&#103;&#x6a;&#105;&#110;&#106;&#105;&#64;&#x6c;&#105;&#110;&#107;&#x2e;&#x63;&#117;&#x68;&#x6b;&#x2e;&#101;&#x64;&#117;&#46;&#x63;&#x6e;<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>）。</p>
+<p>论文：2608.09448v2（v1 提交于 2026-08-10、v2 提交于 2026-08-12，v2 为最新版本；arXiv 摘要页无 comments 字段，未标注任何会议&#x2F;期刊录用信息；粗对两版差异为编辑性修改——新增 VANE 命名说明段、附录 A 符号表扩充与编号调整、补充 MAD 与数值稳定说明，实验与表格数字未变——本报告以 v2 为准）；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-13（Asia&#x2F;Shanghai）。</p>
+<ul>
+<li>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2608.09448v2%EF%BC%88%E5%85%A8%E6%96%87" >https://arxiv.org/abs/2608.09448v2（全文<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2608.09448v2" >https://arxiv.org/html/2608.09448v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2608.09448v2" >https://arxiv.org/pdf/2608.09448v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；项目页&#x2F;代码仓库：论文全文未给出链接，2026-10-13 核查未提供）</li>
+</ul>
+<p>Hugging Face 页面 <a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2608.09448" >https://huggingface.co/papers/2608.09448<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 返回 404（不存在），故不列出。</p>
+<p><strong>分析范围</strong>：以 v2 为准，HTML 与 PDF 双源完整读取。读取范围：HTML 全文（Abstract、§1–§5、References、Eq. 1–14、Algorithm 1、Table 1–9、Fig. 1–2 图注、Appendix A–C）与 PDF 全部 16 页（p.1–11 正文与结论，p.12–14 参考文献，p.14–16 附录与 Algorithm 1；无独立 supplementary）。HTML 与 PDF 交叉核对的关键数字一致：Table 3（63.9&#x2F;68.0&#x2F;68.8&#x2F;71.2）、Table 4（71.7&#x2F;76.7&#x2F;73.6&#x2F;72.4）、Table 5（70.7&#x2F;71.7&#x2F;64.6&#x2F;70.4）、Table 6（16 个格值）、Table 8（67.5&#x2F;67.3&#x2F;69.0）、Table 9（45,824&#x2F;612&#x2F;4,831&#x2F;19.4%）与摘要 “+3.2 percentage points”（PDF p.1）逐项一致；各表 Overall 列由分析者用任务列重算复核（如 Table 3 的 (64.6+97.1+84.9+28.4)&#x2F;4&#x3D;68.8）。材料完整性问题：正文与附录齐全；唯一无法核对的数字是 Fig. 1 面板 (a) 条形图中的 “Task-local stream” 68.5——该条目正文未见定义（§1 只讨论 64.1&#x2F;63.3&#x2F;66.1），条件无法确认。配图来源：全文仅 2 张图（Fig. 1 概览、Fig. 2 注意力分析）；arXiv HTML 原图 URL 返回 404，无法下载原图，两张图均由 v2 PDF 对应页（p.3、p.7）300 dpi 渲染裁取，经 <code>file</code> 校验为非零字节有效 PNG。论文未报告项清单：(1) SimplerEnv 各任务的试验次数、随机种子与置信区间&#x2F;显著性检验（Table 2 的 MMD 是全文唯一带区间的结果）；(2) 训练数据规模、训练步数、学习率与硬件&#x2F;总算力；(3) AGV-TTT 部署的 wall-clock 时延（论文明确”以优化计数代替未经验证的加速比”）；(4) 事件检测器的 precision&#x2F;recall（§4.1.2 自述论文 Fig. 2 为 illustrative，”does not establish detector precision or recall”）；(5) 事件门的绝对&#x2F;稳健阈值数值与 warm-up、cooldown 长度；(6) 关键超参的敏感性&#x2F;消融（未来偏移 k&#x3D;8、λ_wpi&#x3D;0.1、提示库大小 8 与 top-2、验证窗 H_v&#x3D;4、焦点词元数 32）；(7) 真机实验（全部评测在 SimplerEnv 仿真）；(8) 除单提示 QwenWPI 外各变体的触发率&#x2F;接受率统计。</p>
+<p>标签：机器人操作、Test-Time Training、视觉-语言-动作模型（VLA）、潜提示优化、未来视觉表征预测。</p>
+<hr>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>VANE 针对闭环（closed-loop）操作中测试时训练（Test-Time Training，TTT）不可靠的两个来源——单一共享提示（prompt）混合互相冲突的任务修正、在线更新在后果未知前就改变后续动作并污染自身验证数据——把部署期适应改造成三段式协议：上下文路由的潜提示（latent prompt）混合（MoLP）、冻结编码器的未来视觉表征预测目标（WPI）与”注意力事件提议→影子副本→配对未来验证→原子提交&#x2F;回滚”的 AGV-TTT。在 SimplerEnv WidowX 上完整配置比对应 TTT 基线高 3.2 个百分点（71.2% 对 68.0%，Table 3），AGV-TTT 是唯一在全部 4 个受控配置上改善检查点均值成功率的协议（Table 6）；但按受控表拆解，+3.2 中约 2.7 点来自训练期提示结构（同代理未适应基线已达 70.7%），部署期验证的边际增益约 +0.5 点，且全部结果为无方差的点估计、Google Robot 上核心组件普遍不占优（Table 7）——证据只支持”在论文评测协议内小幅且任务依赖的改善”。</p>
+<h2 id="1-论文具体想解决什么问题"><a href="#1-论文具体想解决什么问题" class="headerlink" title="1. 论文具体想解决什么问题"></a>1. 论文具体想解决什么问题</h2><p><strong>背景与任务。</strong> 视觉-语言-动作（Vision-Language-Action，VLA）策略部署到新任务或新视觉环境时通常需要额外示范与反复微调，而机器人部署本身持续产生无标签视觉流。论文的目标是让 TTT——在测试观测上优化自监督目标、只更新一小部分参数 [5]——成为 VLA 部署期可靠的适应机制（§1）。作者把”可靠（reliable）”显式定义为：候选更新被选择性引入，任务干扰或错误在线优化造成的退化被抑制。</p>
+<p><strong>现有方法及其瓶颈。</strong> TTT-VLA 已证明潜提示可以把自监督代理任务接到冻结 VLA 策略上，避免部署期全模型微调（§1、§2.2），但论文在 QwenPi 上的受控研究显示这类更新”跨任务与视觉条件结果不一致：对一个设置有利的更新可能损害另一个设置，未经验证的在线更新可能降低部署中策略的表现”（§1）。作者由此归纳三个设计挑战：(i) 提示适应强任务相关——固定检查点上非适应策略成功率 64.1%，四任务联合优化一个提示降到 63.3%，独立任务提示达 66.1%，说明单一共享提示纠缠了异质且冲突的修正方向，而完全独立提示丢弃跨任务可复用结构（§1、Table 1）；(ii) 代理目标要同时满足”部署可得”与”与策略相关”——论文认为状态接地（state grounding，用当前机器人状态作目标）低维、本体特定、与当前图像同时刻，可以优化却不显式解释交互后视觉场景如何演化（§1）；(iii) 换成未来目标后，有效目标只在延迟观测 o_{t+k} 到达后出现，且”立即部署候选提示会改变产生其后续监督的动作”——更新可能改变之后用来评判它自己的未来观测（§1）。</p>
+<p><strong>支撑问题判断的证据。</strong> §4.1 的三组诊断：(a) 任务共享诊断（Table 1，PDF p.6）——同一提示在不同任务子集上适应后跨任务迁移高度不均，全任务共享提示平均比不适应低 0.8 点，个别列如 Spoon 达 −5.7；(b) 交互转换处的注意力分析（论文 Fig. 2，PDF p.7）——接触&#x2F;闭合与抓取后转换伴随明显的跨层注意力重分布，为”何时提议更新”提供策略内部信号；(c) 视觉表征分布偏移（Table 2，PDF p.8）——以 RT-1&#x2F;Bridge 训练混合为参照（各 1,000 帧，Qwen3-VL 末层图像 token 池化为 2,560 维），WidowX 的 RBF-MMD 为 0.330 [0.326, 0.338]（PCA-95）与 0.348（原始空间），均高于 Google Robot 的 0.262（两个空间）。论文明确这些观察只作动机与背景，”不视为方法有效性的直接证明”（§4 引言）。</p>
+<p><strong>作者归因与核心假设。</strong> 作者把不可靠归因于三点（作者主张）：共享适应空间混合冲突修正、同时刻状态代理不解释交互结果、在线更新与其自身验证数据存在闭环耦合。核心假设：如果 (1) 适应空间按当前视觉-语言上下文路由、(2) 目标改为预测动作条件化的未来视觉表征、(3) 候选更新在影子副本上产生且只在未来观测证据支持时提交，则 TTT 在异质任务与闭环交互下变得可靠（选择性且可撤销）。验证方式是双基准上的因子化受控实验（Table 6–7）与验证消融（Table 8）。</p>
+<p><strong>问题边界。</strong> “分布偏移下需要适应”是领域既有问题；本文的新观察是”潜提示 TTT 的任务相关干扰”与”在线更新对自身验证数据的闭环污染”，并把可靠性操作化为”提议–验证–提交”协议。验证范围限定在 SimplerEnv 仿真、QwenPi&#x2F;QwenWPI 骨干与成功率指标；未做真机，未研究离线数据规模或更长任务时程。</p>
+<h2 id="2-创新点是什么"><a href="#2-创新点是什么" class="headerlink" title="2. 创新点是什么"></a>2. 创新点是什么</h2><p>总括：本文的技术增量有三块——把”单一共享潜提示”换成上下文路由的稀疏混合（MoLP）、把部署期代理从状态接地换成冻结编码器的未来视觉表征预测（WPI）、以及把”每个有效对都更新并立即部署”换成事件门控的”影子提议→配对未来验证→原子提交&#x2F;回滚”（AGV-TTT）。前两者是已有组件（MoE 式路由、V-JEPA 式潜空间预测）在 VLA 测试时适应中的新组合与位置迁移；第三块最有辨识度，是把”更新与其验证数据的因果隔离”显式机制化的新协议。</p>
+<p><strong>1) MoLP（§3.2）。</strong> 新增 8 分量潜提示库（[8,16,1024]）与线性路由器：以 VLM 末层最后一个有效 token 为上下文，softmax + top-2 稀疏组合出有效提示 p_t，无需任务标识符；训练期与动作&#x2F;代理目标联合训练（含负载均衡 load balancing 项），测试期路由器冻结、只更新提示库。与最接近的 TTT-VLA（单一潜提示）的差异是”固定共享 → 上下文路由组合”，属已有思想的新组合。对应 §1 挑战 (i)；证据指向 §4.2.3 与 Table 1（局限核对见 §4.3）。</p>
+<p><strong>2) WPI &#x2F; QwenWPI（§3.3）。</strong> 保留 QwenPi 动作策略与 VLM，只把状态接地代理分支替换为：以 [路由提示 | 当前视觉潜变量 | 含噪动作 token] 为查询，经共享自注意力由当前视觉槽预测延迟观测的冻结 V-JEPA 2 表征，损失 L_wpi&#x3D;‖Ẑ_{t+k}−sg(Z_{t+k})‖²_F&#x2F;(NC)（Eq. 5）。与 TTT-VLA 的状态代理、与 V-JEPA 2&#x2F;预测式 VLA（把未来预测用于预训练或联合动作学习）的差异是：目标编码器与策略全冻结、未来潜表征只作部署期 prompt-only TTT 目标——属已有组件的”使用位置”创新。对应 §1 挑战 (ii)；证据：§4.2.3 的 8 组匹配对比（WidowX 全胜、Google Robot 全败）。</p>
+<p><strong>3) AGV-TTT（§3.4）。</strong> 新增完整部署协议：用动作→VLM 与动作→预测潜变量两路注意力的跨层时变做内生事件检测；事件时在影子副本上做一步 AdamW 提议；随后在 H_v&#x3D;4 个配对观测上以相同随机性评估新旧提示，要求焦点损失改进、全局损失不退化且多数配对占优（Eq. 8）才原子提交提示库与优化器状态，否则回滚。与 Online TTT 的差异是”提议与部署分离、候选绝不接触实时控制”，属新的研究思想。对应 §1 挑战 (iii)；证据：§4.2.4 验证消融（+1.7 点）与 §4.2.5 成本表。</p>
+<p><strong>什么不算创新。</strong> QwenPi 骨干与 StarVLA-α 框架、流匹配动作目标、V-JEPA 2 编码器、AdamW prompt-only 优化、负载均衡损失、TTT-VLA 的潜提示可见性掩码（Appendix B 注明继承 [6]）均为已有组件；Table 1&#x2F;2 属诊断贡献而非方法；”首个把验证门控引入 VLA TTT”式的首次性未经独立文献检索，只能确认作者声称的差异。</p>
+<h2 id="3-作者如何解决"><a href="#3-作者如何解决" class="headerlink" title="3. 作者如何解决"></a>3. 作者如何解决</h2><p>先讲直觉：VANE 把 TTT 从”每个自监督信号都马上学、学完马上用”改成”只在值得改的时候、在隔离的副本上改，等未来观测作证后再决定是否上线”。三个模块分别回答：改什么（MoLP——在结构化提示空间里按当前视觉-语言上下文组合修正）、用什么信号改（WPI——用延迟观测的冻结视觉表征做无标签目标）、什么时候改与是否上线（AGV-TTT——注意力重分布提议、未来证据裁决）。三个模块如何串成一条管线见 图 1。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2608.09448_fig1_vane_overview.png"
+                      alt="图 1：VANE 总体框架"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1，v2 PDF 第 3 页 300 dpi 渲染）：(a) 左侧条形图是任务相关提示修正的诊断（No TTT 64.1、Shared prompt 63.3、Per-task prompts 66.1，另有一条正文未定义条件的 “Task-local stream” 68.5）；下方 MoLP 机制示意——指令 “Stack the Green block” 与观测经冻结骨干得到上下文 c_t，Context Router 在共享提示库 P1–P8 上做 top-2 路由并加权求和为混合潜提示 p_t 注入动作专家，底部注明”无需任务 ID；测试时路由器冻结、提示库更新”。(b) 上半部对比两种部署可得的代理：状态接地即时但低维、本体特定、与图像同时刻，WPI 用延迟观测提供跨时间、动作条件化的交互结果监督；下半部是 WPI 机制（test time）——当前观测经冻结 V-JEPA 2 得 z_t，与提示 token、含噪动作 token 一起进 WPI DiT 预测 ẑ_{t+k}，用未来观测的 z_{t+k} 监督（预测潜表征而非 RGB 像素），尾注”后续观测提供自监督，无需奖励或专家动作”。(c) 上半部是”接近→临界转换→抓取后”阶段的注意力模式与事件分数曲线（relatively stable→peak event→new stable state），下半部是 AGV-TTT 部署时间线：① 用 P_old 正常生成动作；② 检测到注意力事件；③ 在影子副本上做一步 prompt-only 更新得 P_cand（实时提示不受影响）；④ 采集后续真实观测；⑤ 以相同未来对&#x2F;焦点 token&#x2F;采样噪声对比 P_old 与 P_cand 的代理损失；⑥ 依据”焦点损失改进？全局不退化？多数配对占优？”决定提交（Yes：部署 P_cand 与优化器状态）或回滚，收尾语”注意力决定何时提议；未来证据决定是否提交”。这张图把 §3 主干串成”改什么（a）→ 用什么信号（b）→ 何时改&#x2F;是否上线（c）”的完整链路，下面按此顺序展开。</p>
+<p><strong>1) 输入与主体（§3.1）。</strong> 每个控制步输入 RGB 观测 o_t 与语言指令 ℓ；QwenPi 策略在有效潜提示 p_t 条件下预测动作块 Â_t ∈ R^{16×7}（16 步 × 7 维），即 Â_t &#x3D; π_Θ(o_t, ℓ; p_t)（Eq. 1）。有效潜提示是部署期唯一被更新的参数——策略、路由器与预测模块全部冻结——这是”受约束、可验证、可撤销”适应过程的落点（§3.1）。</p>
+<p><strong>2) MoLP：组成任务相关提示（§3.2，论文提出）。</strong> 维护全局潜提示库 P&#x3D;{P_i}（E&#x3D;8，形状 [8,16,1024]，各分量独立初始化自 N(0,0.02²)）。取 VLM 最终投影表征的最后一个有效 token 作为上下文 c_t（它同时概括当前图像与指令），线性路由器给出选择概率并取 top-2：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>q</mi><mi>t</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">m</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">x</mi></mrow><mo stretchy="false">(</mo><msub><mi>W</mi><mi>r</mi></msub><msub><mi>c</mi><mi>t</mi></msub><mo>+</mo><msub><mi>b</mi><mi>r</mi></msub><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="2em"/><msub><mi mathvariant="script">S</mi><mi>t</mi></msub><mo>=</mo><mrow><mi mathvariant="normal">T</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">K</mi></mrow><mo stretchy="false">(</mo><msub><mi>q</mi><mi>t</mi></msub><mo separator="true">,</mo><mi>K</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="2em"/><msub><mi>p</mi><mi>t</mi></msub><mo>=</mo><munder><mo>∑</mo><mrow><mi>i</mi><mo>∈</mo><msub><mi mathvariant="script">S</mi><mi>t</mi></msub></mrow></munder><mfrac><msub><mi>q</mi><mrow><mi>t</mi><mo separator="true">,</mo><mi>i</mi></mrow></msub><mrow><munder><mo>∑</mo><mrow><mi>j</mi><mo>∈</mo><msub><mi mathvariant="script">S</mi><mi>t</mi></msub></mrow></munder><msub><mi>q</mi><mrow><mi>t</mi><mo separator="true">,</mo><mi>j</mi></mrow></msub></mrow></mfrac><msub><mi>P</mi><mi>i</mi></msub><mspace width="2em"/><mo stretchy="false">(</mo><mn>3</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">q_t=\mathrm{softmax}(W_r c_t+b_r),\qquad \mathcal{S}_t=\mathrm{TopK}(q_t,K),\qquad p_t=\sum_{i\in\mathcal{S}_t}\frac{q_{t,i}}{\sum_{j\in\mathcal{S}_t}q_{t,j}}P_i \qquad (3)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">softmax</span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">W</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">b</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">r</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.075em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">TopK</span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.502em;vertical-align:-1.3944em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.8557em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">∈</span><span class="mord mtight"><span class="mord mathcal mtight" style="margin-right:0.075em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2963em;"><span style="top:-2.357em;margin-left:-0.075em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.3944em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.1076em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1786em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span><span class="mrel mtight">∈</span><span class="mord mtight"><span class="mord mathcal mtight" style="margin-right:0.075em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2963em;"><span style="top:-2.357em;margin-left:-0.075em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.4358em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">i</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.1218em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:2em;"></span><span class="mopen">(</span><span class="mord">3</span><span class="mclose">)</span></span></span></span></span>
+<p>为什么这样设计：Table 1 显示单共享提示互相干扰、完全独立提示丢共享结构，路由组合在二者间取折中；库不按任务或本体分区，相关任务复用分量，不同视觉-语言上下文组合出不同提示。路由权重每个控制观测重算一次，并在该次动作块的全部流匹配（flow matching）迭代内保持不变；测试时路由器冻结，保证适应空间紧凑可控（固定流程）。</p>
+<p><strong>3) WPI：未来视觉表征预测作目标（§3.3，论文提出）。</strong> 冻结的 V-JEPA 2 编码器 f_ω 分别对当前与延迟观测提特征 Z_t&#x3D;f_ω(o_t)、Z_{t+k}&#x3D;f_ω(o_{t+k})（k&#x3D;8）。把路由提示、当前视觉潜变量与含噪动作 token 拼成查询，三者经共享自注意力交换信息（视觉与动作 token 双向交互、使用独立前馈分支），当前视觉槽直接解码未来表征 Ẑ_{t+k}：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msubsup><mi>Q</mi><mi>τ</mi><mrow><mo stretchy="false">(</mo><mn>0</mn><mo stretchy="false">)</mo></mrow></msubsup><mo>=</mo><mrow><mo fence="true">[</mo><msub><mi>p</mi><mi>t</mi></msub><mo>∣</mo><msub><mi>E</mi><mi>z</mi></msub><mo stretchy="false">(</mo><msub><mi>Z</mi><mi>t</mi></msub><mo stretchy="false">)</mo><mo>∣</mo><msub><mi>E</mi><mi>a</mi></msub><mo stretchy="false">(</mo><msub><mi>A</mi><mi>τ</mi></msub><mo separator="true">,</mo><mi>τ</mi><mo stretchy="false">)</mo><mo fence="true">]</mo></mrow><mspace width="2em"/><mo stretchy="false">(</mo><mn>4</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">Q_\tau^{(0)}=\left[p_t \mid E_z(Z_t) \mid E_a(A_\tau,\tau)\right] \qquad (4)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.185em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal">Q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.938em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mtight">0</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;">[</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.044em;">z</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">a</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mclose">)</span><span class="mclose delimcenter" style="top:0em;">]</span></span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mopen">(</span><span class="mord">4</span><span class="mclose">)</span></span></span></span></span>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">w</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">i</mi></mrow></msub><mo>=</mo><mfrac><mn>1</mn><mrow><mi>N</mi><mi>C</mi></mrow></mfrac><msubsup><mrow><mo fence="true">∥</mo><msub><mover accent="true"><mi>Z</mi><mo>^</mo></mover><mrow><mi>t</mi><mo>+</mo><mi>k</mi></mrow></msub><mo>−</mo><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">g</mi></mrow><mo stretchy="false">(</mo><msub><mi>Z</mi><mrow><mi>t</mi><mo>+</mo><mi>k</mi></mrow></msub><mo stretchy="false">)</mo><mo fence="true">∥</mo></mrow><mi>F</mi><mn>2</mn></msubsup><mspace width="2em"/><mo stretchy="false">(</mo><mn>5</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{L}_{\mathrm{wpi}}=\frac{1}{NC}\left\|\hat{Z}_{t+k}-\mathrm{sg}(Z_{t+k})\right\|_F^2 \qquad (5)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">wpi</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.0537em;vertical-align:-0.6997em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">N</span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="minner"><span class="mopen"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.15em;"><span style="top:-3.15em;"><span class="pstrut" style="height:3.8em;"></span><span style="width:0.556em;height:1.8em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.556em" height="1.8em" viewBox="0 0 556 1800"><path d="M145 15 v585 v600 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v-600 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v600 v585 h43z
+M367 15 v585 v600 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v-600 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v600 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.65em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9468em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span></span><span style="top:-3.2523em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1667em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathrm" style="margin-right:0.0139em;">sg</span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">Z</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mclose"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.15em;"><span style="top:-3.15em;"><span class="pstrut" style="height:3.8em;"></span><span style="width:0.556em;height:1.8em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.556em" height="1.8em" viewBox="0 0 556 1800"><path d="M145 15 v585 v600 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v-600 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v600 v585 h43z
+M367 15 v585 v600 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v-600 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v600 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.65em;"><span></span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.354em;"><span style="top:-2.0003em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">F</span></span></span><span style="top:-3.6029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.6997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mopen">(</span><span class="mord">5</span><span class="mclose">)</span></span></span></span></span>
+<p>为什么：延迟观测同样无标签可得，但目标跨时间且以动作（含噪动作 token）为条件，迫使提示解释”动作导致的视觉变化”而非重建当前内容；用冻结编码器的潜表征而非像素，避免生成模型负担。论文特别声明 QwenWPI 不是独立世界模型、也不替换动作策略（§1）。</p>
+<p><strong>4) AGV-TTT：三步部署协议（§3.4，论文提出）。</strong> (a) <strong>内生事件检测</strong>——实时提示正常生成 a_t 的同时收集两路注意力（动作→VLM、动作→预测潜变量）；对通道 c、去噪步 u、DiT 层 l 的归一化注意力 a，聚合相邻控制步的 L1 时变：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msubsup><mi mathvariant="normal">Δ</mi><mi>t</mi><mi>c</mi></msubsup><mo>=</mo><mfrac><mn>1</mn><mrow><mi mathvariant="normal">∣</mi><mi mathvariant="script">U</mi><mi mathvariant="normal">∣</mi><mi mathvariant="normal">∣</mi><mi mathvariant="script">L</mi><mi mathvariant="normal">∣</mi></mrow></mfrac><munder><mo>∑</mo><mrow><mi>u</mi><mo separator="true">,</mo><mi>l</mi></mrow></munder><mfrac><mn>1</mn><mn>2</mn></mfrac><msub><mrow><mo fence="true">∥</mo><msubsup><mi>a</mi><mrow><mi>t</mi><mo separator="true">,</mo><mi>u</mi><mo separator="true">,</mo><mi>l</mi></mrow><mi>c</mi></msubsup><mo>−</mo><msubsup><mi>a</mi><mrow><mi>t</mi><mo>−</mo><mn>1</mn><mo separator="true">,</mo><mi>u</mi><mo separator="true">,</mo><mi>l</mi></mrow><mi>c</mi></msubsup><mo fence="true">∥</mo></mrow><mn>1</mn></msub><mspace width="2em"/><mo stretchy="false">(</mo><mn>6</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\Delta_t^c=\frac{1}{|\mathcal{U}||\mathcal{L}|}\sum_{u,l}\frac{1}{2}\left\|a_{t,u,l}^c-a_{t-1,u,l}^c\right\|_1 \qquad (6)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9614em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord">Δ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.7597em;vertical-align:-1.4382em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">∣</span><span class="mord mathcal" style="margin-right:0.0993em;">U</span><span class="mord">∣∣</span><span class="mord mathcal">L</span><span class="mord">∣</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.8479em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">u</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0197em;">l</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.4382em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">2</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="minner"><span class="mopen"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.85em;"><span style="top:-2.85em;"><span class="pstrut" style="height:3.2em;"></span><span style="width:0.556em;height:1.2em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.556em" height="1.2em" viewBox="0 0 556 1200"><path d="M145 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z
+M367 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">u</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0197em;">l</span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3831em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">−</span><span class="mord mtight">1</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">u</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0197em;">l</span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3831em;"><span></span></span></span></span></span></span><span class="mclose"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.85em;"><span style="top:-2.85em;"><span class="pstrut" style="height:3.2em;"></span><span style="width:0.556em;height:1.2em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.556em" height="1.2em" viewBox="0 0 556 1200"><path d="M145 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z
+M367 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.0183em;"><span style="top:-2.2672em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.4328em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mopen">(</span><span class="mord">6</span><span class="mclose">)</span></span></span></span></span>
+<p>再按滚动历史做稳健标准化，其中 MAD 指中位数绝对偏差（median absolute deviation，对最近历史离散度的稳健估计）：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msubsup><mi>r</mi><mi>t</mi><mi>c</mi></msubsup><mo>=</mo><mfrac><mrow><msubsup><mi mathvariant="normal">Δ</mi><mi>t</mi><mi>c</mi></msubsup><mo>−</mo><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">n</mi></mrow><mo stretchy="false">(</mo><msubsup><mi mathvariant="script">H</mi><mi>t</mi><mi>c</mi></msubsup><mo stretchy="false">)</mo></mrow><mrow><mi>max</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>1.4826</mn><mtext> </mtext><mrow><mi mathvariant="normal">M</mi><mi mathvariant="normal">A</mi><mi mathvariant="normal">D</mi></mrow><mo stretchy="false">(</mo><msubsup><mi mathvariant="script">H</mi><mi>t</mi><mi>c</mi></msubsup><mo stretchy="false">)</mo><mo separator="true">,</mo><mi>ϵ</mi><mo stretchy="false">)</mo></mrow></mfrac><mspace width="2em"/><mo stretchy="false">(</mo><mn>12</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">r_t^c=\frac{\Delta_t^c-\mathrm{median}(\mathcal{H}_t^c)}{\max(1.4826\,\mathrm{MAD}(\mathcal{H}_t^c),\epsilon)} \qquad (12)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9614em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-2.453em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.363em;vertical-align:-0.936em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mop">max</span><span class="mopen">(</span><span class="mord">1.4826</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm">MAD</span></span><span class="mopen">(</span><span class="mord"><span class="mord mathcal" style="margin-right:0.0097em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6462em;"><span style="top:-2.4542em;margin-left:-0.0097em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.0448em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2458em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">ϵ</span><span class="mclose">)</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord">Δ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathrm">median</span></span><span class="mopen">(</span><span class="mord"><span class="mord mathcal" style="margin-right:0.0097em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.453em;margin-left:-0.0097em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:2em;"></span><span class="mopen">(</span><span class="mord">12</span><span class="mclose">)</span></span></span></span></span>
+<p>两路通道任一同时超过绝对与稳健阈值即触发事件（另有 warm-up、冷却与单候选守卫抑制启动噪声与重叠提议；阈值数值未报告，Appendix C）。因为检测发生在 a_t 生成之后，事件无法追溯影响触发它的动作。(b) <strong>影子提议</strong>——用动作→预测潜变量注意力挑出 top-32 高关注视觉 token 并归一化权重 F_{t,n}，以焦点损失 L_focus,t&#x3D;Σ F_{t,n} e_{t,n}（e 为逐 token 未来预测误差，Eq. 7）在提示库的<strong>影子副本（shadow copy）</strong>上做一步 AdamW（lr 1e-7），随即恢复实时提示与优化器状态——候选在验证前不可能影响控制；焦点索引与权重从事件帧注意力冻结、整个周期复用。(c) <strong>配对未来验证与原子提交</strong>——在随后 H_v&#x3D;4 个有效 WPI 对上，新旧提示以完全相同的输入、焦点权重、高斯动作噪声与流时间评估（CPU&#x2F;CUDA 随机状态逐分支重置；因无专家动作可比，两条分支都用同一零动作锚点，只比较未来潜表征预测误差）。接受条件为：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>R</mi><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">s</mi></mrow></msub><mo>&gt;</mo><mn>0</mn><mo separator="true">,</mo><mspace width="2em"/><msub><mi>R</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">b</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msub><mo>≥</mo><mn>0</mn><mo separator="true">,</mo><mspace width="2em"/><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><msub><mi>H</mi><mi>v</mi></msub></munderover><mi mathvariant="double-struck">I</mi><mtext> ⁣</mtext><mrow><mo fence="true">[</mo><msubsup><mi>R</mi><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">s</mi></mrow><mrow><mo stretchy="false">(</mo><mi>j</mi><mo stretchy="false">)</mo></mrow></msubsup><mo>&gt;</mo><mn>0</mn><mo fence="true">]</mo></mrow><mo>&gt;</mo><mfrac><msub><mi>H</mi><mi>v</mi></msub><mn>2</mn></mfrac><mspace width="2em"/><mo stretchy="false">(</mo><mn>8</mn><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">R_{\mathrm{focus}}&gt;0,\qquad R_{\mathrm{global}}\ge 0,\qquad \sum_{j=1}^{H_v}\mathbb{I}\!\left[R_{\mathrm{focus}}^{(j)}&gt;0\right]&gt;\frac{H_v}{2} \qquad (8)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0077em;">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0077em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">focus</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0077em;">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0077em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">global</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≥</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:3.2532em;vertical-align:-1.4138em;"></span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8394em;"><span style="top:-1.8723em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3111em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1645em;"><span style="top:-2.357em;margin-left:-0.0813em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.4138em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathbb">I</span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size2">[</span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0077em;">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.3987em;margin-left:-0.0077em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">focus</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3013em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord">0</span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size2">]</span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.0463em;vertical-align:-0.686em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3603em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">2</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathnormal" style="margin-right:0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0813em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:2em;"></span><span class="mopen">(</span><span class="mord">8</span><span class="mclose">)</span></span></span></span></span>
+<p>其中 R_x 是两分支平均损失的相对改进（Eq. 14）。接受则提示库与优化器状态一起原子提交，否则全部丢弃；前 H_v−1 个验证帧的动作仍用旧提示，最后一对在当帧动作生成前结算——保证”提议数据→验证证据→部署”的因果分离。Algorithm 1（PDF p.16）给出完整部署循环。</p>
+<p><strong>5) 训练阶段与部署期协议（§3.1、Appendix B）。</strong> 机器数据训练在 Bridge 与 RT-1 上等概率联合采样，同时学策略、提示库与路由器，目标 L_train&#x3D;L_act+0.1L_wpi+0.01L_lb（Eq. 2、Eq. 11），其中 L_act 是标准流匹配目标（A_τ&#x3D;(1−τ)A_0+τA_1，τ&#x3D;(η−u)&#x2F;η，η&#x3D;0.999，u~Beta(1.5,1.0)，回归速度 A_1−A_0，Eq. 9–10）。一条从 TTT-VLA 继承的可见性设计：动作查询→提示键的直接连接在提示学习时被掩码、在策略推理与 prompt-only TTT 时恢复，以免动作分支过早依赖提示（Appendix B）。部署期三种 TTT 协议：Offline 在套件缓冲上做提示-only AdamW（lr 1e-5、batch 64），WidowX 500 步&#x2F;Google Robot 1000 步后固定；Online 每来一个有效 WPI 对做 1 步 batch-1、lr 1e-7 更新并立即部署；AGV 只在事件时提议并经验证后提交。全提示库注册为单个 AdamW 参数，衰减与历史矩对全库维护，因此提交&#x2F;回滚必须连优化器状态一起快照（Appendix B）。</p>
+<p><strong>模型决策 vs 固定流程。</strong> 训练决定：策略参数、提示库内容、路由器、WPI 预测头；部署期数据驱动”决策”：提示库在哪次事件被改动、验证是否通过。固定流程：冻结的 top-2 路由、k&#x3D;8 预测目标、注意力时变的稳健归一化与双阈值门、top-32 焦点构造、H_v&#x3D;4 与零容忍边际的接受规则、影子副本即时恢复与原子提交、episode 内无法完成验证的候选直接丢弃（Appendix C）。状态接地基线（QwenPi+MoLP+AGV-TTT）用三对多数验证与 1e-6 接受边际，是 AGV 抽象迁移到另一代理的对照（Appendix C）。</p>
+<p><strong>最终输出。</strong> 部署期唯一被在线改写的是潜提示库；策略以路由提示产生的动作块 Â_t（16 步 × 7 维）控制机器人，经 SimplerEnv 自适应时序集成（adaptive temporal ensemble，合并重叠动作块）执行首动作后重规划。</p>
+<h2 id="4-解决得怎么样"><a href="#4-解决得怎么样" class="headerlink" title="4. 解决得怎么样"></a>4. 解决得怎么样</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><ul>
+<li><strong>任务与基准（§4.2.1）</strong>：全部在 SimplerEnv 两个套件。WidowX 四任务——Stack Green Cube on Yellow Cube、Put Carrot on Plate、Put Spoon on Table Cloth、Put Eggplant in Basket；Google Robot 四任务族——Pick Coke Can、Move Near、Open&#x2F;Close Drawer、Put in Drawer，分别在视觉匹配（visual matching，VM）与变体聚合（variant aggregation，VA）设定下评测。每控制步用基准的自适应时序集成合并重叠动作块、只执行首动作。WidowX Overall 为四任务非加权平均；Google Overall 由任务族-设定分数重算。</li>
+<li><strong>模型与检查点</strong>：全部变体共享同一 QwenPi 骨干（Qwen 系 VLM + 流匹配动作头，按 StarVLA-α 构建）与训练配方（Bridge+RT-1 等概率联合训练）；结果平均自连续 50K&#x2F;60K&#x2F;70K&#x2F;80K 四个检查点，且”评估成功率从不用于检查点选择”。</li>
+<li><strong>基线（Table 3–5）</strong>：公开对比沿用 TTT-VLA 的对照行（RT-1-X、OpenVLA、Octo、π0、CogACT、ThinkAct、TTT-VLA 等，数值取自 TTT-VLA 论文、未重跑）；另有同骨干匹配行——SG-LP（状态接地单提示）+TTT、MoLP+AGV-TTT（状态侧完整配置）、QwenWPI 的 FP-LP+TTT 与 MoLP+AGV-TTT。论文明确：SG-LP+TTT→MoLP+AGV-TTT 同时改变提示结构与更新协议，是端到端对比；跨系统对比还改变骨干与训练数据，不能归因单一组件（§4.2.2）。</li>
+<li><strong>协议记号</strong>：No TTT（不适应）&#x2F; Offline TTT（缓冲上批量适应后固定）&#x2F; Online TTT（每个有效对当即更新部署）&#x2F; AGV-TTT（事件提议+验证提交）；公开对比表中的 TTT 未特别说明时按 TTT-VLA 的 Offline 协议。</li>
+<li><strong>指标</strong>：任务成功率（success rate，%）；另有诊断性 MMD（Table 2）与优化计数（Table 9）。</li>
+<li><strong>公平性条件</strong>：各方法枚举相同的初始条件规格，但”不强制方法间共随机数（common-random-number）rollout 协议”（§4.2.1）；每任务试验数与种子数未报告；成功率点估计来自四个检查点平均。</li>
+<li><strong>各实验回答什么</strong>：Table 1 诊断任务干扰动机；Table 2 描述两套件相对训练混合的表征偏移（作者强调不用于预测增益）；Table 3–5 与既有策略&#x2F;匹配基线比较；Table 6–7 因子化组件归因（代理×提示结构×协议）；Table 8 单独隔离”未来验证”；Table 9 优化成本。</li>
+</ul>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p><strong>WidowX（Table 3，PDF p.9，成功率 %）</strong>：完整 VANE（QwenWPI+MoLP+AGV-TTT）Overall 71.2；对应 TTT 基线 QwenWPI+FP-LP+TTT 68.0（+3.2，即摘要数字；§4.2.2 原文亦写作 68.0%→71.2%）；状态接地侧端到端对比 QwenPi+SG-LP+TTT 63.9 → QwenPi+MoLP+AGV-TTT 68.8（+4.9）；公开对照中最强的现有方法 TTT-VLA 为 67.4，被超 3.8 点（跨系统，论文自述不可归因）。任务级：QwenPi+MoLP+AGV-TTT 的 Spoon 84.9 为全表最高；VANE 配置的 Cube 44.3 低于 TTT-VLA 的 48.0（但高于 SG-LP+TTT 的 18.2）。</p>
+<p><strong>Google Robot 三任务族（Table 4，PDF p.9，六项 Overall）</strong>：QwenPi 族 71.7→76.7（+5.0）；QwenWPI 族 73.6→72.4（−1.2，负增益）。论文最强变体 76.7 比 TTT-VLA 66.3 高 10.4 点，但属跨系统差异。原文结论：”future-predictive prompting is not uniformly superior across this restricted task aggregation”（§4.2.2）。</p>
+<p><strong>Google Robot 四任务全表（Table 5，PDF p.10，八项 Overall）</strong>：加入 Put in Drawer 后 QwenPi 族 70.7→71.7（+1.0）、QwenWPI 族 64.6→70.4（+5.8，其中 Put in Drawer 从 VM&#x2F;VA 19.0&#x2F;56.0 提到 58.8&#x2F;70.4）。同表也暴露平均掩盖的差异：QwenPi 族在 Put in Drawer 上 MoLP+AGV（60.2&#x2F;52.9）反而远低于 SG-LP+TTT（72.0&#x2F;63.4），靠其他三个任务族拉回 Overall。作者据此把 Google 结果定位为”边界与适用范围测试”，而非普遍优越的证据（§4.2.2）。</p>
+<p><strong>受控对比（WidowX，Table 6，PDF p.10）</strong>：WPI–MoLP+AGV 最强 71.2；MoLP 在固定代理与协议下改善每个单提示行（状态 +2.9～+4.2、WPI +1.4～+3.2 点）；WPI 在 8&#x2F;8 匹配对中胜过状态接地（No TTT 列已含 +3.2）；AGV 是唯一对全部 4 行都超过各自 No TTT 的协议（+1.6&#x2F;+1.3&#x2F;+1.5&#x2F;+0.5），相对 Online TTT 为 +1.2&#x2F;+1.0&#x2F;+1.5&#x2F;+0.9。<strong>关键拆解</strong>：WPI–MoLP 的 No TTT 已达 70.7，比 68.0 的对应 TTT 基线高 2.7——摘要 +3.2 的大头在部署期优化之前就已存在；论文自己指出”WPI 的绝对优势有相当部分在部署期优化前就有，且改善相对各自基线的增量仍依赖协议”（§4.2.3）。</p>
+<p><strong>受控对比（Google Robot，Table 7，PDF p.10）</strong>：排序翻转——最强是状态接地单提示（No TTT 73.6，Online&#x2F;AGV 74.0）；WPI 八个匹配对全部低于状态接地；AGV 改善两个 WPI 行（64.2→65.3、70.1→70.4）与状态单行（73.6→74.0），但让状态 MoLP 从 72.3 降到 71.7。论文结论：”组件收益在 WidowX 上比 Google Robot 更一致。”</p>
+<p><strong>验证消融（Table 8，PDF p.11）</strong>：单提示 QwenWPI 上 Online TTT 67.5、Event+Accept-All（同事件检测与影子提议，但无条件提交每个完成的候选）67.3、AGV-TTT 69.0——事件稀疏本身不解释增益，”未来验证”贡献 1.7 点（§4.2.4）。</p>
+<p><strong>优化成本（Table 9，PDF p.11）</strong>：AGV-TTT 每检查点评估平均 612 次候选反向传播 vs Online TTT 45,824 次（触发率 1.3%、减少 98.7%、约 75×），另有 4,831 次只前向的配对验证；候选接受率 19.4%；同一对比成功率 67.5→69.0。</p>
+<p><strong>未提升&#x2F;负面项</strong>：Google Robot 上 WPI 0&#x2F;8、MoLP 对状态接地无效（状态 MoLP 行整体低于状态单行）、完整 VANE 非最强；AGV 对 WPI–MoLP 相对其 No TTT 仅 +0.5；Table 5 的 Put in Drawer 在 QwenPi 族上反向。<strong>缺方差</strong>：除 Table 2（episode 级 bootstrap 500 次）外所有成功率均为点估计，无置信区间、无种子数、无显著性检验。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>论文的证据分级较清楚：§4.1 的诊断自述”不作为方法有效性的直接证明”；机制证据主要来自 Table 6–8 的受控对比。而用于支持 AGV 提议时点的注意力证据只有单次 rollout 的可视化（图 2 即该分析），论文明确其为 illustrative、”does not establish detector precision or recall”（§4.1.2）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2608.09448_fig2_attention_transitions.png"
+                      alt="图 2：交互转换处的注意力重分布"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 2，v2 PDF 第 7 页 300 dpi 渲染）：(a) 一次 Stack Blocks rollout 在 5 个时刻（Approach t&#x3D;13、Alignment t&#x3D;22、Contact&#x2F;close t&#x3D;30、Post-grasp t&#x3D;43、Lift t&#x3D;50）的 RGB 观测（上排）与动作查询→VLM 图像块注意力图（下排，同一 episode 级色标，暖色表示注意力集中）——接触&#x2F;闭合与抓取后组织变化最明显，说明”交互转换时刻”确实伴随注意力重分布。(b) 全部 36 层 DiT 上动作→VLM 注意力分布的跨层时变热图（横轴控制步、纵轴 DiT 层、色标 Mean attention TV 0.05–0.30），白色虚线标出标注的转换时刻，亮带集中在接触区与抓取后。(c) 对层取平均的注意力时变曲线（虚线为 “peak event”&#x2F;稳定态标注），峰值出现在接触前后、随后回落。读图要点：论文用”整条注意力分布的时变”而非”最大空间响应位置”作为事件分数；这张图提供了提议时点的动机，但不构成检测器精度证据——这正是 §5”事件门没有定量验证”一项质疑的起点。</p>
+<ul>
+<li><strong>对 §2 创新点逐一核对</strong>：创新 1（MoLP）——Table 1 说明动机存在，Table 6 给出 WidowX 全行改善与 Google 不一致（状态 MoLP 反而更差）；无提示库大小 E&#x3D;8&#x2F;top-2 的消融或替换（如单一 MoE 前馈）对照，”路由机制不可替代”未直接隔离；且 No TTT 列已显示路由结构改变训练结果，收益部分来自训练期容量而非部署期适应。创新 2（WPI）——8&#x2F;8 匹配对占优但 No TTT 已含 +3.2，Google 全负；无 k&#x3D;8、编码器选择（V-JEPA 2 是否必要）或潜表征&#x2F;像素目标对照，”未来预测优于状态接地”只在 WidowX 受限成立。创新 3（AGV）——Table 8 用 Accept-All 隔离了”验证”的必要性（1.7 点），Table 9 进一步排除”只是更新更少”的部分解释（Accept-All 更新更少却更差，AGV 最优）；但事件检测器本身无 precision&#x2F;recall 评估，H_v&#x3D;4、阈值、top-32 均无敏感性分析，接受率 19.4% 只在一个变体上报告。</li>
+<li><strong>替代解释的排除程度</strong>：检查点选择、初始条件噪声（无共随机数）、每任务试验量等均无统计刻画，成功率的提升无法排除这些因素；组件归因靠 Table 6–7 的因子设计部分实现，但训练期容量效应与部署期适应混合在 No TTT 列中，未被完全拆开。</li>
+</ul>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><ul>
+<li><strong>训练成本</strong>：论文未报告（数据规模、训练步数、硬件、总算力均无）；提示库仅 8×16×1024（分析者计算约 13.1 万参数），但 WPI&#x2F;VLM&#x2F;流匹配的联合训练开销未知。</li>
+<li><strong>推理与部署成本</strong>：AGV 相对 Online 把反向次数从 45,824 降到 612&#x2F;检查点评估（98.7%、约 75×），替代代价是 4,831 次只前向的配对验证与事件检测（两路注意力统计 + 稳健归一化）。论文明确不报告 wall-clock 时延，也不把计数换算成”未经验证的加速比”（§4.2.5）；V-JEPA 2 前向、影子副本与优化器状态的快照&#x2F;回滚开销均未量化。候选接受率仅 19.4%，未通过验证的候选被整体丢弃（含已消耗的验证前向）。</li>
+<li><strong>人工与外部依赖</strong>：无人工标注&#x2F;奖励&#x2F;专家动作（方法卖点之一）；依赖 QwenPi 骨干（含 Qwen3-VL 与流匹配动作头）、冻结 V-JEPA 2 编码器、RT-1&#x2F;Bridge 公开数据与 SimplerEnv；无闭源服务依赖。</li>
+<li><strong>改善与未解决</strong>：改善——WidowX 上四行一致的小幅提升、把部署期更新从”每对必更”压缩为”事件触发+验证提交”、19.4% 接受率使更新可审计、可回滚；未解决——Google Robot 上组件普遍不占优（WPI 0&#x2F;8、状态 MoLP 负收益）、部署期边际增益小（WPI–MoLP 行 +0.5）且无显著性、事件检测器未定量验证、超参敏感性未知、全部为仿真且公平性有缺项。</li>
+<li><strong>结论适用范围</strong>：正向结论限定在”SimplerEnv WidowX + 本配方 QwenPi&#x2F;QwenWPI + 四检查点平均”内；Google Robot 只支持”任务与本体依赖”的边界陈述；真机、更长时程、其他骨干均未被验证。</li>
+</ul>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：摘要-3-2-点易被读成”TTT-增益”，实为训练期接口与部署期协议的组合增量，部署期净增益小且无统计支持"><a href="#质疑：摘要-3-2-点易被读成”TTT-增益”，实为训练期接口与部署期协议的组合增量，部署期净增益小且无统计支持" class="headerlink" title="质疑：摘要 +3.2 点易被读成”TTT 增益”，实为训练期接口与部署期协议的组合增量，部署期净增益小且无统计支持"></a>质疑：摘要 +3.2 点易被读成”TTT 增益”，实为训练期接口与部署期协议的组合增量，部署期净增益小且无统计支持</h4><ul>
+<li><strong>原文依据</strong>：Table 3（68.0→71.2）；Table 6（WPI–MoLP 的 No TTT 已 70.7；AGV 相对其 No TTT +0.5、相对 Online +0.9）；§4.2.3 原文 “a substantial part of the absolute WPI advantage is present before deployment-time optimization”。</li>
+<li><strong>为什么重要</strong>：这是论文最重要的数字，决定”可靠 TTT”主张的可感知分量；标题与摘要落点在部署期 TTT，而增量的大头在训练期接口设计。</li>
+<li><strong>当前能够得出的判断</strong>：不是错误陈述（论文在 §4.2.3 有拆解），但抽象层表述留有放大空间；部署期增量本身为 +0.5～+1.5 点量级且是点估计。</li>
+<li><strong>如何验证或补强</strong>：为每个变体报告 CI&#x2F;多种子结果；为”TTT 增量”单列对照（同结构下 No TTT&#x2F;Online&#x2F;AGV）；增补共随机数评测。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：事件门（AGV-的核心触发机制）没有定量验证，且关键阈值未报告"><a href="#质疑：事件门（AGV-的核心触发机制）没有定量验证，且关键阈值未报告" class="headerlink" title="质疑：事件门（AGV 的核心触发机制）没有定量验证，且关键阈值未报告"></a>质疑：事件门（AGV 的核心触发机制）没有定量验证，且关键阈值未报告</h4><ul>
+<li><strong>原文依据</strong>：§4.1.2 自述单 rollout 为 illustrative、”does not establish detector precision or recall”；Appendix C 只说”两路通道任一同时超过绝对与稳健阈值”，未给数值与 warm-up&#x2F;cooldown 长度；H_v&#x3D;4、top-32、k&#x3D;8 均无敏感性分析。</li>
+<li><strong>为什么重要</strong>：事件门的时机决定后续一切验证与提交；检测器假阳性&#x2F;假阴性分布未知时，Table 8&#x2F;9 的收益无法外推到其他任务时程或数据分布；阈值缺失直接影响复现。</li>
+<li><strong>当前能够得出的判断</strong>：当前材料无法确认检测器质量；验证步骤在原理上可兜底错误提议（拒掉），但触发分布与代价仍不透明。</li>
+<li><strong>如何验证或补强</strong>：报告事件率与接受率随任务&#x2F;时期的分布；给检测器做人工标注基线的 precision&#x2F;recall；对阈值、H_v、top-32 做敏感性扫描。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：Google-Robot-上的负结果使”reliability”的普遍性主张处于未决状态"><a href="#质疑：Google-Robot-上的负结果使”reliability”的普遍性主张处于未决状态" class="headerlink" title="质疑：Google Robot 上的负结果使”reliability”的普遍性主张处于未决状态"></a>质疑：Google Robot 上的负结果使”reliability”的普遍性主张处于未决状态</h4><ul>
+<li><strong>原文依据</strong>：Table 7（WPI 0&#x2F;8；状态单提示最强 74.0；AGV 让状态 MoLP 从 72.3 降到 71.7）；Table 4 的 QwenWPI 三任务 Overall 下降 73.6→72.4；§4.2.2 自述只把该对比当”边界与适用范围测试”；Table 2 的 MMD 差异被用作背景但明确”不用于预测 TTT 增益”。</li>
+<li><strong>为什么重要</strong>：若一个”可靠性框架”在一个常见基准上让两个核心组件同时失效，其一般性需要更强解释；论文以表征偏移作叙述性背景，未建立因果链。</li>
+<li><strong>当前能够得出的判断</strong>：”reliable”应理解为”在 WidowX 上的一致性与机制上的可逆性”，不能外推为跨本体可靠；论文的边界陈述是诚实的，但标题与摘要的一般化措辞与证据范围存在张力。</li>
+<li><strong>如何验证或补强</strong>：给出 Google 失败模式分析（事件率、拒绝率、组件交互）；其他本体&#x2F;真机复测；把 MMD 与逐任务增益做关联分析（论文明确回避）。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：主要结论均为点估计，无方差、无显著性、且未用共随机数协议"><a href="#质疑：主要结论均为点估计，无方差、无显著性、且未用共随机数协议" class="headerlink" title="质疑：主要结论均为点估计，无方差、无显著性、且未用共随机数协议"></a>质疑：主要结论均为点估计，无方差、无显著性、且未用共随机数协议</h4><ul>
+<li><strong>原文依据</strong>：Table 3–8 均为单点数字；§4.2.1 “we do not enforce a common-random-number rollout protocol across methods”；仅 Table 2 有 bootstrap 区间；每任务试验数与种子数未报告；四检查点平均但无跨检查点方差。</li>
+<li><strong>为什么重要</strong>：+0.5～+1.7 点量级的差异在这种噪声结构下无法判断稳健性，对”AGV 是唯一全行改善的协议”这类定性结论尤其关键。</li>
+<li><strong>当前能够得出的判断</strong>：证据不足以下显著性结论；方向性（多个匹配行一致为正）有一定可信度，边际差异应视为在噪声范围内。</li>
+<li><strong>如何验证或补强</strong>：多种子 + 置信区间、共随机数 rollout、配对显著性检验。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：消融维度不全与成本报告不完整，影响”哪个设计不可替代”的判定"><a href="#质疑：消融维度不全与成本报告不完整，影响”哪个设计不可替代”的判定" class="headerlink" title="质疑：消融维度不全与成本报告不完整，影响”哪个设计不可替代”的判定"></a>质疑：消融维度不全与成本报告不完整，影响”哪个设计不可替代”的判定</h4><ul>
+<li><strong>原文依据</strong>：λ_wpi&#x3D;0.1、E&#x3D;8、top-2、k&#x3D;8、V-JEPA 2 选择、H_v&#x3D;4、top-32、事件阈值均无消融&#x2F;敏感性实验（Appendix B&#x2F;C 仅给取值）；wall-clock、V-JEPA 前向与影子回滚开销、训练算力未报告（§4.2.5 明确以计数代替）。</li>
+<li><strong>为什么重要</strong>：现有证据支持”这套组合在其配置下有效”，不支持”每个设计选择不可替代”；对复现者而言一批未检验的默认值是隐性风险。</li>
+<li><strong>当前能够得出的判断</strong>：属证据缺口而非错误；论文文字基本避免了单组件的孤立归因。</li>
+<li><strong>如何验证或补强</strong>：对上述超参做扫描（尤其在 Google 上）；公布 wall-clock 与开销分解；开源代码。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现潜提示 TTT 在闭环操作中有两类不可靠来源：共享适应空间混合冲突的任务修正、在线更新在后果未知前就改变后续动作并污染自身的验证数据；因此提出 VANE——上下文路由的提示混合（MoLP）、未来视觉表征预测目标（WPI）与”注意力事件提议→影子副本→配对未来验证→原子提交&#x2F;回滚”的 AGV-TTT 协议。实验在 SimplerEnv WidowX 与 Google Robot、四检查点平均、因子化的代理×提示×协议对照中表明：WidowX 上完整配置 71.2% 比对应 TTT 基线高 3.2 点、AGV 是唯一四行全改善的协议、验证消融贡献 1.7 点、反向次数降 98.7%；其中 Table 6–8 的匹配对照与成本表较扎实，但 +3.2 的口径大部分来自训练期接口（未适应基线已 70.7）、部署期净增益小、Google Robot 上 WPI 与 MoLP 普遍不占优、全部结果为无方差的点估计、事件检测器无定量验证。本文最有价值的部分是把”TTT 可靠性”操作化为可实现的提议-验证-提交协议与诚实的边界报告；最大的审稿风险是统计证据薄弱、事件门与超参敏感性缺失，使”可靠”的实际适用范围难以超出 WidowX 场景。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强——“reliable”被显式定义为选择性引入与抑制退化，三个设计挑战各有诊断证据（Table 1、论文 Fig. 2、Table 2），问题拆分具体可检验（§1、§4.1）。</li>
+<li><strong>创新性证据</strong>：中——验证驱动的原子提交&#x2F;回滚协议是有辨识度的新机制；但 MoLP 与 WPI 主要是已有组件的组合与位置迁移，且在 Google 失效（WPI 0&#x2F;8）与”训练期已见效”两个方向上欠归因（§2、§4.2.3）。</li>
+<li><strong>方法可信度</strong>：中——公式与实现细节（Eq. 1–14、Algorithm 1、Appendix A–C）自洽完整；但事件检测器无定量验证、阈值未报告、零容忍接受边际的稳健性未检验（§3.4、§4.3）。</li>
+<li><strong>实验支持力度</strong>：中——双基准、四检查点平均、因子化对照与验证消融设计良好且负面结果如实报告；但全部点估计、无共随机数、无显著性检验（§4.2、§5）。</li>
+<li><strong>可复现性</strong>：中——给出主要部署超参（[8,16,1024]、k&#x3D;8、lr 与步数、top-32、H_v&#x3D;4）与算法伪代码；但事件阈值数值、训练配方与算力缺失，无代码&#x2F;数据链接（Appendix B–C、§4.4）。</li>
+<li><strong>综合阅读价值</strong>：中——“诊断→设计→验证→诚实划界”的研究范式和提议-验证-提交协议值得精读；但方法增量以组合为主、统计支撑弱，实践中直接复用需先补齐敏感性验证。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> VANE: Reliable Test-Time Training for Vision-Language-Action Models via Future Visual Representation Prediction</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-13 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-13 01:32:38
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/13/2608.09448v2_VANE_Reliable_Test-Time_Training_for_Vision-Language-Action_Models_via_Future_Visual_Representation_Prediction/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%93%8D%E4%BD%9C/">#机器人操作</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%BD%9C%E6%8F%90%E7%A4%BA%E4%BC%98%E5%8C%96/">#潜提示优化</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%A7%86%E8%A7%89-%E8%AF%AD%E8%A8%80-%E5%8A%A8%E4%BD%9C%E6%A8%A1%E5%9E%8B%EF%BC%88VLA%EF%BC%89/">#视觉-语言-动作模型（VLA）</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Test-Time-Training/">#Test-Time Training</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%9C%AA%E6%9D%A5%E8%A7%86%E8%A7%89%E8%A1%A8%E5%BE%81%E9%A2%84%E6%B5%8B/">#未来视觉表征预测</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/13/2606.03127v1_TTT-VLA_Test-Time_Latent_Prompt_Optimization_for_Vision-Language-Action_Models/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">TTT-VLA: Test-Time Latent Prompt Optimization for Vision-Language-Action Models</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/13/2609.36720v1_T2Mem_Learning_Test-Time_Memory_for_Robotics/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">T²Mem: Learning Test-Time Memory for Robotics</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">VANE: Reliable Test-Time Training for Vision-Language-Action Models via Future Visual Representation Prediction</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-text">1. 论文具体想解决什么问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-text">2. 创新点是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3"><span class="nav-text">3. 作者如何解决</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7"><span class="nav-text">4. 解决得怎么样</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 116 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
