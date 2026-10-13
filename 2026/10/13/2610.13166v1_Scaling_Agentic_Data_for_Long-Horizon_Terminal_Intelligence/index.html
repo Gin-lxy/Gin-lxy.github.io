@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/13/2610.13166v1_scaling_agentic_data_for_long-horizon_terminal_intelligence/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Scaling Agentic Data for Long-Horizon Terminal Intelligence（长程终端智能体的挑战引导数据合成）">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/13/2610.13166v1_Scaling_Agentic_Data_for_Long-Horizon_Terminal_Intelligence/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-13T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-13T14:22:45.198Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="SFT">
+<meta property="article:tag" content="任务环境构建">
+<meta property="article:tag" content="数据合成">
+<meta property="article:tag" content="智能体行为模式">
+<meta property="article:tag" content="终端智能体">
+<meta property="article:tag" content="长程任务">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Scaling Agentic Data for Long-Horizon Terminal Intelligence（长程终端智能体的挑战引导数据合成） | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">399</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">126</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Scaling Agentic Data for Long-Horizon Terminal Intelligence（长程终端智能体的挑战引导数据合成）</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-13 12:00</span>
+        <span class="mobile">2026-10-13 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-13 22:22:45</span>
+            <span class="mobile">2026-10-13 22:22:45</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E9%95%BF%E7%A8%8B%E4%BB%BB%E5%8A%A1/">长程任务</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%95%B0%E6%8D%AE%E5%90%88%E6%88%90/">数据合成</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E7%BB%88%E7%AB%AF%E6%99%BA%E8%83%BD%E4%BD%93/">终端智能体</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E4%BB%BB%E5%8A%A1%E7%8E%AF%E5%A2%83%E6%9E%84%E5%BB%BA/">任务环境构建</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/SFT/">SFT</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%99%BA%E8%83%BD%E4%BD%93%E8%A1%8C%E4%B8%BA%E6%A8%A1%E5%BC%8F/">智能体行为模式</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Shun Zou、Ziyu Ma、Yi Zou、Yong Wang、Lin Chen、Zehui Chen、Guanhua Chen、Xiangxiang Chu、Feng Zhao（University of Science and Technology of China；AMAP, Alibaba Group；Southern University of Science and Technology）</p>
+<p>论文：2610.13166v1；来源：Hugging Face Daily Papers（2026-10-13 批次，默认顺序第 3 位）；精读归档日期：2026-10-13（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.13166" >https://huggingface.co/papers/2610.13166<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.13166v1" >https://arxiv.org/abs/2610.13166v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>（全文 HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.13166v1" >https://arxiv.org/html/2610.13166v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2610.13166v1" >https://arxiv.org/pdf/2610.13166v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>）</p>
+<p>标签：终端智能体、长程任务、数据合成、任务环境构建、SFT、智能体行为模式。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文认为终端智能体（terminal agents）训练数据的瓶颈不在任务数量，而在”关键工作被环境提前做完”——合成环境常把本该由模型完成的探索、实现与验证预先打包，导致轨迹虽可执行却很短、行为模式无法跨阶段衔接；为此作者提出全自动数据合成引擎 TerminalHorizon（挑战引导重建 + 同目标渐进扩展），产出 1,535 个任务环境、2,852 条平均 52.8 轮的轨迹，SFT 后模型在论文报告的 12 个基准上一致优于 Qwen3.5-27B 基座。但”引擎中哪个设计贡献了提升”没有被消融隔离，且数据由远强于学生的教师模型（teacher model）生成，增益中蒸馏与评测口径的混杂无法排除，结论目前只适用于所报告的基准与自建案例。</p>
+<h2 id="1-论文具体想解决什么问题"><a href="#1-论文具体想解决什么问题" class="headerlink" title="1. 论文具体想解决什么问题"></a>1. 论文具体想解决什么问题</h2><p>研究背景与任务。LLM 智能体正从对话问答走向数字环境中的自主工作（§1，PDF p.1）；终端（terminal）把代码、数据、工具和执行反馈放进同一工作区，是其通用接口。当任务从单步操作扩展到长程（long-horizon）任务时，智能体需要协调相互依赖的阶段、并根据执行反馈调整策略，但高质量的终端训练数据（更准确地说是训练轨迹，trajectory）仍然稀缺。</p>
+<p>现有做法及其瓶颈。近期的终端环境合成工作（CLI-Universe、Terminal-World、TerminalTraj、SkillSynth 等，§4.1 Table 1）通过技能组合、技术证据驱动的任务生成、递归扩展来规模化地制造”可执行、可验证”的任务，扩大了任务覆盖面。作者的核心批评（原文事实 + 作者主张）是：这些方法产出的轨迹平均很短——在统一教师协议下各方法平均交互轮数只有 3.87–15.60 轮（Fig. 4，PDF p.6），而 TerminalHorizon 为 52.82 轮。短轨迹只能演示若干步内的零散行为，无法呈现”证据积累→判断→策略修订→跨阶段衔接”的完整过程。</p>
+<p>被忽略的问题（本文新观察，§1，PDF p.2）。作者提出两个使长程数据合成失效的具体机制：（i）复杂任务不等于预期的智能体行为模式（agentic behavioral patterns）会发生——环境材料可能已经把问题解决了一部分，智能体因此跳过探索或实现，收集到的轨迹里目标行为根本没有出现；（ii）即使行为出现了，长程数据还要求这些行为在更长过程中展开并跨阶段连接，而”更难的任务或更多轮数”并不会自动带来这种连接。</p>
+<p>支撑问题判断的证据。一是 Fig. 4 的跨方法轮数对比（其他方法均值 ≤15.60 轮）；二是附录 H 的三个重建案例，用具体的”挑战者轨迹”证明构造过程确实会提前做完核心工作：射电干涉校准任务里环境自带的 <code>mscal</code> 工具直接提供了解法拟合功能，挑战者只需调用（Appendix H.1）；RabbitMQ 恢复任务里自带的 <code>partitionctl heal</code> 命令加上自动重试与幂等消费，让应用层恢复沦为可选分支（Appendix H.2）；福利核算任务最初是一条固定更新序列，证据判断被环境替模型做好了（Appendix H.3）。这些案例（原文事实）表明该失败模式在作者的合成管线中真实存在。</p>
+<p>作者归因与核心假设。作者把根因归于”环境构造以可解&#x2F;可验证为标准，而不检查预期工作是否真的保留给智能体”（作者主张）。由此提出的核心假设（审稿人归纳）是：如果合成流程能在执行中审计并重建被提前完成的工作，并且在同一目标下让新增要求依赖先前结果与反馈，那么轨迹中就会出现连接良好的长程行为模式，用这类数据做 SFT 能提升智能体的持续自主解题能力。</p>
+<p>三层区分。领域一般问题：长程能力与终端训练数据稀缺（已有共识）。本文新观察：环境合成会把”预期让智能体做的工作”提前做完&#x2F;简化，且该问题不能靠增加任务难度解决；行为模式还需跨阶段连接。本文实际解决的子问题：构造一个自动审计—重建—扩展引擎，并证明其产物在 12 个基准上可训练出更强的 27B 模型（含 4 个 RSI 案例的行为证据）。需要指出：论文用案例和跨方法相关性证明了”环境会提前做完工作”这一现象，但”轨迹短→长程能力弱”的因果解释没有得到受控实验的直接验证（审稿人判断）。</p>
+<h2 id="2-创新点是什么"><a href="#2-创新点是什么" class="headerlink" title="2. 创新点是什么"></a>2. 创新点是什么</h2><p>总括：本文的实质增量是把”长程数据质量”的验收标准从任务覆盖&#x2F;难度改写为”预期行为模式是否真的发生并跨阶段连接”，并围绕这一标准搭建了<strong>审计式重建闭环</strong>（独立挑战发现被省略的工作→重建环境→再挑战验证）与<strong>同目标渐进扩展机制</strong>（新要求消费旧产物与反馈）。两者分别由既有组件（独立求解者、环境修复、课程式扩展）重新组织而成，属于方法框架级的新组合加上大量系统工程；配套的 27 类行为模式分类（taxonomy）提供了描述与验收语言。</p>
+<ol>
+<li><p><strong>以”智能体行为模式及其跨阶段连接”作为数据设计目标（§1、§2.1、§3）</strong>。论文定义 27 种行为模式、归入五族（信息探索与判断、诊断与纠错、构建与推进、验证与保障、策略与执行协调，Appendix E 给出逐条定义），并把”环境必须保留可探索的证据、留给智能体完成的实现工作、能促使修订早期判断的反馈”写成设计目标（§2.1）。与已有工作以任务类别&#x2F;工具分类的做法不同，这是对数据”应该长什么样”的重新定义；证据指向 §4.2 的数据统计（平均 8.6 类模式）与 Fig. 3。</p>
+</li>
+<li><p><strong>Challenge-Guided Long-Horizon Synthesis（挑战引导的长程合成，§2.2）</strong>：让不参与构造的独立挑战者（Independent Challenger）只用公开信息（指令 + 环境）解题，然后用地平线差距分析（Horizon Gap Analysis）比对”任务种子里预期的工作”与”轨迹实际做了的工作”，把被提前完成的部分定位到初始材料、对象关系或工具行为上，交由 Construction Agent 重建环境，再回到独立执行验证”恢复的工作是否进入实际解题过程”。与最接近的已有合成方法（以任务可执行&#x2F;可通过为验收）具体不同：验收标准是”解题过程中预期工作是否真的发生”，而不是”任务是否可解”。证据：附录 H 的三个案例（校准工作从预置工具移回智能体、RabbitMQ 经 5 轮重建才让恢复工作成为必需）——详见 §4.3。</p>
+</li>
+<li><p><strong>Progressive Horizon Expansion（渐进地平线扩展，§2.3）</strong>：对已验收任务在同一目标下生成子代——四个内容扩展方向（更广角色 broader roles、更深机制 deeper mechanisms、更丰富证据 richer evidence、方法升级 method upgrades）× 三种交互依赖设计（探索与判断、动作与反馈、实例变化与适应），使新增要求必须消费先前证据、工具反馈或运行中状态。与”提高难度&#x2F;加轮数”式递归扩展的差别在于：不改变目标、且强制跨代依赖。证据：附录 I 的两条 PhotoPrism 演化分支与酒店调度三代案例——详见 §4.3。</p>
+</li>
+<li><p><strong>数据规模主张（经验结果，非方法创新）</strong>：仅 2,852 条轨迹的 SFT 在 TB 2.0 上超过用 32k 轨迹训练的 Terminal-Universe-27B 3.0 个百分点（§4.2、Table 1、Fig. 9）；该比较是本文最有力的”信息密度”论点，但受教师模型混杂影响（详见 §5 质疑）。</p>
+</li>
+</ol>
+<h2 id="3-作者如何解决"><a href="#3-作者如何解决" class="headerlink" title="3. 作者如何解决"></a>3. 作者如何解决</h2><p>直觉。既然失效模式是”环境替智能体把活干了”，那就让一个没参与出题的智能体去真做一遍，把”本来该发生却没发生的工作”找出来，修环境直到这件事不可避免；既然第二个失效模式是”行为模式不跨阶段延伸”，那就在同一目标下不断加”必须依赖前面结果”的新要求，像接续工程一样逼出跨阶段的证据链与修订链。整个引擎是”构造—挑战—分析—重建—再挑战”的内循环，加上批量规划的外循环，最后叠加代际扩展。</p>
+<p>先看整体架构（图 1）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.13166_fig2_overview_pipeline.png"
+                      alt="图 1：TerminalHorizon 两阶段合成引擎总览"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：TerminalHorizon 的数据流可以概括为两个阶段与两层循环。挑战引导合成阶段中，Planner Agent 依据任务档案与历史反馈决定下一批研究方向，Deep Research Agent 查阅文档、代码库与专业材料形成”任务种子”（含指令草稿与支撑证据），Construction Agent 据此联合构造指令、环境、参考解、验证器与执行配置；关键闭环是 Independent Challenger 仅凭公开任务包执行、由合成评审给出诊断，Horizon Gap Analysis 把”预期工作”与”实际执行”对照后定位在构造阶段被提前完成的工作，Construction Agent 重建后再次挑战，验证被恢复的工作确实进入解题过程（内循环），批次级的采纳结果与记录回流给 Planner（外循环）。渐进地平线扩展阶段中，Evolution Agent 在同一目标下扩展专业工作（扩角色&#x2F;深机制&#x2F;富证据&#x2F;升级方法），并用三类交互依赖把新要求挂接到先前证据、工具反馈或运行实例的变化上，形成 T⁰→T¹→T² 的代际任务链。读者应理解的核心机制是：环境不是一次造好的静态产物，而是被”执行证据”反复审计和重建的，且扩展永远指定”新工作必须站在旧结果上”。</p>
+<p>输入与构造。输入是真实世界的专业工作：Planner 产出成批研究简报（每份含工作范围、现有任务未覆盖的要求、要调查的现实来源，§2.2）；研究者把专业材料转化为任务种子 z（指令草稿 + 证据）。Construction Agent 收到种子后产出一个五元组任务包 T &#x3D; (I, E, S, V, M)：公开指令 I（目标与约束）、可执行环境 E（初始状态、工具、执行机制）、参考解 S、私有验证器 V、执行配置 M；智能体在运行时只能看到 P(T) &#x3D; (I, E)（§2.1）。一个固定的验收约束是”公开完成契约”：验证器检查的完成要求必须是被公开指令与可发现证据支持的，即 Csem(V) ⊆ Sem(I, Opub(E))——测试数据可以私有，但打分不能引入智能体无法发现的要求（§2.2，Eq. (3)）。这防止”隐藏考点”式的任务设计。</p>
+<p>独立挑战与诊断。挑战者的策略 πB 只看公开任务包，逐步执行动作、环境返回观察，得到轨迹 τr 与验证器分数 ρr；随后由合成评审机制产出诊断 dr，记录运行时缺陷、信息泄漏、评分不一致以及”预期工作是否被保留”（§2.2，Eq. (4)(5) 的文字化描述，此处不展开公式）。Horizon Gap Analysis 再把”被省略的工作”追因到初始材料、对象关系或工具行为：论文的实例是——任务要求实现某核心函数，但环境已提供了实现，剩下的工作只剩改一个常数；重建则恢复”实现并调试该函数”的必要性，同时保留完成它所需的公开说明（§2.2）。修订算子 Refine 保持目标不变，只改初始状态、对象关系、实现要求或工具反馈，并同步更新指令、参考解与验证器，然后重新进入独立执行（内循环收敛条件：恢复的要求确实出现在新轨迹中）。</p>
+<p>规划与筛选中的固定流程。哪些环节由模型决定、哪些由固定规则控制，论文给出的边界是：规划、研究、构造、挑战、扩展五个角色都由 LLM 智能体执行（模型决定）；而验收条件（公开契约、验证器通过、预期工作保留的复核、批次记录更新 Db+1 &#x3D; Db ∪ Ab）是固定规则。轨迹收集之后还有一道固定的过滤流程：由外部审查模型 gpt-5.6-luna（reasoning effort 设为 high）按三条过程性标准筛轨迹——轨迹有效性（动作-观察可对应、无泄漏&#x2F;篡改&#x2F;绕过接口）、环境锚定的进展（决策由文件、日志、报错、测试结果支撑；允许失败但需有诊断价值）、多轮训练价值（不看长度，看交互是否相互贡献）（Appendix F，PDF p.28–30）；过滤允许保留未完成任务，因为”失败后的反馈驱动诊断、修订与恢复”本身是学习信号。过滤后再做基准去污染（decontamination）：对 12 组基准共 3,251 个评测实例做精确 13&#x2F;14-gram、5-gram Jaccard、TF–IDF 余弦、数学感知 8-gram 检索，共 190 对候选进入语义复审，结论为 0 对污染（Appendix G，Table 9）。这两步的提示模板在 Appendix J 完整给出。</p>
+<p>渐进扩展怎么走。Evolution Agent 审视一个已验收父任务，形成扩展提议 δ，检查父代解法能否直接满足新要求、还差哪些分析&#x2F;实现&#x2F;验证；然后用”探索与判断&#x2F;动作与反馈&#x2F;实例变化与适应”三类依赖设计把新增工作接到既有证据、产物与状态上（§2.3）。子代是独立候选（目标是原要求 + 新要求的并集），环境、参考解、验证器同步更新，评分仍遵守公开完成契约；被接受的子代成为下一代父任务（T(g)→T(g+1)）。附录 I 展示了两种形态：同一 PhotoPrism 照片库任务分出”库状态对账”与”跨系统身份恢复”两条三代分支（Table 10），酒店调度任务三代分别引入人员动线、事故恢复与资源物流（Table 11）。</p>
+<p>从数据到模型：训练了什么。用该引擎生成 1,535 个任务环境包，每任务用教师模型 DeepSeek-V4-Pro-0813 采集 2 条轨迹（执行框架 harness 为 Terminus2）；过滤后保留 2,852 条构成 TerminalHorizon-3K（按 1,535×2&#x3D;3,070 推算约 7.1% 被滤除；论文未直接给出该比例）。训练是对 Qwen3.5-27B（以及 35B-A3B、122B-A10B）做全参数监督微调（SFT，supervised fine-tuning），LLaMA-Factory 实现，3 个 epoch，最大序列长 262,144 token，学习率 1e-5 余弦衰减、5% warmup，BF16 + DeepSpeed ZeRO-3，144 张 H20-141GB、18 节点（§4.1、Appendix A.1 Table 4；序列 packing 为 disabled、随机种子 42）。注意：论文只做 SFT，没有 RL 阶段，行为模式的学习完全来自对教师轨迹的模仿。</p>
+<p>产物长什么样？图 2 给出引擎输出侧的统计。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.13166_fig3_data_analysis.png"
+                      alt="图 2：TerminalHorizon-3K 的数据画像"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 3）：这幅四联图回答”引擎产出的数据是什么样”。数据覆盖 25 个专业领域（从芯片、物理、天文到教育、农业、医疗，Appendix D；项目页细分为 463 个子域）；交互轮数分布呈长尾，均值 52.82、P50 40、P90 98；由终端反馈串联的最长连续动作链中位数为 25 轮；平均每条轨迹包含 8.6 类核心行为模式，五族模式均有分布。读者应从中理解两点：其一，任务材料与交互深度远超”跑几条命令”的规模；其二，行为模式维度的统计是论文用来支撑”轨迹里真的出现了预期解题结构”而非仅仅是”轮数多”的证据。</p>
+<p>推理阶段的变化与最终输出。推理时没有任何流程改动：模型被部署在 vLLM 上（8×H20、张量并行 8、上下文 262,144 token），用与基线相同的 Terminus-2 执行框架和任务集评测（§4.1、Appendix A.2）——变量只有模型权重本身。最终输出是：TerminalHorizon-27B 模型权重（Hugging Face <code>shunzou05/TerminalHorizon-27B</code>）、1,535 个环境包数据集（<code>TerminalHorizon-Environment</code>）与轨迹数据集（<code>TerminalHorizon-3K</code>），均已在项目页放出且链接可达（2026-10-13 核验返回 200）。</p>
+<h2 id="4-解决得怎么样"><a href="#4-解决得怎么样" class="headerlink" title="4. 解决得怎么样"></a>4. 解决得怎么样</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p>评测基准共 12 个，分三类（§4.1，PDF p.6–7）：(1) 编码&#x2F;终端：Terminal-Bench 1.0（80 题）、2.0&#x2F;2.1（各 89 题，Merrill et al. 2026），每题 3 小时上限，各跑 3 次报告 pass@1 均值，1.0 用 Daytona 沙箱、2.0&#x2F;2.1 用 E2B；(2) 真实生产型智能体任务：AutomationBench v1.0.6（600 条 rollout、每轨迹 50 步上限、3 次独立运行，报告官方 Partial Score 与 Pass Rate）、τ²-bench 的 Airline（50 题）与 Retail（114 题），使用官方 llm agent 与用户模拟器、4 次运行、200 步上限、VitaBench 英文 Cross-domain 主集（100 题、4 次运行、300 步、报告 Avg@4）；(3) 通用推理：MATH-500、GSM8K（1,319 题）、AIME 2024&#x2F;2025（各 30 题）、KOR-Bench (Cipher)（250 题），3 次独立运行取均值。基座与自研模型的评测使用相同任务集、框架、解码设置与评分流程（temperature 1.0 &#x2F; top-p 0.95 &#x2F; top-k 20 &#x2F; 单响应最多 65,536 token；VitaBench 与 τ²-bench 为 temperature 0）；VitaBench 与 τ²-bench 的用户模拟器与 judge 均为 deepseek-v4-pro-0813（Appendix A.2）。</p>
+<p>基线。Table 1 列出 20 个基线模型（分属 CLI-Universe、TerminalTraj、TermiGen、LiberCoder、SkillSynth、Nemotron-Terminal、Terminal-Lego、OpenThinker-Agent、Terminal-World、Meta-Task、TMax、CalibForge、RST、Terminal-Universe 等 14 个终端任务合成方法系列），训练轨迹数从 3.2k 到 490.5k 不等，脚手架混杂（多数 Terminus2，另有 BashAgent、OpenHands、Vanillux2Agent、CalibForge-Eval）。最接近的对照是与本文同基座（Qwen3.5-27B）、同框架（Terminus2）的 Terminal-Universe-27B（32.0k 轨迹）与 RST-27B（327.2k 轨迹）。消融&#x2F;分析回答的问题：教师模型影响（Table 3）、模型规模可迁移性（Fig. 5）、训练数据扩展性（Fig. 6）、按任务类别的分布（Fig. 8，Appendix B.1）、跨方法数据效率（Fig. 9，Appendix B.2）、系统级长程能力（4 个 RSI-Exam 案例，Table 5、Appendix C）。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>Terminal-Bench 三版全面超过基座（原文事实，Table 1、Table 2）：TB 1.0 由 46.3% 升至 55.0%（+8.7 个百分点，percentage point，下称 pp）；TB 2.0 由 41.6%（基座分数取自官方 model card，标 †）升至 55.8%（+14.2 pp）；TB 2.1 由 46.82% 升至 60.67%（+13.85 pp）。对同基座同框架的 Terminal-Universe-27B（TB 2.0 &#x3D; 52.8%），仅用不到其 1&#x2F;10 的轨迹数取得 55.8%（+3.0 pp，Table 1、Fig. 9）。</p>
+<p>真实生产力任务与通用推理（Table 2）：AutomationBench Pass Rate 5.5→17.2（+11.7 pp，相对增幅约 3 倍）、Partial 26.4→49.7（+23.3 pp）；VitaBench 20.5→31.8（+11.3 pp）；τ²-bench Airline 79.0→84.5（+5.5 pp）、Retail 84.9→87.5（+2.6 pp，接近天花板，提升小）。通用推理非但不退化还有小幅提升：MATH-500 96.9→98.9、GSM8K 96.3→97.3、AIME 2024 93.3→96.7、AIME 2025 86.7→93.3（+6.6 pp 即 30 题中多解对 2 题）、KOR-Bench 90.1→91.2。类别分解（Fig. 8）：16 个类别中 11 个提升、5 个提升为 0（持平）；调试 +46.7 pp、数据科学 +25.0 pp、机器学习 +22.2 pp 最突出。</p>
+<p>规模与扩展性（原文事实）：同一训练配方对三种基座均带来两位数提升——Qwen3.5-27B +13.85 pp、35B-A3B +13.11 pp（39.70→52.81）、122B-A10B +14.98 pp（49.06→64.04）（Fig. 5）。教师模型对比（100 个抽样任务，Table 3）：GLM-5.2 与 DeepSeek-V4-Pro 都能产生长轨迹（均值 46.1 vs 53.5 轮），DeepSeek 的反馈链更长（30.3 vs 19.2）、动作精确重复率更低（13.2% vs 15.8%）、通过率更高（50.0% vs 44.0%）。</p>
+<p>轨迹长度证据（图 3）：论文在同一教师协议下与各开源合成方法对比。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.13166_fig4_interaction_turns.png"
+                      alt="图 3：与各开源合成方法的交互轮数对比"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 4）：在相同教师协议下对每个对比方法随机抽 300 个任务执行后统计的交互轮数（均值&#x2F;P50&#x2F;P90）。其他方法平均轮数集中在 3.87–15.60（最高 CLI-Gym 15.60），TerminalHorizon 为 52.82（P50 40、P90 98），量级上高出 3–13 倍。这张图是论文”轨迹确实更长”的核心证据，也是”现有合成方法轨迹偏短”这一动机判断的直接支撑；需注意它是跨方法、跨任务池的对比，只证明相关性，不构成”长轨迹带来收益”的因果隔离。</p>
+<p>系统级长程能力：RSI 案例（Table 5、§4.4、Appendix C）。四个 RSI-Exam 案例各给 12 小时自主研究预算、单次运行、以最终提交在隐藏测试上的归一化分数（0–100）计分：机器人路径与宏优化 14.63→39.72（+25.09，隐藏集 200 实例中 197 个配对分数更高，Fig. 10c）；潮汐摩擦场反演 27.41→48.15（+20.74，隐藏集平均 RMSE 0.021873→0.009386，降低约 57.1%）；2048 策略优化 37.54→45.25（+7.71，隐藏集平均得分 23,183.75→38,626.25，达成 4096 格子的局面 0&#x2F;16 vs 5&#x2F;16）；多视角点云融合 21.93→48.96（+27.03，平均 F-score 48.04→77.68）。值得注意的比较条件：基座模型在四个案例中全部提前自停（分别仅用 11.42 h、1.12 h、1.28 h、0.20 h 就结束，均未用满预算），TerminalHorizon-27B 全部用满 12 小时——因此差距同时反映”解法质量”与”是否愿意继续实验”，且 n&#x3D;1&#x2F;案例、无方差。点云融合案例的完整过程曲线、最终重建质量对比与关键行为差异见图 4。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.13166_fig7_rsi_pointcloud.png"
+                      alt="图 4：点云融合案例的优化过程与最终结果"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 7）：多视角点云融合案例刻画了两模型在 12 小时预算内的行为差异。基座模型在设计了一个自评代理指标（proxy metric）上取得 0.8994 的高分，12.1 分钟即自判”excellent、可以提交”；TerminalHorizon-27B 则持续到预算耗尽，先怀疑”贴合单一参考视角”的指标是否真的衡量重建质量，引入留一视角（leave-one-view-out）诊断暴露覆盖缺口，再改进跨视角对齐、做两轮全局精化与置信度选点，最终提交平均 F-score 77.68（基座隐藏奖励 0.2193→0.4896）。右侧逐场景对比显示差距来自整体几何覆盖而非个别视角。读者应理解：这正是论文主张的”验证与策略修订”行为模式的实例化——不仅改解法，还改用于评估进度的实验本身。</p>
+<p>综合来看，12 个基准的一致提升与四个案例中”继续实验、借助反馈修订并保留改进”的行为，构成论文的两类主要效果证据；这些效果能否归因于引擎设计本身，需要在机制与成本部分进一步审视。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>论文提供的”为什么有效”证据分为三层。（a）生成过程层（附录 H）：重建案例显示引擎确实把工作从环境中移回给智能体——射电校准中挑战者初版只需调用自带求解器（通过验证但没做预期工作），重建后新挑战者必须自己实现拟合、依据残差反馈修订参数（最终 fitted W-RMS 0.896、holdout 1.784、target 1.944，阈值 2.8）；RabbitMQ 案例历经 5 轮重建，前几轮”恢复分支存在但运行时不触发”（例如某轮客户端恰好能连到本地队列 leader），直到把故障挂到应用后果上、挑战者才必须恢复缺失的前置事件（71 条已确认订单、1 条 nack 事件、216 条 outbox 全部转确认、无重复业务效应）。（b）数据属性层：Table 3 证明长轨迹来自任务本身而非某个教师（两个教师都产生 46–53 轮均值）；训练数据量的扩展曲线见图 5。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.13166_fig6_training_scaling.png"
+                      alt="图 5：训练数据量扩展曲线"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 6）：Terminal-Bench 2.1 的 pass@1 随训练轨迹数变化——0（基座）46.82%、1k 条 57.30%、2k 条 58.43%、全量 2,852 条 60.67%。它支撑两个主张：约 1k 条高质量长程轨迹即可拿到大部分增益；曲线在观测区间内未见饱和，作者据此推测继续扩大该类数据可能继续提升（审稿人判断：仅 3 个数据点的外推，且未报告不同规模下的方差，宜谨慎解读）。</p>
+<p>（c）行为层：RSI 案例的轨迹记录显示模型会修订测量方法（留一视角诊断）、回退”看起来更好”的候选（2048 案例中后期候选在小子集上更好、在全公开集上回退；机器人案例主动 revert 一个更慢且成本略差的 C++ 局部搜索变体 281.96 vs 281.92）、并用 best-so-far 保住进展（基座曾达到 286.05 的最佳记录但最终提交 466.35，本模型提交 281.11）。</p>
+<p>对 §2 各项创新的逐一核对——关键问题是”移除&#x2F;替换该设计后会怎样”是否有实验：</p>
+<ul>
+<li>模式中心的设计目标（§2 创新 1）：论文没有报告”不以模式为目标构造数据”的对照；模式统计（8.6 类&#x2F;轨迹）是描述性的，不能单独支撑增益归因。</li>
+<li>挑战引导重建（§2 创新 2）：附录 H 提供了”重建前挑战者跳过工作、重建后必须做”的过程级证据（同一任务的两次独立挑战对比），这证明该闭环按设计运行；但没有把”有重建 vs 无重建”的数据分别训练模型做对比，因此对最终基准分数的贡献未隔离。</li>
+<li>渐进扩展（§2 创新 3）：附录 I 用代际表展示新要求如何依赖旧结果（如酒店第三代资源物流迫使两个候选被拒、最终排程改到 Oak 并推迟到 17:30），属定性机制证据；Fig. 4 的长轮数部分归因于扩展，但无”仅重建不扩展”或”仅扩难度不依赖旧结果”的消融。</li>
+</ul>
+<p>替代解释无法排除的部分（审稿人判断）：增益可能主要来自 (i) 教师蒸馏——2,852 条轨迹由 DeepSeek-V4-Pro-0813（显著强于 27B 学生的模型）生成，学生学到的是强教师的行为；（ii) 执行框架评测优势——TerminalHorizon 用 Terminus2，而 Table 1 中部分基线的脚手架不同（BashAgent&#x2F;OpenHands 等），唯一的强隔离对照只有同基座同框架的 Terminal-Universe-27B&#x2F;RST-27B；(iii) 训练数据里可能混有教师对基准类任务的先验知识——去污染只检查了任务文本重叠（190 对全部 CLEAN），不涉及教师侧知识。此外，256K（262,144）级 token 序列 + 3 epoch 的全参数微调本身也可能带来与数据内容无关的行为变化（例如更少早停；此为分析者推断，论文未报告与此相关的对照）。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p>训练成本：全参数 SFT 3 epochs，最大序列长 262,144，144×H20-141GB（18 节点），BF16+ZeRO-3（Appendix A.1）。论文未报告训练时长、总 token 量、美元成本。数据生产端：引擎完全自动（无人工标注报告），但依赖外部闭源模型——教师 DeepSeek-V4-Pro-0813、过滤与去污染审查 gpt-5.6-luna（reasoning high）、深度研究需访问文档与代码库；论文未报告合成 1,535 个任务的总调用数&#x2F;token 成本、构造内循环的平均轮数分布或被拒绝任务的统计（仅案例中可见 5 轮、4 轮等个别数字）。推理成本：未报告时延或平均交互 token；评测侧每题上限 3 小时（TB）、50–300 步（生产任务）；RSI 案例每模型每案例 12 小时预算（E2B 8 GiB 环境、Terminus-2 系研究框架、单次运行）。</p>
+<p>可复现性资产：训练配置、评测协议（含解码、重试、评分细节）在附录 A 完整给出；轨迹过滤与去污染提示模板在附录 J 给出；1,535 个环境、Trace 数据集与 27B 权重分别发布在 Hugging Face（<code>TerminalHorizon-Environment</code>、<code>TerminalHorizon-3K</code>、<code>TerminalHorizon-27B</code>，2026-10-13 核验均可访问）。未完整公开的是构造侧四个智能体（Planner&#x2F;Research&#x2F;Construction&#x2F;Evolution）与评审的提示词及运行预算——复现”引擎”本身仍有缺口。</p>
+<p>改善与未决：SFT 在 12 个基准一致提升、通用推理保持&#x2F;微升、RSI 行为层面出现可观察的持续研究现象——这些是已被验证的部分；仍待解决的是：引擎组件增益的因果拆分、”无饱和”外推只有 3 个点、RSI 案例 n&#x3D;1、增益中教师蒸馏与框架差异的占比、以及合成管线自身的成本透明度。结论适用范围：Qwen3.5 系列基座（27B&#x2F;35B-A3B&#x2F;122B-A10B）、所测 12 基准与自建 RSI-Exam 案例；论文没有跨模型族或跨基准之外的泛化证据。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：数据效率与性能对比中混入教师模型与脚手架差异，增益无法完全归因于数据设计"><a href="#质疑：数据效率与性能对比中混入教师模型与脚手架差异，增益无法完全归因于数据设计" class="headerlink" title="质疑：数据效率与性能对比中混入教师模型与脚手架差异，增益无法完全归因于数据设计"></a>质疑：数据效率与性能对比中混入教师模型与脚手架差异，增益无法完全归因于数据设计</h4><p><strong>原文依据</strong>：轨迹由 DeepSeek-V4-Pro-0813 生成、过滤由 gpt-5.6-luna 完成（§3 “Trajectory Collection”、Appendix F）；Table 1 的基线各自用不同基座与脚手架（BashAgent、OpenHands、Vanillux2Agent、CalibForge-Eval），训练轨迹数 3.2k–490.5k 不等；最接近的隔离对照（同基座 Qwen3.5-27B、同 Terminus2 框架）只有 Terminal-Universe-27B 与 RST-27B 两个。</p>
+<p><strong>为什么重要</strong>：直接决定创新性归因——“3K 轨迹胜 32K”可能主要来自更强教师的蒸馏，而非 TerminalHorizon 的环境构造方式；低数据效率主张是本文最核心卖点之一。</p>
+<p><strong>当前能够得出的判断</strong>：同基座同框架的 +3.0 pp 对比是较干净的证据；但其余基线的比较受教师强度、脚手架、任务池差异混杂。论文未报告”同一教师、同任务池、仅切换构造管线”或”去掉重建&#x2F;扩展”的对照，无法排除蒸馏贡献。</p>
+<p><strong>如何验证或补强</strong>：用相同强教师对已有合成管线与 TerminalHorizon 分别生成等量轨迹、相同配方 SFT 对比；或固定教师与任务池，只消融重建&#x2F;扩展两个阶段；报告学生模型在自生成轨迹上的表现。</p>
+<p><strong>严重程度</strong>：主要问题。</p>
+<h4 id="质疑：两阶段引擎的关键设计没有消融，”重建与扩展导致性能提升”的因果链未被直接证明"><a href="#质疑：两阶段引擎的关键设计没有消融，”重建与扩展导致性能提升”的因果链未被直接证明" class="headerlink" title="质疑：两阶段引擎的关键设计没有消融，”重建与扩展导致性能提升”的因果链未被直接证明"></a>质疑：两阶段引擎的关键设计没有消融，”重建与扩展导致性能提升”的因果链未被直接证明</h4><p><strong>原文依据</strong>：§4.3 的分析仅含教师对比（Table 3）、模型规模（Fig. 5）、数据量扩展（Fig. 6）；Appendix H&#x2F;I 全部是定性案例；全文无”移除 Horizon Gap Analysis 或 Progressive Expansion 后训练同模型”的受控实验。</p>
+<p><strong>为什么重要</strong>：论文标题与三大贡献都以引擎为创新主体；如果收益主要来自”更多轮数的轨迹”或任务多样性，两阶段设计的必要性就被高估。§2 创新 1–3 均无移除&#x2F;替换证据，只能确认”产物有效”，不能确认”是哪个机制让产物有效”。</p>
+<p><strong>当前能够得出的判断</strong>：目前只能确认产出数据在 12 个基准上训练有效这一相关性事实；引擎各组件的因果贡献证据不足（审稿人判断）。”长轨迹优于短轨迹”在本文中同样只有跨方法相关性（Fig. 4）与数据量曲线（Fig. 6）间接支撑。</p>
+<p><strong>如何验证或补强</strong>：从同一任务池构造匹配的对照数据集（有&#x2F;无重建、有&#x2F;无扩展、长&#x2F;短轨迹），同配方 SFT 后对比；报告轨迹轮数或模式数量与基准收益的回归关系。</p>
+<p><strong>严重程度</strong>：主要问题。</p>
+<h4 id="质疑：RSI-案例单次运行、基座提前自停，比较同时反映”能力差异”与”预算利用差异”，且效果量级被写成百分比"><a href="#质疑：RSI-案例单次运行、基座提前自停，比较同时反映”能力差异”与”预算利用差异”，且效果量级被写成百分比" class="headerlink" title="质疑：RSI 案例单次运行、基座提前自停，比较同时反映”能力差异”与”预算利用差异”，且效果量级被写成百分比"></a>质疑：RSI 案例单次运行、基座提前自停，比较同时反映”能力差异”与”预算利用差异”，且效果量级被写成百分比</h4><p><strong>原文依据</strong>：Table 5 标题注明”one run per model per case（每模型每案例一次运行）”；基座自停于 0.20–11.42 h（点云案例仅 12.1 分钟，自评 proxy F-score 0.8994），TerminalHorizon-27B 全部用满 12 h（§4.4、Appendix C）；§4.4 正文将 +27.03 写作”exceeds … by 27.03%”，实际为 0–100 归一化分数的位点差（21.93→48.96）。</p>
+<p><strong>为什么重要</strong>：结论”能持续实验并保留改进”完全依赖这四个单次案例；早停是基座的行为倾向，用”12 小时内终稿分数”度量会同时奖励”愿意继续”与”方法更好”两个不同因素。任一案例的单次波动都可能改变叙事。</p>
+<p><strong>当前能够得出的判断</strong>：案例叙事细致且机制可追溯（留一视角诊断、回退候选、best-so-far 保留等），但 n&#x3D;1&#x2F;案例、无方差、无”给基座同等继续机会”的对照；+7.71~+27.03 的效果量不宜作为稳定估计。归一化分数的百分比&#x2F;位点混用属于表述瑕疵。</p>
+<p><strong>如何验证或补强</strong>：每案例多次运行并报告均值&#x2F;方差；加入”强制继续或分段预算”的对照分离早停倾向；公开逐案例原始分与归一化规则。</p>
+<p><strong>严重程度</strong>：主要问题（影响主结论的稳健性，但不否定现象存在）。</p>
+<h4 id="质疑：评测口径以最有利方式呈现——百分点写成百分比、基线分数来源不一、无方差-显著性"><a href="#质疑：评测口径以最有利方式呈现——百分点写成百分比、基线分数来源不一、无方差-显著性" class="headerlink" title="质疑：评测口径以最有利方式呈现——百分点写成百分比、基线分数来源不一、无方差&#x2F;显著性"></a>质疑：评测口径以最有利方式呈现——百分点写成百分比、基线分数来源不一、无方差&#x2F;显著性</h4><p><strong>原文依据</strong>：摘要与 §1 的”14.2%、13.85%、11.7%、23.3%”均实为百分点（Table 2 括注、Fig. 5 使用”pp”、项目页注明”Gains in percentage points”）；Table 1 中 TB 2.0 基座分数 41.6 标 †（官方 model card），而 TerminalHorizon-27B 的 55.8 由作者以 Terminus2 测出，同一格内两个数字来源不同；TB 报告 3 次运行均值但全文无标准差&#x2F;置信区间；AIME 各年 30 题（AIME 2025 +6.6 pp 等价于多解对 2 题），GSM8K、KOR-Bench 提升 ≤1.1 pp 亦未给方差。</p>
+<p><strong>为什么重要</strong>：影响对增益稳健性与公平性的判断；41.6 与 55.8 相差 14.2 pp 的头条数字对执行框架敏感，若基座用同框架重测，差值可能变化。百分点误写为百分比会在传播中被放大。</p>
+<p><strong>当前能够得出的判断</strong>：表格内部数值自洽，但存在”有利口径”倾向；小样本基准（AIME 30 题）与近天花板基准（τ² Retail、GSM8K）的提升缺统计支撑，无法区分真实提升与波动。</p>
+<p><strong>如何验证或补强</strong>：统一按百分点表述；用同一 Terminus2 框架重测基座 TB 2.0；报告多次运行的分布、逐题结果与置信区间。</p>
+<p><strong>严重程度</strong>：主要问题。</p>
+<h4 id="质疑：合成引擎的成本、失败率与构造侧提示未披露，完整复现引擎仍有缺口"><a href="#质疑：合成引擎的成本、失败率与构造侧提示未披露，完整复现引擎仍有缺口" class="headerlink" title="质疑：合成引擎的成本、失败率与构造侧提示未披露，完整复现引擎仍有缺口"></a>质疑：合成引擎的成本、失败率与构造侧提示未披露，完整复现引擎仍有缺口</h4><p><strong>原文依据</strong>：全文未报告合成 1,535 个环境的 token&#x2F;调用成本、内循环平均重建轮数、被淘汰任务与轨迹比例（2,852&#x2F;3,070 约 7% 为按”每任务 2 条”推算，论文未直接给出）；Appendix J 只提供轨迹过滤与去污染两个提示模板，Planner&#x2F;Deep Research&#x2F;Construction&#x2F;Evolution&#x2F;Challenger 的提示词与预算未给；引擎依赖 DeepSeek-V4-Pro-0813、gpt-5.6-luna 等外部闭源服务（§3、Appendix F&#x2F;G）。</p>
+<p><strong>为什么重要</strong>：论文的核心卖点是”全自动数据引擎”，其可复现性与成本可用性（每个可用任务需要多少研究&#x2F;挑战&#x2F;重建成本）直接决定社区能否复用与评估其扩展性；”no saturation”若成立，成本线性度是关键未知量。</p>
+<p><strong>当前能够得出的判断</strong>：数据、轨迹与权重已发布（链接均可达），训练与评测协议完整，属于同类工作中披露较充分的；但引擎本身的运行协议不完整，成本几乎不透明（无法确认）。</p>
+<p><strong>如何验证或补强</strong>：公开构造侧各 agent 的提示、每任务的 API 预算与迭代统计、失败&#x2F;丢弃原因分布；给出从批次计划到验收的单位任务成本。</p>
+<p><strong>严重程度</strong>：次要问题。</p>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现终端合成的环境会把智能体该做的探索、实现与验证提前完成或简化，使收集到的轨迹平均只有几轮到十几轮，且行为模式无法跨阶段延伸；因此提出全自动引擎 TerminalHorizon，用”独立挑战→地平线差距分析→环境重建→再挑战”的闭环保住核心工作，并在同一目标下渐进扩展任务、以三类交互依赖把新要求挂到旧结果上。在 Qwen3.5 系列基座上，用 1,535 个环境、2,852 条平均 52.8 轮的轨迹做 SFT，模型在 12 个基准（TB 1.0&#x2F;2.0&#x2F;2.1、AutomationBench、τ²-bench、VitaBench 及五个推理集）上全面优于基座，且 12 小时 RSI 案例显示延续实验、修订测量方法并保留改进的行为。其中”数据在 12 个基准上训练有效””同基座同框架下 3K 轨迹超过 32K”证据较强，案例研究对机制的可追溯性也较好；但”两阶段引擎设计导致增益”缺消融隔离，轨迹由远强于学生的教师生成、基线脚手架与分数来源不一、RSI 单次运行且基座提前自停，使增益中的蒸馏、框架与预算利用因素无法拆开。本文最有价值的部分是给出了”以行为模式与跨阶段连接为中心、并被执行证据审计”的数据构造范式与可复用的环境&#x2F;轨迹资产；最大的审稿风险是核心机制归因不闭合——数据有效已被证明，但起作用的是强教师蒸馏还是这套重建-扩展设计，仍待受控实验回答。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。两个失效机制（工作被提前完成、模式不跨阶段连接）有明确的案例证据链（Appendix H&#x2F;I 的重建前后对照），设计目标（§2.1）与验收契约（Eq. (3)）表述精确。</li>
+<li><strong>创新性证据</strong>：中。问题框架与”审计式重建+同目标扩展”的组合是真实的增量，与最接近方法（Terminal-Universe、RST、FACET 等）的差异作者给出了定位；但 27 类模式分类为描述性、两阶段设计未消融，原创边界目前只能确认作者声称的差异（”首次提出”类主张需更完整文献检索）。</li>
+<li><strong>方法可信度</strong>：中。管线自动化程度高、约束（公开契约、过程性过滤、去污染）设计严谨；但增益归因受教师蒸馏与框架差异混杂，机制证据多为定性案例。</li>
+<li><strong>实验支持力度</strong>：中。12 个基准 + 3 种模型规模 + 数据扩展曲线覆盖面好，同基座同框架对照干净；缺方差&#x2F;置信区间、百分点百分比混用、基座分数来源不一、RSI n&#x3D;1，”无饱和”外推仅 3 点。</li>
+<li><strong>可复现性</strong>：强。训练与评测协议完整（Appendix A）、过滤&#x2F;去污染提示模板公开（Appendix J）、环境&#x2F;轨迹&#x2F;权重三件套已发布且链接可达；扣分项是构造侧提示与引擎成本未披露、依赖闭源教师与审查模型。</li>
+<li><strong>综合阅读价值</strong>：高。对”如何让合成环境保留真问题”给出了可操作的范式与大量具体案例，适合研究 Agent 数据工程、环境合成与长程强化方向的读者；阅读时应带着”归因未闭合”的判读。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Scaling Agentic Data for Long-Horizon Terminal Intelligence（长程终端智能体的挑战引导数据合成）</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-13 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-13 22:22:45
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/13/2610.13166v1_Scaling_Agentic_Data_for_Long-Horizon_Terminal_Intelligence/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E9%95%BF%E7%A8%8B%E4%BB%BB%E5%8A%A1/">#长程任务</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%95%B0%E6%8D%AE%E5%90%88%E6%88%90/">#数据合成</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E7%BB%88%E7%AB%AF%E6%99%BA%E8%83%BD%E4%BD%93/">#终端智能体</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E4%BB%BB%E5%8A%A1%E7%8E%AF%E5%A2%83%E6%9E%84%E5%BB%BA/">#任务环境构建</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/SFT/">#SFT</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%99%BA%E8%83%BD%E4%BD%93%E8%A1%8C%E4%B8%BA%E6%A8%A1%E5%BC%8F/">#智能体行为模式</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/13/2610.11765v1_Thinking_Inertia_LLMs_Keep_Thinking_When_Told_Not_To/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Thinking Inertia：LLM 被要求不思考时仍在思考</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/13/2610.13361v1_AgentSWE-Can-Coding-Agents-Build-the-Agent-You-Actually-Want/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">AgentSWE：编码智能体能否构建你真正想要的智能体？</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Scaling Agentic Data for Long-Horizon Terminal Intelligence（长程终端智能体的挑战引导数据合成）</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-text">1. 论文具体想解决什么问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-text">2. 创新点是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3"><span class="nav-text">3. 作者如何解决</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7"><span class="nav-text">4. 解决得怎么样</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 126 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/13/2610.11765v1_thinking_inertia_llms_keep_thinking_when_told_not_to/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Thinking Inertia：LLM 被要求不思考时仍在思考">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/13/2610.11765v1_Thinking_Inertia_LLMs_Keep_Thinking_When_Told_Not_To/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-13T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-13T14:22:45.198Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="LLM-as-a-judge">
+<meta property="article:tag" content="不思考行为">
+<meta property="article:tag" content="大语言模型">
+<meta property="article:tag" content="思考模式控制">
+<meta property="article:tag" content="指令遵循">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Thinking Inertia：LLM 被要求不思考时仍在思考 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">399</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">126</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Thinking Inertia：LLM 被要求不思考时仍在思考</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-13 12:00</span>
+        <span class="mobile">2026-10-13 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-13 22:22:45</span>
+            <span class="mobile">2026-10-13 22:22:45</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">大语言模型</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-as-a-judge/">LLM-as-a-judge</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%80%9D%E8%80%83%E6%A8%A1%E5%BC%8F%E6%8E%A7%E5%88%B6/">思考模式控制</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E4%B8%8D%E6%80%9D%E8%80%83%E8%A1%8C%E4%B8%BA/">不思考行为</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%8C%87%E4%BB%A4%E9%81%B5%E5%BE%AA/">指令遵循</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Dianqiao Lei、Kevin Qinghong Lin、Pan Lu、Philip Torr、James Zou（清华大学、牛津大学、斯坦福大学）</p>
+<p>论文：2610.11765v1；来源：Hugging Face Daily Papers（2026-10-13 批次，默认顺序第 4 位）；精读归档日期：2026-10-13（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.11765" >https://huggingface.co/papers/2610.11765<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.11765v1" >https://arxiv.org/abs/2610.11765v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>（全文 HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.11765v1" >https://arxiv.org/html/2610.11765v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2610.11765v1" >https://arxiv.org/pdf/2610.11765v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>）</p>
+<p>标签：大语言模型、思考模式控制、不思考行为、指令遵循、LLM-as-a-judge。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文把”不思考”（no-thinking）从提示词层面的开关代理量重新定义为响应级可观测行为，用空思考率（Empty-Thinking Rate，ETR）、问题—前答相关性（Question–Pre-answer Relevance，QRel.）和显式推断率（Explicit Inference Rate，EIR）三级指标度量模型在前答文本中暴露的内容，并据此在六款模型、六个基准、六种干预下发现：关闭思考开关并不能可靠消除可见的显式推理，且该现象随答案空间（answer space）开放程度递增（”思考惯性”，thinking inertia）。在论文覆盖的英文单轮问答与确定性解码条件下，这一描述性结论有真人标注与跨家族裁判双重支撑，证据较强；但”为什么”的机制解释与真实推理成本均未被直接验证。</p>
+<h2 id="1-论文具体想解决什么问题"><a href="#1-论文具体想解决什么问题" class="headerlink" title="1. 论文具体想解决什么问题"></a>1. 论文具体想解决什么问题</h2><p>延长推理时计算（test-time computation）能显著提升 LLM 表现，但带来时延与 token 开销，因此近期大量工作研究如何缩短、预算化或压缩思维链（chain-of-thought，CoT）。另一条动机是”类人自适应推理”：人类平时凭直觉直接回答，只在必要时才深思。于是厂商开始提供显式的思考模式开关与推理力度设置，用户也可在提示中要求”直接回答”——但”不思考”到底指什么、怎么测，社区并无共识（§1）。</p>
+<p>现有做法（传统上）用三种表面代理量（surface proxies）判定”不思考”：提示侧控制（在 no-think 设置下运行或不做 step-by-step 提示）、格式侧控制（响应中没有 <code>&lt;think&gt;</code> 块或独立推理区）、长度侧控制（输出短即视为推理减少）（§2.1，Fig. 2）。论文指出三者的共同缺陷是：它们描述的是提示条件、可见格式或长度，而不是响应内容本身。三个反例说明代理量会失效——禁用思考模式后，模型仍可能在普通答案通道输出依赖问题的解释；移除 <code>&lt;think&gt;</code> 标签只移除了格式，推理可以普通语言出现；一句话内也可塞入紧凑的推理步骤（§2.1，Fig. 2(b)）。</p>
+<p>这是论文的核心新观察：<strong>禁用思考模式或强令只答，不等于响应中不含可见推理</strong>。支撑证据包括 Fig. 1&#x2F;2 的定性案例与 §3.2 的大规模量化（例如引言报告 DeepSeek-V4-Flash 在禁用思考设置下，开放式任务仍有 99.9% 的回答含可见显式推理，§1 第 (i) 条；全语料 M2 开放式 EIR 均值为 99.69%，Table D.3）。作者把问题归因于两层：其一，”不思考”缺少可操作定义，代理量把”指令控制”与”可见推理被抑制”混为一谈；其二，能否直接作答取决于任务”答案空间”提供的结构支撑——开放式生成缺少可核对的候选答案，需要更多具现化的中间计算（§3.2，§3.5）。论文要验证的核心假设是：不思考应作为响应级行为被测量，且响应中是否残留问题条件化的显式推断，主要由答案空间结构而非开关本身决定。</p>
+<p>需要区分三类问题：领域一般问题（推理开销大、需要按需推理）早已存在；本文的新观察是”代理量不可靠 + 推理残留随答案空间递增”；实际解决的子问题则是”给出可测定义与系统刻画”——论文并未训练任何新模型去真正实现”按需停止思考”，而是先解决测量与现象确认（§5.2 把训练干预列为未来工作）。</p>
+<p>图 1 归纳了论文对这三种代理量及其失效案例的分析。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.11765_fig2_surface_proxies.png"
+                      alt="图 1：表面代理量及其失效案例"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：左半部分是”现有方法如何识别不思考”的三类代理量——问题入口处的思考开关（prompt-side control）、输出中的专用思考标记（thinking special token）、输出长度（token len.）；右半部分用同一道代数题给出对应的三个失效案例：开关关闭后输出仍含推导、没有 <code>&lt;think&gt;</code> 标记但推理以普通文本出现、输出很短但内含紧凑推理（”3x&#x3D;9, so x&#x3D;3”）。读者应理解的是：这三类信号监测的都是模型的”配置或形式”，而论文要测的是最终可见文本里是否真的残留了针对问题的推断步骤，这是后续三级指标（ETR&#x2F;QRel.&#x2F;EIR）要解决的测量缺口。</p>
+<p>正因代理量与目标行为错位，作者抛出的”不思考缺失定义”并不是措辞问题，而是一个可以实验化的测量问题——这直接引出第 2 节的度量重构。</p>
+<h2 id="2-创新点是什么"><a href="#2-创新点是什么" class="headerlink" title="2. 创新点是什么"></a>2. 创新点是什么</h2><p>总的真增量是一个”测量重构 + 系统刻画”的组合：把不思考从提示&#x2F;格式代理量改写为响应级三级指标（ETR、QRel.、EIR），并配以真人标注校准；再用它系统测量六款模型 × 六个基准 × 六种干预，得出三个此前未被如此干净地展示过的经验规律：思考惯性、不思考—性能权衡、答案空间决定可压缩性。三点均以评测和轻量提示实验为主，不需要训练。</p>
+<ol>
+<li><p><strong>响应级三级度量框架</strong>：把响应分解为前答文本 T 与最终答案 A，分层测”严格只答（ETR）→ 剩余文本是否与问题相关（QRel.）→ 是否含显式推断步骤（EIR）”，准确率单独评 A。与最接近的已有做法（把 no-think 设置、<code>&lt;think&gt;</code> 缺失或短输出直接等同不思考）相比，这是度量对象的重定义，属新研究思想而非组件替换；对应 §1 的”代理量不可靠”问题。证据一句话：§4.3 汇总了真人边界审计 94.2% 一致、相关性 ρ&#x3D;0.829、裁判一致性 98.8% 等构念验证。</p>
+</li>
+<li><p><strong>六模式干预谱（M1–M6）</strong>：将思考开、原生关、再激发（step-by-step）、软约束、强约束、结构前缀强制（prefix forcing）排在单一”不思考强度”轴上，M6 用预填答案模板绕过指令遵循通道，是谱系中质上不同的分支。相较多数已有工作只比较”开&#x2F;关”，其差异在于把”抑制强度”做成可扫描的自变量，并据此发现 M6 并不比 M5 更严格（非单调）。证据指向 §4.2 的 Fig. 5 与 Table H.1。</p>
+</li>
+<li><p><strong>同题答案空间重写对照</strong>：对匹配的数值答案子集，只改答案接口（多选↔Boolean 核验↔开放式生成）而固定题目本身，排除了”不同基准难度不同”的解释。对应 §1 的”答案空间决定支撑”假设，是本文对因果方向最接近的受控设计（仍非机制级因果）。证据指向 §4.2 的 Fig. 6 与 §4.3 的噪声控制表（Tables I.3–I.5）。</p>
+</li>
+</ol>
+<h2 id="3-作者如何解决"><a href="#3-作者如何解决" class="headerlink" title="3. 作者如何解决"></a>3. 作者如何解决</h2><p>直觉上，作者不信任任何”开关&#x2F;格式&#x2F;长度”信号，而是直接追问：把最终答案之前的所有可见文本单独拿出来审——它是空的吗（同不同意只答）？它与问题相关吗？它含有一步真正的推断吗？把这三个问题分别用三个可复核的指标回答，就能在同一把尺子下比较模型、基准和干预；再用”同一道题换答案接口”把答案空间的作用从基准难度中剥离出来。</p>
+<p>按实际运行流程走查（§2.2–§2.4，§3.1）：</p>
+<ol>
+<li><p><strong>形式化与输入构造</strong>：每题记为 Q&#x3D;(q, c, A)，q 为问题、c 为可选上下文、A 为允许的答案空间（如 {yes, no}、{A,B,C,D} 或自由生成）。外部干预 S(·) 把 Q 包装成模型输入 S(Q)，模型 π 输出响应 π(S(Q))&#x3D;(T, A)：A 是最后一个可解析的最终答案，T 是它之前的全部可读可见文本（包括专用推理区、普通答案通道和短引导语）。干预分两类：问题无关的（只改指令&#x2F;开关&#x2F;输出约束）与问题相关的（改题型或答案空间，§2.2）。</p>
+</li>
+<li><p><strong>六种模式固定执行</strong>（问题无关干预，Table 2）：所有模式共享同一任务题干与”把最终答案放进 \boxed{}”的要求，只切换 enable_thinking（思考开关）与追加指令。M1 Think-On 开思考；M2 Think-Off 原生关闭（基线）；M3 关闭但加”Think step by step”再激发推理；M4 Soft 关闭并允许短引导语但禁止解释；M5 Strict 关闭并要求”直接给答案、不要任何推理”；M6 Prefix 关闭并在生成起点预填模板”The answer is \boxed{“，绕过指令遵循通道（作者视其为独立分支而非 M5 的加强版）。这些由固定流程控制，模型只决定实际生成什么。</p>
+</li>
+<li><p><strong>响应解析与三级度量</strong>（§2.3，由固定管道执行）：首先做 ETR——对输出 i，e_i&#x3D;1 当且仅当 A_i 可解析、且完整输出在允许的答案包装之外没有实质文本（A 之后出现实质内容或答案格式坏掉都算违规），ETR 是 e_i 在 N 条输出上的百分比均值，对应”严格只答”。其次做 QRel.——用指令感知的 Qwen3-Embedding-4B 嵌入模型（后文简称 Qwen3-Embedding）把 Q 作为查询、T 作为候选段落编码，查询指令为”给定一个问题，检索包含与该问题相关推理的前答文本”；空 T 记 0，非空取两向量 L2 归一化后的余弦相似度，聚合时对所有输出取均值。最后做 EIR——用一个盲评裁判（blinded LLM judge，GPT-5.5，temperature 0，只看 (Q, T)，隐藏模型身份、干预模式、最终答案与正误）在五标签互斥评分细则（rubric：generic&#x2F;off-topic、paraphrase-only、relevant non-inferential、explicit reasoning、unclear）中选择一个，只有 explicit reasoning 计 1，空 T 不经裁判直接记 0，EIR 为全输出百分比均值。准确率独立地评 A。</p>
+</li>
+<li><p><strong>训练与模型侧变化</strong>：全程不做任何训练，属于 training-free 的评测研究；推理阶段的变化仅在提示与接口层面（切换开关、追加约束、预填模板，以及问题相关干预里的题型改写）。解码统一为确定性设置：temperature 0，各模式同一 8,192 token 预算，前沿模型重跑使用种子 20260502（§3.1，Table B.2）。</p>
+</li>
+<li><p><strong>人工研究闭环</strong>（§2.3 末、§3.6、Appendix D.3）：从六个基准各抽 100 条共 600 条输出（保持各基准空&#x2F;非空 T 比例），五名标注员在盲评界面分别给非空 T 打 1–5 级相关性与同一套五标签推理类别；空 T 按定义直接记相关性 1、无可见推断。这一步同时检验指标效度（与 ETR 边界、QRel.、EIR 的对照）和主要结论是否在人工标注下复现。</p>
+</li>
+<li><p><strong>最终输出</strong>：每个（模型，基准，模式）单元给出 Acc.&#x2F;ETR&#x2F;QRel.&#x2F;EIR 四个数，共 572,688 条成功输出构成总语料（本地 Qwen3-4B&#x2F;32B 用完整切分各 218,100 条；四款 API 模型每模式 5,687 题、六模式共 34,122 条，§3.1、Appendix B）；外加人工研究与若干稳健性审计。</p>
+</li>
+</ol>
+<p>三级指标的分工可用一个教学简化示例（非论文实验）说明：对 42+79 的回答”Let me compute. 2+9&#x3D;11, carry 1, so 121.”，T 非空且含一步进位计算——ETR 失败、QRel. 高、EIR&#x3D;1；换成”The answer is 121.”，T 为非空模板语——ETR 仍失败、QRel. 低、EIR&#x3D;0；只有”<code>\boxed{121}</code>“此类零前答文本才算通过 ETR。这正是论文 Fig. 3 底部用真实响应示例展示的分层逻辑。</p>
+<p>图 2 给出了整套响应级度量框架与六种典型响应形态的示意。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.11765_fig3_response_metrics.png"
+                      alt="图 2：响应级三级度量框架"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 3）：上半部分是推理流程与度量挂载点——问题 Q 经干预 S(·) 变为模型输入，模型 π 输出被拆成前答文本 T 与答案 A，然后在 T 上依次施加三种测量（ETR 判空、QRel. 算相关、裁判判显式推断），A 单独进准确率；下半部分对同一道题”42+79&#x3D;?”给出六种 T 的形态（空答、短而高相关、短而无关、长而高相关、长而无关、长而中等相关），说明长度、相关性与推断性都可以相互独立地变化。读者应理解：这套分解是全文所有实验的统一观测口径，后续每个模型—模式—基准组合的报告值都是在这条管道上聚合得到的。</p>
+<p>下面第 4 节检验这套管道在多大范围上成立：先看主要结果与真人校验，再检查它是否经得起替代解释，最后界定成本与适用边界。</p>
+<h2 id="4-解决得怎么样"><a href="#4-解决得怎么样" class="headerlink" title="4. 解决得怎么样"></a>4. 解决得怎么样</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p>任务与数据集：按答案空间分三族，每族一易一难——Boolean 核验用 BoolQ（验证集 3,270）与 StrategyQA（687）；多选用 MMLU（14,042）与 MMLU-Pro（12,032）；开放式生成用 GSM8K（1,319）与 MATH（5,000）（§3.1，Table B.1）。模型：Qwen3-4B&#x2F;32B（本地，enable_thinking 真&#x2F;假）、Qwen3-235B-A22B、DeepSeek-V4-Flash（284B）、GPT-5.4、Gemini-3-Flash（推理力度 high&#x2F;minimal；minimal 被视为”近关”而非严格关）（Table 3，Table B.2）。比较对象即六模式的互比：M1&#x2F;M3 为思考侧参照，M2 为原生基线，M4&#x2F;M5&#x2F;M6 为抑制强度递增的干预。指标为 Acc.&#x2F;ETR&#x2F;QRel.&#x2F;EIR，全部以全输出为分母（空 T 对 QRel. 记 0、对 EIR 记 0）。公平性控制：温度 0、各模式统一 8,192 token 上限（上限命中率最高 0.35%）、API 模型同套题面与同预算。主实验回答”开关是否可靠、抑制强度如何改变行为与准确率”，附录回答度量稳健性（D）、审计（E）、案例（F）、全局与领域视图（G&#x2F;H）、问题结构控制（I）。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><ul>
+<li><strong>原生开关远不可靠，且随答案空间恶化</strong>（§3.2，Fig. 4）：M2 下多数模型在 Bool 上 ETR 达约 80–100%，多选 ETR 跨度极大（近 0 到 95%），开放式则 ETR 几乎处处塌到 0；全语料 M2 的 EIR 为 Bool 5.15% → 多选 45.57% → 开放式 99.69%（Table D.3）。即”关不掉”的推理随答案空间开放递增——论文称之为思考惯性。</li>
+<li><strong>强指令抑制换来的是权衡而非解决</strong>（§3.3，Fig. 5）：在五款可完全关闭思考的模型上，M2→M5 把开放式平均 ETR 从近 0 抬到约 40%，同时平均准确率下降约 15 个百分点；EIR 从 99.69% 降到 62.00%，Bool（5.15%→0.12%）与多选（45.57%→25.39%）的 EIR 同样下降但准确率基本持平。开放式任务上”只答合规”与”答对”出现明显拉扯。</li>
+<li><strong>M6 前缀强制不是更强约束</strong>（§3.3，Fig. 5）：预期 M6 应进一步提高 ETR、压低 QRel.&#x2F;EIR，实际在多选与开放式上平均 ETR 反而从 M5 回落，QRel. 与 EIR 在三个答案族全部反弹，作者据此判定其与 M5 不构成同一强度轴。</li>
+<li><strong>同题改写坐实答案空间的作用</strong>（§3.5，Fig. 6）：Qwen3-32B 在 M2 下，对匹配的数值答案子集把多选改写为 Boolean 核验，准确率几乎不变（77.8→78.9），但 ETR 从 10.5% 升到 62.5%，QRel.（0.709→0.314）与 EIR（86.95%→36.90%）大降；改写为开放式则准确率跌至 52.6%，ETR 为 0，QRel. 升至 0.810、EIR 升至 90.14%。提升小或无提升的情形也存在：Bool&#x2F;多选上 M2→M5 准确率基本不动；表 4 显示即便固定四选一接口，学科域内 ETR 仍有 0.3–36.4% 的巨大差异（STEM 准确率最高但 ETR 最低）；规模效应不单调（Table H.2：M5 开放式 EIR，Qwen3-4B 97.78%、32B 56.73%、235B 98.90%）。方差方面 Fig. 5 给出均值 ±1 标准差带，但没有置信区间或显著性检验；确定性解码下也没有多次抽样方差的报告。</li>
+</ul>
+<p>图 3 给出原生思考开关（M1&#x2F;M2&#x2F;M3）在六模型、三答案族上的完整对比。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.11765_fig4_native_switch.png"
+                      alt="图 3：原生开关下三级指标对比"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 4）：行是模式（M1 开启、M2 原生关闭、M3 用 step-by-step 再激发），列是答案族（Bool、MCQ、Open-ended）；每个模式单元左列以柱状体给出 ETR、黑三角折线给出六模型平均 EIR，右列给出 QRel. 与可见前答长度。该图是”惯性”现象的主证据：从 M1 到 M2 只影响 ETR 的量级而基本不改变答案空间排序；M3 能把相关内容与显式推断”请回来”（平均 EIR 整体回升），但 Bool&lt;MCQ&lt;Open-ended 的阶梯保持不变；右列还表明 QRel. 并非长度的代理（长度跨答案族大涨而相关性变化温和）。</p>
+<p>图 4 汇总了四种不思考变体下准确率与三级指标随模式的变化。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.11765_fig5_nothink_variants.png"
+                      alt="图 4：不思考变体与性能权衡"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 5）：列为三个答案族，行为 Acc.&#x2F;ETR&#x2F;QRel.&#x2F;EIR，横轴是模式 M2（原生关闭）→M4（软约束）→M5（强约束）→M6（前缀强制），彩线为各模型、黑线与灰带为均值±1 标准差（ETR 行只纳入有严格关闭条件的模型）。读法上应关注三点：开放式一列的准确率在 M2→M5 间整体下沉而 ETR 抬头——这就是权衡；M5→M6 时 ETR 回落、QRel.&#x2F;EIR 反弹——前缀强制未沿强度轴前进；Bool 列几乎全程平坦，说明准确率代价集中在需要生成答案的答案空间。</p>
+<p>图 5 是同一批问题在三种答案空间下的三级指标重写对照。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2610.11765_fig6_answer_space.png"
+                      alt="图 5：同题答案空间重写对照"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 6）：对 Qwen3-32B 在 M2 下的匹配数值题，把同一批问题分别以多选、Boolean 核验、开放式三种接口问出，四联图依次报告 Acc.&#x2F;ETR&#x2F;QRel.&#x2F;EIR，红字为相对多选的变化量。它把 §4.2 第二条的”答案族差异”从跨基准现象收紧为同题受控结果：给出候选答案核对（Boolean）能几乎零代价地压缩前答文本，移除候选（开放式）则推高相关性与显式推断并付出准确率代价——答案接口本身在重塑是否”直接回答”。</p>
+<p>三张结果图指向同一结论：不思考的可实现程度由题目提供的答案支撑结构决定，而非由开关决定；下面的机制证据检验这一结论的量表是否可信。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>区分”有效”与”为什么有效”。度量侧：ETR 的严格边界与人工检查在 600 条上 94.2% 一致（35 条差异来自”答案须可解析”的附加要求）；QRel. 与五名标注员的逐题相关性均值 ρ&#x3D;0.829（对照的 all-MiniLM-L6-v2 为 0.809，Table 6）；EIR 与人类二分类标签平均一致率 98.8%（GPT-5.5）&#x2F;96.7%（Claude Opus 4.8），标注员间 Krippendorff’s α 为五分类 0.873、二分类 0.948、相关性 0.919（Tables 5–6、D.6–D.9）。跨家族裁判复现了全部排序关系（Opus 在 M5 开放式仍判 61.02% 含显式推断，逼近 GPT-5.5 的 62.00%，Table D.3），说明 EIR 结论不依赖单一裁判家族。对 §2 三个方法侧创新逐项核对：三级框架方面，论文未做”移除某一级”的消融，但给出了层级不可互相替代的构念证据——近似逐字复述仅 301&#x2F;572,688（0.053%，最悲观情形对全局 QRel. 影响 ≤0.00053）、纯转述仅 355 条（0.06%）且不计入 EIR、答案先于解释的响应仅 0.028%（Appendix E），并用替换编码器（BGE、E5、MiniLM）验证层级 2 的方向稳定性（Table D.1–D.2）；六模式谱方面，模式即实验自变量，M5&lt;M2 与 M6 非单调均有全语料数字支撑；答案空间重写方面，选项顺序&#x2F;标签扰动（Table I.3）与 Boolean 正&#x2F;负提案拆分（Table I.4）排除了”表面秩序”与”一律附和提案”的替代解释。</p>
+<p>排除替代解释的检查：提示歧义——作者用独立 GPT 解读 M5 指令，确认其字面义就是只给结果（Fig. E.1）；预算——各模式同为 8,192 上限且命中率 ≤0.35%；难度——同题重写设计排除跨基准难度差；重述通胀——上述审计已量化。<strong>未能排除的</strong>：思考惯性”为什么”由答案空间组织——论文只给出”与开放式任务需要更多任务相关中间计算相一致”的解释（§3.2）、属于事后诠释，没有直接操纵计算需求的实验；也明确声明不测量隐藏状态是否仍在计算（§5.1），因此”可见推理减少”不能等同于内部计算停止。此外，M6 的行为差异是否来自预填模板本身干扰了答案解析（而非”绕过指令通道”），论文未做模板消融。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p>训练成本为零（不训练任何模型）；但评测成本论文未报告——裁判 GPT-5.5 需要对约 57 万条输出逐条判定、Opus 4.8 全量复判、Qwen3-Embedding 全量嵌入，外加四款前沿 API 模型（GPT-5.4、Gemini-3-Flash、DeepSeek-V4-Flash、Qwen3-235B-A22B）的推理调用，这些 API 费用与总 token 数、时延均未报告。人工标注为 600 条 × 5 名标注员（其中非空 T 402 条），协议与一致性统计公开（Appendix D.3），成本未报告。外部依赖较重：结论的一半建立在闭源端点（含裁判模型是”用同类模型评同类模型”）。论文公开了项目页（<a class="link"   target="_blank" rel="noopener" href="https://thinking-inertia.github.io/%EF%BC%89%E3%80%81%E4%BB%A3%E7%A0%81%EF%BC%88https://github.com/thinking-inertia/code%EF%BC%89%E4%B8%8E%E8%BD%A8%E8%BF%B9%E6%95%B0%E6%8D%AE%E9%9B%86%EF%BC%88HF" >https://thinking-inertia.github.io/）、代码（https://github.com/thinking-inertia/code）与轨迹数据集（HF<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 数据集 llm-nothinking-trajectories，PDF p.1 超链接）。</p>
+<p>改善了什么：给出了可复用的不思考度量工具与大规模证据，量化了禁用开关的不可靠程度，并识别出答案空间这一被忽视的结构变量。仍未解决：如何真正让模型按需停止显示推理（训练侧干预被列为未来工作）；响应合规是否降低真实算力&#x2F;时延开销（论文自己提醒”可见合规不等于推理成本下降”，§5.2）；多语言、代码、工具使用、多轮与随机解码下的泛化；以及隐藏计算通道的行为。适用范围：英文单轮问答、确定性解码、六款 2026 年前沿模型，结论边界止于可见输出层。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：核心指标建立在同类大模型之上，”用-LLM-评-LLM”的构念效度风险集中"><a href="#质疑：核心指标建立在同类大模型之上，”用-LLM-评-LLM”的构念效度风险集中" class="headerlink" title="质疑：核心指标建立在同类大模型之上，”用 LLM 评 LLM”的构念效度风险集中"></a>质疑：核心指标建立在同类大模型之上，”用 LLM 评 LLM”的构念效度风险集中</h4><ul>
+<li><strong>原文依据</strong>：EIR 由 GPT-5.5（temperature 0）盲评产生，QRel. 由 Qwen3-Embedding-4B 产生（§2.3，§3.1）；人工验证仅覆盖 600 条抽样（§3.6，Table 5）。</li>
+<li><strong>为什么重要</strong>：论文反抗”表面代理量”的武器本身依赖模型判断；若裁判对”显式推断”的判定与人类在更大样本上系统性偏离，或裁判家族倾向与所评模型行为相关（例如都偏好公式化输出），思考惯性的量级会被系统性放大或缩小，直接影响主结论。</li>
+<li><strong>当前能够得出的判断</strong>：论文的验证在同规模研究中已属充分（人工一致 98.8%、跨家族 Opus 复判 96.7%、α≥0.87），但 600 条中非空 T 仅 402 条、McNemar&#x2F;置信区间等统计细节未给；跨家族一致只能说明两族裁判”一致”，不能完全排除共同的模型化偏差。</li>
+<li><strong>如何验证或补强</strong>：扩大到开放式任务的分层随机样本（如每模型-模式单元 ≥200 条）做人工判定并报告精度&#x2F;召回；加入人类不参考任何 LLM 判定的双盲基线；对 EIR 边界案例（单步短推理）单独报告敏感性。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：”思考惯性由答案空间组织”只被观测到，机制解释（计算需求）未经因果检验"><a href="#质疑：”思考惯性由答案空间组织”只被观测到，机制解释（计算需求）未经因果检验" class="headerlink" title="质疑：”思考惯性由答案空间组织”只被观测到，机制解释（计算需求）未经因果检验"></a>质疑：”思考惯性由答案空间组织”只被观测到，机制解释（计算需求）未经因果检验</h4><ul>
+<li><strong>原文依据</strong>：§3.2 用”consistent with greater computational demands”解释阶梯；§3.5 的同题改写证明接口效应但未操作化”计算需求”；§5.1 声明不触碰隐藏状态。</li>
+<li><strong>为什么重要</strong>：结论若只是”开放式任务更难压缩输出”，与”模型有内在的惯性”是不同的科学主张；机制不清意味着难以设计训练侧修复，也难预测新任务类型上的行为。</li>
+<li><strong>当前能够得出的判断</strong>：观察—解释之间证据不足。可替代解释包括：开放式任务缺少可核对候选项导致模型”不自信”而展示过程、以及各基准输出格式习惯（英文数学题训练分布）差异；论文用同题改写削弱了后者但未彻底排除（改写本身也改变了题面表述）。</li>
+<li><strong>如何验证或补强</strong>：操纵同一题的计算需求（如难度分层&#x2F;提供中间馈赠步骤）看 EIR 是否随之变化；对模型隐藏状态做探针（probing）检验禁用思考模式下内部计算是否仍在进行；测试在答案空间相同但计算需求不同的数据上惯性是否仍在。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：论文动机是效率，但全文未测量任何真实成本，实际收益无从评估"><a href="#质疑：论文动机是效率，但全文未测量任何真实成本，实际收益无从评估" class="headerlink" title="质疑：论文动机是效率，但全文未测量任何真实成本，实际收益无从评估"></a>质疑：论文动机是效率，但全文未测量任何真实成本，实际收益无从评估</h4><ul>
+<li><strong>原文依据</strong>：引言以时延&#x2F;token 开销立论（§1）；正文与附录未报告推理时延、总 token、或提供者侧推理 token 数；§5.2 自认”visible compliance should not be equated with lower inference cost”。</li>
+<li><strong>为什么重要</strong>：读者最可能的落地问题是”把开关关了、把提示写死，能省多少”，而论文无法回答该问题；若模型只是把计算藏在不可见通道，则本文的合规度指标与省钱目标完全脱钩，实践者可能据此做出错误的部署决策。</li>
+<li><strong>当前能够得出的判断</strong>：论文未报告，无法确认。好在作者明确把结论限定在可见层，减少了对结论本身的威胁，但这使”不思考”作为能力的经济意义悬置。</li>
+<li><strong>如何验证或补强</strong>：报告各模式的实际 token 计费&#x2F;时延；征用提供者暴露的推理 token 通道；配合内部探针给出”省了多少真实计算”的下界。</li>
+<li><strong>严重程度</strong>：次要问题（影响外部解读与实用性，不影响主结论内部有效性）。</li>
+</ul>
+<h4 id="质疑：统计呈现不完整，且部分聚合口径混合了完整切分与抽样子集"><a href="#质疑：统计呈现不完整，且部分聚合口径混合了完整切分与抽样子集" class="headerlink" title="质疑：统计呈现不完整，且部分聚合口径混合了完整切分与抽样子集"></a>质疑：统计呈现不完整，且部分聚合口径混合了完整切分与抽样子集</h4><ul>
+<li><strong>原文依据</strong>：本地模型用完整切分、API 模型每基准抽 1,000 条（StrategyQA 全量，§3.1、Appendix B.1）；Table 4 注释说明 API 模型的 Acc.&#x2F;ETR 用完整 MMLU 聚合、QRel.&#x2F;EIR 用 1,000 条子集；Fig. 5 的 ETR 均值排除 Gemini（其”minimal”非严格关，Table B.2）；正文无置信区间、显著性检验，且温度为 0 无多次采样。</li>
+<li><strong>为什么重要</strong>：主结论的每个聚合数字对”哪些模型&#x2F;哪些样本进入平均”敏感；选择性纳入会改变阶梯的高度（虽然方向目前稳健）；无区间估计使”约 40%””约 15 个百分点”这类关键数字精确度不明。</li>
+<li><strong>当前能够得出的判断</strong>：当前证据支持方向性结论（多裁判、多模型、多审计交叉一致），但精确幅度处于不确定性之中；这属于披露不足而非结论被证伪。</li>
+<li><strong>如何验证或补强</strong>：对每个聚合报告样本量与自助法（bootstrap）置信区间；将 Gemini 的处理方式做敏感性分析（纳入&#x2F;剔除各算一遍）；说明 API 抽样与完整切分之间结论是否一致。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h4 id="质疑：M6-前缀强制的行为异常可能更多来自模板设计，而非所声称的”绕过指令通道”"><a href="#质疑：M6-前缀强制的行为异常可能更多来自模板设计，而非所声称的”绕过指令通道”" class="headerlink" title="质疑：M6 前缀强制的行为异常可能更多来自模板设计，而非所声称的”绕过指令通道”"></a>质疑：M6 前缀强制的行为异常可能更多来自模板设计，而非所声称的”绕过指令通道”</h4><ul>
+<li><strong>原文依据</strong>：M6 在生成起点预填”The answer is \boxed{“（Table 2）；正文报告 M6 平均 ETR 回落、QRel.&#x2F;EIR 反弹（§3.3，Fig. 5），并解释为 M6”绕过指令遵循通道”；定性示例中 M6 的输出常先叙事再补一个词法上不完整的 \boxed{} 结果（PDF p.13），论文未做预填模板的对照（如仅预填不带指令、或换预填内容）。</li>
+<li><strong>为什么重要</strong>：若异常源于预填文本干扰了答案解析或收尾格式（例如模型把解释写进预填起点之后），”前缀强制不比强指令更强”的解释就需要修正；这影响对”结构约束 vs 语义约束谁更有效”这一节结论的可靠性。</li>
+<li><strong>当前能够得出的判断</strong>：现象（非单调）有全语料数字支撑，但机制归因未被隔离验证；结论证据显示作者的解释证据不足。</li>
+<li><strong>如何验证或补强</strong>：增加多种预填模板的消融（含无语义载荷的占位模板、不同预填长度）并交叉检查答案解析失败率在 M6 是否异常；报告 M6 下答案出现在预填之外的占比。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现”禁用思考开关&#x2F;强令只答”并不能消除响应中可见的显式推理，且现有”不思考”判别全靠开关、<code>&lt;think&gt;</code> 标记与长度三类不可靠的代理量，因此把不思考重定义为响应级三级测量（ETR&#x2F;QRel.&#x2F;EIR）并配以人工与跨家族裁判验证，在六款模型、六个基准、六种干预与 57 万余条输出上刻画了”思考惯性随答案空间递增”、不思考—性能权衡与同题重写效应。实验在答域、干预、模型维度上的覆盖与审计密度超出该类研究常见水平，描述性结论证据较强；但机制解释（为何随答案空间组织）止于事后诠释，”用同类模型度量同类模型”的构念风险与未测量真实计算成本限制了外推。本文最有价值的部分是提供了一个可复用的、经人类校验的”不思考”测度框架和一组很难被既有开关叙事解释掉的实证事实；最大的审稿风险是核心量表的效度边界（裁判依赖）与因果措辞的克制程度。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。开篇即用三个具体失效案例把”代理量不可靠”定义清楚，并给出形式化的 T&#x2F;A 分解与三级操作定义（§2.1–2.3）。</li>
+<li><strong>创新性证据</strong>：中。度量框架与六模式谱中的 M6 分支属新构造且有验证，但论文价值偏”测量重构 + 现象确认”，不含算法创新；作者也未声称普适的新方法。</li>
+<li><strong>方法可信度</strong>：中。三级指标有真人校准、跨裁判与多重审计支撑，同时作者明确限定可见层；但构念依赖 LLM 裁判、机制解释为相关性层面（§4.3）。</li>
+<li><strong>实验支持力度</strong>：强。六模型 × 六基准 × 六模式 × 572,688 条输出、同题受控重写与系列排除性审计（Tables D&#x2F;E&#x2F;I）；扣分点是无置信区间&#x2F;显著性检验与聚合口径混用（§4.4）。</li>
+<li><strong>可复现性</strong>：中。本地 Qwen 全量实验、确定性解码、公开代码&#x2F;数据&#x2F;项目页支持复现；但前沿结果依赖 2026 年闭源端点（含裁判）的持续可用性，人工研究亦难完全重放（§4.4）。</li>
+<li><strong>综合阅读价值</strong>：高。对研究”按需推理&#x2F;推理预算&#x2F;指令遵循”的读者，这是少见的把测量问题当作第一性问题处理、且审计相当彻底的论文；即便不关心工程落地，其关于答案空间结构作用于”是否直接作答”的结论也值得记录。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Thinking Inertia：LLM 被要求不思考时仍在思考</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-13 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-13 22:22:45
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/13/2610.11765v1_Thinking_Inertia_LLMs_Keep_Thinking_When_Told_Not_To/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%A4%A7%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">#大语言模型</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-as-a-judge/">#LLM-as-a-judge</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%80%9D%E8%80%83%E6%A8%A1%E5%BC%8F%E6%8E%A7%E5%88%B6/">#思考模式控制</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E4%B8%8D%E6%80%9D%E8%80%83%E8%A1%8C%E4%B8%BA/">#不思考行为</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%8C%87%E4%BB%A4%E9%81%B5%E5%BE%AA/">#指令遵循</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/13/2610.09326v1_VIS-Ground_Video_Interactive_Storytelling_with_Contextual_Grounding/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">VIS-Ground：带上下文接地的视频交互式叙事</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/13/2610.13166v1_Scaling_Agentic_Data_for_Long-Horizon_Terminal_Intelligence/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Scaling Agentic Data for Long-Horizon Terminal Intelligence（长程终端智能体的挑战引导数据合成）</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Thinking Inertia：LLM 被要求不思考时仍在思考</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-text">1. 论文具体想解决什么问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-text">2. 创新点是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3"><span class="nav-text">3. 作者如何解决</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7"><span class="nav-text">4. 解决得怎么样</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 126 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

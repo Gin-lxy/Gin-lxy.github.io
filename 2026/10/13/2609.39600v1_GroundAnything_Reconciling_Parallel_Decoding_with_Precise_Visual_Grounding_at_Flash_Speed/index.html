@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/13/2609.39600v1_groundanything_reconciling_parallel_decoding_with_precise_visual_grounding_at_flash_speed/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GroundAnything：在闪电速度下调和扩散并行解码与精准视觉定位">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/13/2609.39600v1_GroundAnything_Reconciling_Parallel_Decoding_with_Precise_Visual_Grounding_at_Flash_Speed/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-13T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-13T14:22:45.196Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="GRPO">
+<meta property="article:tag" content="多模态">
+<meta property="article:tag" content="并行解码">
+<meta property="article:tag" content="扩散语言模型">
+<meta property="article:tag" content="自推测解码">
+<meta property="article:tag" content="视觉定位">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>GroundAnything：在闪电速度下调和扩散并行解码与精准视觉定位 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">399</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">126</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">GroundAnything：在闪电速度下调和扩散并行解码与精准视觉定位</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-13 12:00</span>
+        <span class="mobile">2026-10-13 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-13 22:22:45</span>
+            <span class="mobile">2026-10-13 22:22:45</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%A4%9A%E6%A8%A1%E6%80%81/">多模态</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/GRPO/">GRPO</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E6%89%A9%E6%95%A3%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">扩散语言模型</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%A7%86%E8%A7%89%E5%AE%9A%E4%BD%8D/">视觉定位</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E5%B9%B6%E8%A1%8C%E8%A7%A3%E7%A0%81/">并行解码</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%87%AA%E6%8E%A8%E6%B5%8B%E8%A7%A3%E7%A0%81/">自推测解码</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Qize Yu、Lianrui Fan、Bowen Ping、Xini Ding、Zetian Song、Junbo Niu、Kaixuan Wang、Tianxing Chen、Yue Chen、Minghua He、Yuran Wang、Jie Huang、Haojun Zhang、Min Chen、Hao Li、Wenxuan Song、Ruihai Wu、Xianming Liu、Shilong Liu、Shuchang Zhou、Ping Luo、Shiyu Huang（XPeng Inc.、北京大学、香港大学、加州大学伯克利分校、普林斯顿大学、新加坡国立大学、香港科技大学（广州）；前五位为共同第一作者）</p>
+<p>论文：2609.39600v1；来源：Hugging Face Daily Papers（2026-10-13 批次，默认顺序第 9 位）；精读归档日期：2026-10-13（Asia&#x2F;Shanghai）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2609.39600" >https://huggingface.co/papers/2609.39600<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2609.39600v1" >https://arxiv.org/abs/2609.39600v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>（全文 HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2609.39600v1" >https://arxiv.org/html/2609.39600v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2609.39600v1" >https://arxiv.org/pdf/2609.39600v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>）</p>
+<p>标签：视觉定位、扩散语言模型、并行解码、自推测解码、GRPO、多模态。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文把视觉定位（visual grounding）建模为图像与查询联合约束下的”结构化视觉证据抽取”，用一个 4B 参数的扩散语言模型（diffusion language model, DLM）GroundAnything 以块状去噪并行生成定位 token，替代自回归（autoregressive, AR）逐 token 序列化。在论文报告的 30 个基准上，其 AR 变体 GroundAnything-VLM 以 72.42% 的汇总分自称同尺寸最优，纯扩散的 GroundAnything 以 61.75% 超过同尺寸快模型 LocateAnything Fast 的 53.32%，可选的自推测（self-speculative）解码在 COCO 上以 0.74 个百分点 F1mIoU 代价换来 4.51 倍吞吐；但汇总口径未披露，且扩散相对自回归在 OCR、指向等任务仍有两位数的质量差距。</p>
+<h2 id="1-论文具体想解决什么问题"><a href="#1-论文具体想解决什么问题" class="headerlink" title="1. 论文具体想解决什么问题"></a>1. 论文具体想解决什么问题</h2><p>视觉定位任务要求把图像与查询转成结构化空间输出：检测框、指代目标框、指向点、OCR 文本区域、GUI 元素、文档版式等。当下主流做法是生成式定位——把标签与坐标写成 token 序列，用自回归下一 token 预测输出（Pix2Seq、Florence-2、Rex-Omni 一线；§1）。这一路线的瓶颈作者归纳为两点：其一，AR 解码把坐标逐 token 串行化，输出越长延迟越高，在密集场景与复杂版式中代价尤其大；其二，因果注意力让每个输出 token 只能读取生成前缀，无法让彼此关联的空间结构（如同一实例的四个坐标、互相约束的关系）在生成时相互对照（§1）。</p>
+<p>在缓解手段上，已有两条线索：LocateAnything 用多 token 预测（multi-token prediction, MTP）把整框当作原子单元并行解码以降低延迟（§2.1）；扩散视觉语言模型（diffusion VLM）通过双向条件与迭代去噪支持并行生成，并已在 GUI 定位、文档 OCR 等个别任务上应用，但作者认为”覆盖异构定位任务的统一扩散定位基座”仍是空白（§2.2）。</p>
+<p>论文的新观察属于建模视角而非实验现象：作者指出人们”注意到物体、读到标牌的顺序可以不同，但对有什么、在哪里的判断一致”，因此定位输出在依赖结构上并不存在内在的从左到右生成顺序（§3.1，作者主张）。围绕这一点，论文要验证的核心假设是：双向掩码扩散（bidirectional masked diffusion）能让空间假设并行涌现、通过迭代去噪彼此精修，从而在基本不损失定位精度的前提下显著降低解码延迟，并能用一个统一的结构化接口覆盖多种定位任务（§1、§3.1）。</p>
+<p>需要区分的三层：AR 定位的串行延迟是领域早已存在的一般问题；”扩散在统一定位基座上未被探索”是作者基于 related work 提出的空白判断（本文未做系统性文献穷举，§2.2）；本文实际解决的具体子问题，是把一个已经训练好的 4B AR 定位模型转换为扩散模型并在 30 个基准上系统评测其质量-速度权衡（§3、§4）。论文没有用实验去证明”生成顺序不重要”这一认知性论断，它被直接用作设计假设。</p>
+<h2 id="2-创新点是什么"><a href="#2-创新点是什么" class="headerlink" title="2. 创新点是什么"></a>2. 创新点是什么</h2><p>总括来看，本文的真增量是”把一套已有多模态 AR→扩散转换与块状并行解码方案，完整落地到一个统一的多任务定位模型上”，并围绕它补充了面向定位的奖励式后训练、熵引导提交策略、自推测调度与一套 DLM–MTP 控制实验。掩码扩散解码、AR→扩散直接转换（Wu et al., 2026a）、熵作为可靠性信号、GRPO 都是已有组件；本文的贡献集中在组合方式、定位场景的具体化与系统化评测上。</p>
+<ol>
+<li><p>定位任务的形式化与统一输出接口：把 grounding 表述为”结构化视觉证据抽取”，用共享词表（文本 + 结构标记 + 1000 个量化坐标 token <code>&lt;0&gt;</code>–<code>&lt;999&gt;</code> + 内部掩码 token）统一八类任务的输入指令与响应语法，缺失类别显式输出 <code>None</code>。与 Rex-Omni&#x2F;LocateAnything 的统一格式相比，差异在于该接口专为扩散解码设计（响应可分块、支持掩码填充与 AR 复用）。证据：§3.2、§6.1 与主表 1–4。</p>
+</li>
+<li><p>AR→扩散直接转换与联合目标：在坐标对齐后的 AR 检查点上加入掩码 token，用两块互补损坏视图加一条干净流联合训练”去噪 + 因果”双目标，注意力掩码限定为块内双向、块间因果。最接近已有工作是通用的多模态 AR→扩散转换（Wu et al., 2026a）；本节的新意是把它适配到高精度坐标输出，并让转换后的共享权重同时服务自推测验证。证据：§4.3、§4.4 与消融图（论文 Fig. 16）。</p>
+</li>
+<li><p>熵引导解码与自推测调度：提出按 token 分布熵 <code>H_j ≤ τ</code> 一次性提交多个可并行位置的默认解码（Entropy-Guided Decoding），并给出线性与二次两种”扩散草稿 + 因果验证”调度。相对已有熵基采样&#x2F;推测解码工作，这里是组合到块状扩散定位输出上并给出了实测的速度-质量权衡（τ&#x3D;0.8 为 COCO 扫描最优点）。证据：§4.3.1、§7。</p>
+</li>
+<li><p>面向定位的因果 GRPO 后训练：用组内双重归一化的组合奖励做强化后训练——检测框用”集合完整性 + 严格定位”两项（权重 0.7&#x2F;0.3），OCR 用文本-几何匹配，指向用距离核软匹配；一次 rollout 一次更新、无参考 KL，更新后的权重直接复用于扩散推理。与标准 GRPO 的差异在于奖励为定位定制、且服务于”训练用因果模式、推理用扩散模式”的共享权重设定。证据：§4.4”训练”消融、§6.8–§6.10。</p>
+</li>
+</ol>
+<h2 id="3-作者如何解决"><a href="#3-作者如何解决" class="headerlink" title="3. 作者如何解决"></a>3. 作者如何解决</h2><p>核心直觉：既然一个实例的坐标、乃至多个实例的位置都受同一份图像证据与查询约束，就可以把响应切成若干 token 块，让每块内的多个位置在一次前向中并行提出假设，再通过若干轮去噪逐步”敲定”；块与块之间保持因果，使长输出可以续接、缓存可以复用。这样解码成本就从”每 token 一轮前向”变成”每块若干轮前向”，并在可接受的质量损失内取得数倍吞吐。</p>
+<p>从输入到输出的实际流程如下。输入是一张图像加一条模板化指令，八类任务各有固定指令模板（如类别检测为”Locate all the instances that match the following categories: [CATEGORIES]”，§6.1 表 6）；输出是结构化响应串，条目模板为 <code>&lt;|object_ref_start|&gt;标识&lt;|object_ref_end|&gt;&lt;|box_start|&gt;&lt;坐标…&gt;&lt;|box_end|&gt;</code>，框用四个量化坐标 token 按 (x1,y1,x2,y2) 表示，点用两个；坐标按图宽高归一化后量化到 0–999（对 [0,1000] 网格的标注用 q(v)&#x3D;⌊(999v+500)&#x2F;1000⌋，§6.1 式 4），被查询但不存在的类别输出文本 <code>None</code> 而不是留空。</p>
+<p>模型主干由三部分组成（论文 Fig. 2，本报告图 1）：MoonViT-V2（Kimi K3）视觉编码器、带 2×2 空间聚合的两层 MLP 投影器（每图最多 1024 个视觉 token）、Qwen3-4B 语言解码器（36 层，约 4.844B 总参数，”4B” 指语言主干，§6.2 表 8–9）。词表在 151,669 条基座上扩展 1000 个坐标 token 与 <code>&lt;/c&gt;</code>，GroundAnything 再加一个内部 <code>[MASK]</code>（ID 152670）；掩码行用四个特殊 token 行的 FP32 均值初始化。输入嵌入与输出头不共享，但因果模式与扩散模式完全共享同一套解码器权重——这是后文自推测解码成立的前提。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2609.39600_fig2_architecture.png"
+                      alt="图 1：GroundAnything 总体架构"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：架构与训练监督的静态视图。图像经视觉编码器后与文本查询拼接成干净多模态流，响应 token 被随机掩码后形成带掩码噪声视图；两条流共用同一个 Qwen3-4B 解码器，分别产生 AR 损失（干净流的下一 token 预测）与掩码 token 损失（噪声流的被掩位置预测），因此一个骨干同时学会因果续写与块内并行填充。图下方以掩码逐步变得稀疏示意块式去噪的推进，统一输出语法的示例则展示同一段响应如何容纳多类别框、<code>None</code> 缺省与结束标记——读者应从中理解”一份权重、两种注意力模式、一个输出接口”的整体设计。（本报告图表编号采用 arXiv PDF 版编号；arXiv HTML 版图片编号整体小 1，如本图在 HTML 中为 Fig. 1，表编号两版一致。）</p>
+<p>训练分四步走完（论文 Fig. 5，本报告图 3 给出训练与推理的总流程）。第一步基座 VLM 预训练（Pretrain 1，含三期）：先冻结双骨干只训投影器做图文对齐，再全参数联合多模态预训练，最后在通用视觉问答、描述与视频数据上训练指令跟随（上下文 32K；论文称基座预训练累计曝光超过 700B token，§6.5）。第二步坐标对齐（Pretrain 2，即主文所称的 SFT）：在检测、GUI、指代、指代指向、OCR、文档版式、密集点选与计数、视觉提示八个任务组上联合监督框、点、语义标识与协议标记，坐标 token 与普通 token 共用因果交叉熵（8K 上下文，§6.6）。</p>
+<p>第三步 AR→扩散转换（仅 GroundAnything，§3.4.2、§6.7）：把带监督的响应区间切成每块 B&#x3D;32 个 token 的连续块（允许跨几何元组边界）；对每块独立采样 t∼U(0,1)，按该概率对块内每个非 EOS 目标位独立伯努利掩码，并取其补集生成第二块掩码视图，两个互补噪声视图加一条干净流拼成联合输入。注意力结构是转换的关键（论文 Fig. 4，本报告图 2）：噪声视图中的响应块只在本块内双向可见，能读取干净图像&#x2F;提示与更早的干净响应块，但读不到当前及未来的干净目标、也读不到另一噪声视图；干净流保持 token 级因果且看不到任何噪声视图。共享解码器同时最小化两个目标：L &#x3D; 0.5·L_MDM + 0.5·L_AR，前者在被掩位置做去噪预测，后者在干净流做下一 token 预测，二者都保留预训练时的 token 位移约定（§6.7 式 6–7）。转换本身在 256 卡上分两小阶段（先冻结视觉编码器、后全量更新，干净序列长 4096、全局批 8192，§6.7 表 12）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2609.39600_fig4_ar_to_diffusion_attention_mask.png"
+                      alt="图 2：AR 到扩散转换的注意力掩码"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 4）：转换阶段注意力可见性的示意（示意为两块、每块两 token；实际训练 B&#x3D;32）。矩阵按”查询—键”展开：紫色区域表示同一噪声响应块内的双向注意力，浅绿表示噪声查询可读的干净前缀（图像、提示与更早的已提交响应块），绿色表示干净流的因果注意力；其余区域被屏蔽。这一掩码把模型逼成一个”块内可互相看、块外只能看过去”的混合注意力系统：块内双向是多 token 并行恢复的来源，块间因果则是解码时可以直接复用前缀 KV 缓存、并把已完成块当作不可修改历史的原因。训练时两个互补噪声视图共享同一次视觉编码，插入掩码与随机掩码的位置无关，让模型在多轮去噪的任意中间状态上都见过监督信号。</p>
+<p>第四步 GRPO 后训练（§3.4.3、§6.8–6.10）：GroundAnything 用因果注意力生成 rollout 并计算精确的因果策略对数概率（强调这是因果策略的似然、不是去噪轨迹的似然），每提示采样 G&#x3D;8 条、温度 0.7；奖励先在组内标准化、再按任务权重求和、再组内标准化一次，得到优势 A_i &#x3D; Z_G(Σ_c w_c·Z_G(R_c))，随后最小化带 clip（ε&#x3D;0.2）的策略目标，一次 rollout 更新一次，无参考策略 KL。GroundAnything-VLM 的 RL 配置不同（冻结视觉编码器与投影器、加 0.02 的 KL，§6.9 表 13）。检测框奖励由两部分组成：集合完整性 R_set 对每个参考框选 IoU 最大的预测框（先验类别再计分）做软配对求 F1 式得分，严格定位 R_strict 则综合 IoU 0.5&#x2F;0.75&#x2F;0.95 的平均 F1、计数一致、格式有效、匹配 IoU 与排序正确性并惩罚超大框与重复预测（§6.10）。OCR 奖励用匈牙利匹配对齐文本与几何、再叠加词&#x2F;行两级一致性、双重参考一致性与按解析质量平方门控（§6.10.2）；指向奖励用距离高斯核（尺度 75、超过 200 归零）的软 P&#x2F;R 组合 F2（§6.10.3）。所有 rollout 只用因果模式，更新后的权重原样用于扩散推理；从 SFT 到推理的完整数据与梯度串联见图 3。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2609.39600_fig5_training_and_inference_pipeline.png"
+                      alt="图 3：训练与推理总流程"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 5）：训练到推理的数据与梯度流向。流程从 SFT 阶段对逐 token 交叉熵的纠正出发，接入 GRPO 回路：同一提示生成 G 条因果 rollout，检测任务按”缺失&#x2F;重复&#x2F;对齐”样例组合集合完整性与严格定位奖励、OCR 任务按文本与几何联合打分，加权求优势后用 clipped GRPO 更新投影器与语言参数；更新后的同一套权重直接进入块式双向去噪推理，从整块掩码开始逐轮填充坐标。该图要传达的核心是”训练时因果、推理时扩散”的权重共享路径，以及奖励如何从结构化输出聚合到组级优势。</p>
+<p>推理阶段（§3.5、§7；论文 Fig. 6，本报告图 4）：图像与查询预填充后，物理块由 1 个已知锚点 token 加 B−1 个掩码位置组成，子块从左到右填满。默认的熵引导解码计算每个仍被掩位置的 unmodified token 分布熵 <code>H_j = −Σ_v p_j(v)·log p_j(v)</code>，把所有满足 H_j ≤ τ 的位置一次性提交；若无人达标则提交熵最小的一个位置保证前进；已提交 token 不再回改。由于双向隐状态不能直接充当因果历史，每填满一块还要用一次单独的因果前向重建该块的 KV 缓存并预测下一锚点——这趟前向只建缓存、不做验证或纠错，因此一块花 D 轮去噪就意味着 D+1 次网络前向（不含预填充），轮数由提交决策动态决定而非固定。可选的自我推测（self-speculative）模式利用共享权重同时充当草稿器与验证器：线性调度每轮先双向草拟一块、再因果验证，接受最长匹配前缀、在首个失配处接收验证器的纠正（2 次前向、2B 个查询 token）；二次调度把验证与提议融合进同一次前向（B 组、每组 B+1 个查询 token），行首之间做因果比较，第一处失配所在行的双向提议被复用为下一轮草稿（1 次前向，B(B+1) 个查询 token，§7.2）。注意两种调度的查询 token 数只描述计算组织方式，不等同于 Transformer 浮点运算量。工程侧再叠加 SGLang、CUDA Graph 与选择性 FP8（§7.3）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2609.39600_fig6_self_speculative_decoding.png"
+                      alt="图 4：自推测解码的线性与二次调度"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 6）：自推测解码两种调度的机制对照（示意 B&#x3D;4）。线性调度把”双向草拟”与”因果验证”分成两次前向：草稿块中与验证器预测一致的最长前缀被接受，首个失配位用验证器的纠正替换，保证输出与共享因果分支一致。二次调度则用混合注意力掩码把两件事塞进一次前向：每行以已接受 token 为行首做因果预测，同一行尾部掩码位组成双向提议组；通过比较第 i 行的因果预测与第 i+1 个已知草稿是否相同来数出可接受前缀，第一处不一致所在行的提议直接转正为下一轮草稿（复用其计算但不算已验证）。该图解释的权衡是：二次调度前向次数少（TPF 高）但查询 token 数按 B(B+1) 增长，因此实测吞吐反而低于线性调度。</p>
+<p>最终输出是一段结构化 grounding token 序列（框、点、OCR 文本-区域对、GUI 点位等），解析后即得各任务结果；文本任务（OCR）的转写文本直接充当语义标识符，不另开文本通道（§6.1）。</p>
+<h2 id="4-解决得怎么样"><a href="#4-解决得怎么样" class="headerlink" title="4. 解决得怎么样"></a>4. 解决得怎么样</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p>评测覆盖 30 个基准、11 类感知能力，对照 44 个基线（专用检测器、通用 VLM、定位专业模型与具身基座），主表为表 1–4（检测与指代、机器人&#x2F;空间&#x2F;GUI、OCR&#x2F;版式&#x2F;视觉提示、物体指向）。指标：框类与 OCR 用 F1mIoU（IoU 0.50–0.95 阈值聚合的 F1，非平均匹配 IoU）、指向用 point-in-mask F1、ScreenSpot 用动作准确率、OSWorld-G 用精确准确率；RefCOCO avg 为三族等权平均、RefSpatial avg 为 Location&#x2F;Placement 均值（§4.1、§10）。自有模型结果取 5 个随机种子 × 每种子 2 次的 10 次均值；本地复跑基线因算力代价只做 3 次均值；GPT-6 Astra 使用 High 档 thinking effort；大量基线使用外部报告分数（星标标注），接口缺失记 N&#x2F;A、协议不确定记 †（§4.1、§4.2）。为比较”纯扩散”，主表 1–4 中 GroundAnything 一律使用熵引导解码（τ&#x3D;0.8、B&#x3D;32、子块 4，与 COCO 60.72 对应），自推测与工程加速单独在 §4.3 分析。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>先看论文的汇总口径结论：GroundAnything-VLM 在 30 基准汇总 72.42%，自称同尺寸最优、与 GPT-6 Astra 的 71.35% 接近；纯扩散的 GroundAnything 汇总 61.75%，超过同尺寸快模型 LocateAnything Fast 的 53.32%（§4.2、摘要；汇总计算方式论文未报告，见 §5）。任务组全貌见论文 Fig. 7（本报告图 5）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2609.39600_fig7_benchmark_radial.png"
+                      alt="图 5：30 个基准上的任务组表现"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 7）：按任务组呈现的径向对比，每个扇区是一类能力（框检测、密集场景、指代、各类指向、GUI、OCR、版式、视觉提示），柱有三层：本模型（紫）、自回归变体（绿）与各扇区最强基线（蓝），中心标注对照 GPT-6 Astra。读图要点不是逐项数值，而是两大结构：其一，绿色（AR 变体）几乎在所有扇区顶到最强位置，是”汇总最优”的主要来源；其二，紫色（扩散变体）在指代（RefCOCOg）与 GUI 扇区反超绿色，但在 OCR、版式与部分指向扇区明显短于绿色——这直观对应正文中”扩散的质量代价随任务类型显著变化”的结论。</p>
+<p>关键数字（均为主表，对比对象与条件随文标注）：指代定位 RefCOCOg val&#x2F;test 上 GroundAnything 达 91.61&#x2F;91.10 F1mIoU，明显高于其 AR 变体的 84.37&#x2F;83.56 与 GPT-6 Astra 的 74.98&#x2F;78.91（Table 1）；GUI 上同样反转，ScreenSpot-Pro 75.96 对 65.34、OSWorld-G 81.21 对 74.65（Table 2）。检测类上 AR 变体更强：COCO 63.70（GA 60.72，GPT-6 Astra 62.75，Table 1）、Dense200 75.55（GA 70.04，Table 1）、VisDrone 40.74（GA 33.76，低于 Qwen3.7-Max 41.59 与 SenseNova-Vision 42.35，Table 1）。扩散变体退化最大的三处：SROIE 43.64 对 71.15（差 27.51pp）、M6Doc 56.69 对 74.76、DocLayNet 68.38 对 85.78，指向任务 COCO 71.32 对 84.92（Table 3、Table 4；§10.6 明确 SROIE 差距不能由解析错误解释，两者 parse error 均为零）。细致的定位阈值下还有隐性弱点：COCO 在 IoU 0.95 处 GroundAnything 的 F1 为 22.39，低于 LocateAnything Hybrid 的 27.61（§10.1）；VisDrone 在 IoU 0.95 处两变体仅 3.42&#x2F;2.24（§10.2）。方差与置信区间未报告，只报 10 次均值。</p>
+<p>速度侧（§4.3）：AR 参考为 49.6 TPS（COCO 63.70）；熵引导 τ&#x3D;0.8、B&#x3D;32 为 127.0 TPS（60.72，2.56×，差距 2.98pp）；线性自推测 223.8 TPS（62.96，4.51×，差距 0.74pp）；二次自推测 TPF 更高（3.17 对 2.18）但吞吐反而只有 49.9 TPS，因查询 token 为 O(B²)（§4.3.1、§9.1）。DLM 对 MTP 的受控比较（K&#x3D;16）：一轮接受 3.48 个草稿 token（接受率 21.76%）对 2.69 个（16.81%），每接受草稿 token 的全轮成本 7.71→5.38 ms；但 K&#x3D;4 时 MTP 更优（7.15 对 9.31 ms），K&#x3D;32 时接受长度回落（§8.2）。二次精修把成本降到 4.70 ms、四次&#x2F;八次则恶化到 6.84&#x2F;11.83 ms；400 ms 等时预算下扩散提交 97.1 token 对 MTP 84.6，但 50 ms 内 MTP 领先（10.6 对 8.6，§4.3.2、§8.3）。基础设施侧（图 6）：SGLang→CUDA Graph→FP8 的渐进优化给出 3.45–4.06× 的实现级加速，自推测达到 3.73 ms&#x2F;token（§9.2）。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>消融给出了部分机制答案：坐标表示从量化改为文本坐标，AR 降 1.43pp、扩散降 5.68pp（§9.3；论文 Fig. 16），说明紧凑坐标词表对扩散侧更关键；视觉编码器换成 MoonViT 或 Qwen3-ViT 后两变体同时下降，支持 MoonViT-V2 的选择；移除”Stage III”（一个完整训练阶段，论文未说明该标签的具体内容，且声明与正文 Stage 1–4 编号不同）使 GroundAnything-VLM 降 1.29pp、GroundAnything 降 16.62pp，说明转换后的模型对前期阶段更敏感。输出紧凑度上有对照数字：GroundAnything 输出 7.6 token&#x2F;框（COCO）与 5.1（Dense200），相对外部参考 SEED1.5-VL 的 148.8&#x2F;74.5 约为 1&#x2F;19.6 与 1&#x2F;14.6（Table 5，论文明确这是序列化长度比、不是时延比）。</p>
+<p>“为什么有效”层面最重要的一组证据是 DLM–MTP 控制实验（§4.3.2、§8）：草稿器之间匹配了视觉输入、适应数据、词表与序列化、有效批与候选长度，验证器统一冻结为 GroundAnything 的因果分支；接受率与成本的差异因此可归因于草稿机制。注意力对照更严格：一对”同架构、同初始化、同去噪目标、同损坏分布、同训练曝光与精修调度”的因果 DLM 与双向 DLM 单独训练，唯一差异是候选块注意力，双向版把 Dense200 未匹配合法框比例从 21.74% 降到 14.79%（对照因果 MTP 的 24.89%），并把 COCO 格式错误从 5.01% 降到 1.80%（§8.4、论文 Fig. 14）。但作者自己指出两个边界：双向 block-MTP 同样改善了草稿质量，所以”双向性带来的收益并非扩散独有”；且精确验证只保证复现共享因果分支的输出，0.74pp 差距是相对另一个模型 GroundAnything-VLM，不代表验证器放过了不匹配 token（§9.1）。</p>
+<p>关键空缺：论文没有报告”不做 AR→扩散转换、直接训练扩散”或”去掉联合目标中任一项”的对照，也没有 GLPO&#x2F;RL 有无、各奖励分项的单独消融（§9.3 也承认阶段消融”不隔离单体奖励或优化选择”）。因此”转换加联合目标是最优装配”这一设计判断目前只有与外部工作的间接比较，没有内部因果证据。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p>训练成本：四阶段流水线，基座预训练累计曝光超过 700B token（§6.5；论文 Fig. 2 同时标注”221B tokens pretrain”，两处口径的关系未说明）；转换阶段与 GRPO 各用 256 卡（全球批 8192 &#x2F; 32 提示 × 8 响应，§6.7 表 12、§6.9 表 13）；训练 GPU 总时数、硬件型号与能耗均未报告。推理成本与加速指标报告较细（TPS、ms&#x2F;token、TPF；图 6 给出四种解码模式逐层叠加基础设施优化后的时延与累计加速），但计时为 decode-only——不含视觉编码与预填充（§8.2），显存占用、失败率与端到端服务时延未报告。外部依赖包括 MoonViT-V2（Kimi K3）、Qwen3-4B、SGLang&#x2F;CUDA Graph&#x2F;FP8，以及数据引擎中的多教师融合与专家迭代（教师模型清单、数据规模与接受率未报告，§6.3）；部分基线的分数直接引用外部结果。论文声明将公开代码、权重与评测脚本（Reproducibility Statement）；截至精读时点，项目页给出的 GitHub 与两个 Hugging Face 权重仓库均可访问。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-13/2609.39600_fig15_h800_infrastructure.png"
+                      alt="图 6：推理基础设施渐进优化"
+                ></p>
+<p><strong>图 6</strong>（论文 Fig. 15）：在 NVIDIA H800 上对四种解码模式（Dynamic、Static、熵引导、自推测）做四层渐进执行优化的结果。优化栈从原生 PyTorch（Eager）出发，依次叠加 SGLang 执行层、CUDA Graph 重放与选择性 FP8 量化，每个横条展示每输出 token 时延的收缩过程与最终值（自推测 3.73 ms&#x2F;token，其余 6.59–7.15 ms&#x2F;token）。读者应从中理解两点：并行解码的算法收益必须依托执行层优化才能兑现为实际时延（各模式相对自身原生实现累计加速 3.45–4.06×，§9.2）；且这些倍率是各模式内部的实现级对比，不能与 4.51× 的算法级对比相乘（论文明确警告，§9.2）。</p>
+<p>哪些问题被改善了：纯扩散解码在论文汇总口径下超过同尺寸 AR 前最优；指代与 GUI 任务上扩散变体甚至优于自身 AR 变体；输出显著紧凑；自推测模式取得 4.51× 吞吐（COCO）。哪些仍未解决：微小目标（VisDrone IoU 0.95 的 2.24–3.42）与长文本 OCR（SROIE −27.51pp）是扩散侧的明显短板；速度收益仅在 COCO 单基准、H800 单机、特定操作点上验证，跨任务、批量服务与端到端场景未验证；”闪电速度”相对的是论文自家的 AR 变体而不是外部最快系统（与 LocateAnything 的比较是其 in-house MTP 复现，作者承认”不是 LocateAnything 的复现”，§8.1）。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：30-基准”总体最优”的汇总口径不可复现，头号主张缺少定义"><a href="#质疑：30-基准”总体最优”的汇总口径不可复现，头号主张缺少定义" class="headerlink" title="质疑：30 基准”总体最优”的汇总口径不可复现，头号主张缺少定义"></a>质疑：30 基准”总体最优”的汇总口径不可复现，头号主张缺少定义</h4><p><strong>原文依据</strong>：摘要、§1、§4.2 均以 72.42%&#x2F;61.75%&#x2F;53.32%&#x2F;71.35% 的汇总数作为核心卖点；§10”Metrics and aggregation”只定义了单任务指标与 RefCOCO&#x2F;RefSpatial 的平均，未给出 30 项汇总的入选清单、权重与缺失值处理；§9.3 甚至写明”不假设两套分数聚合方式相同”。</p>
+<p><strong>为什么重要</strong>：它是”new overall state of the art”与”首个扩散模型超过同尺寸 AR SOTA”两句话的全部依据；不可复现的聚合意味着读者无法验证、也无法在后续工作中对齐比较。</p>
+<p><strong>当前能够得出的判断</strong>：审稿人判断——用主表 1–4 的 27 个条目做主指标等权平均，得不到 61.75&#x2F;72.42（复算约 65.9&#x2F;71.3），说明汇总并非主表条目的简单平均，但其构建方式未披露，结论当前无法独立验证。</p>
+<p><strong>如何验证或补强</strong>：公开 30 项汇总对应的任务清单、每项取值口径（选哪个指标、取 val 还是 test）、权重与聚合脚本，并给出汇总分数的方差或置信区间。</p>
+<p><strong>严重程度</strong>：主要问题。</p>
+<h4 id="质疑：”闪电速度”的证据范围窄，且旗舰加速来自非纯扩散路径"><a href="#质疑：”闪电速度”的证据范围窄，且旗舰加速来自非纯扩散路径" class="headerlink" title="质疑：”闪电速度”的证据范围窄，且旗舰加速来自非纯扩散路径"></a>质疑：”闪电速度”的证据范围窄，且旗舰加速来自非纯扩散路径</h4><p><strong>原文依据</strong>：4.51× 与 0.74pp 均为 COCO 单数据集、H800 单机、decode-only 计时（§4.3、§9.1）；主表刻意采用”无 AR 验证”的纯扩散点（§4.1），其速度是 2.56×、质量差 2.98pp；二次调度 TPF 更高但 TPS 反降（§4.3.1）；§9.2 明确实现级 3.45–4.06× 与算法级 4.51× 不可相乘。</p>
+<p><strong>为什么重要</strong>：标题与摘要承诺的是”flash speed”的整体印象，而达到 4.51× 的操作点混合了因果验证（非纯 DLM），纯扩散的实际操作点只有 2.56×；速度结论仅在单基准验证，外推到”延迟敏感的实时系统”缺据。</p>
+<p><strong>当前能够得出的判断</strong>：审稿人判断——速度数字本身有详细协议（值得肯定），但结论范围被摘要措辞放大；跨数据集与端到端（含视觉编码、预填充、后处理）的加速未验证。</p>
+<p><strong>如何验证或补强</strong>：在多个代表性任务（至少覆盖 OCR 与密集检测）报告同样口径的 TPS&#x2F;质量点，补充端到端时延与显存占用，并补充与外部 MTP 实现（非 in-house 复现）的等条件比较。</p>
+<p><strong>严重程度</strong>：主要问题。</p>
+<h4 id="质疑：”reconcile-并行解码与精准定位”的叙事软化了扩散侧的质量回归"><a href="#质疑：”reconcile-并行解码与精准定位”的叙事软化了扩散侧的质量回归" class="headerlink" title="质疑：”reconcile 并行解码与精准定位”的叙事软化了扩散侧的质量回归"></a>质疑：”reconcile 并行解码与精准定位”的叙事软化了扩散侧的质量回归</h4><p><strong>原文依据</strong>：SROIE −27.51pp、DocLayNet −17.40pp、M6Doc −18.07pp、COCO 指向 −13.60pp 均相对其自身 AR 变体（Table 3、Table 4、§10.6）；§10.1 承认 COCO IoU 0.95 下 F1 低于 LocateAnything Hybrid；§10.2 承认微小目标边界仍是硬伤；而摘要与结论将结果表述为”reconciling … with precise localization”并指向”latency-sensitive real-world systems”。</p>
+<p><strong>为什么重要</strong>：OCR 与文档版式恰是延迟敏感的实际场景（批量 OCR、文档处理正是 §10.10 列举的应用），这些场景中扩散变体的质量损失恰恰最大，叙事与证据的边界不一致。</p>
+<p><strong>当前能够得出的判断</strong>：审稿人判断——质量回归在正文有披露（属诚实报告），但摘要级结论”reconcile”覆盖了任务间显著异质性；未解释 SROIE 等长文本任务为何退化（只记录现象）。</p>
+<p><strong>如何验证或补强</strong>：按输出长度&#x2F;块数分层报告质量差距，检验”长输出跨块因果依赖”是否为退化主因，并给出针对长文本任务的缓解或退避策略（例如长输出时自动切换到自推测或 AR 分支）。</p>
+<p><strong>严重程度</strong>：主要问题。</p>
+<h4 id="质疑：转换与联合目标这两个核心设计没有隔离性消融，”扩散专属优势”证据被作者自己限定"><a href="#质疑：转换与联合目标这两个核心设计没有隔离性消融，”扩散专属优势”证据被作者自己限定" class="headerlink" title="质疑：转换与联合目标这两个核心设计没有隔离性消融，”扩散专属优势”证据被作者自己限定"></a>质疑：转换与联合目标这两个核心设计没有隔离性消融，”扩散专属优势”证据被作者自己限定</h4><p><strong>原文依据</strong>：§2.2 把”AR→扩散直接转换 + 联合目标”列为主要方法贡献，但 §9.3 的消融只覆盖坐标表示、视觉编码器与”Stage III”（标签未定义内容）；§8.4 明确”双向 block-MTP 同样改进，故双向性并非扩散独有”，且 block-MTP 与两步 DLM 的一趟比较”没有在等时延下隔离扩散训练”。</p>
+<p><strong>为什么重要</strong>：这直接决定创新点 2 的因果归属——观察到的优势到底来自掩码扩散训练目标，还是来自双向注意力加任意草稿机制；若属后者，”扩散”这一叙事核心的可替代性上升。</p>
+<p><strong>当前能够得出的判断</strong>：审稿人判断——注意力对照实验（双向 vs 因果 DLM 单一变量）设计严谨，支持”块内双向注意力有效”；但”必须经由 AR→扩散转换、必须保留 0.5&#x2F;0.5 联合目标”缺少对照，属论文未报告。</p>
+<p><strong>如何验证或补强</strong>：增加三组消融：转换 vs 从零训练扩散、L_MDM&#x2F;L_AR 权重扫描或去项、以及双向 block-MTP 与 DLM 在等时延协议下的对照；同时补充 RL 有无与奖励分项消融。</p>
+<p><strong>严重程度</strong>：次要问题。</p>
+<h4 id="质疑：训练数据构成与评测公平性的披露不足"><a href="#质疑：训练数据构成与评测公平性的披露不足" class="headerlink" title="质疑：训练数据构成与评测公平性的披露不足"></a>质疑：训练数据构成与评测公平性的披露不足</h4><p><strong>原文依据</strong>：§3.3&#x2F;§6.3 只描述数据引擎的流程（字段级教师融合、验证、专家迭代），未披露教师模型清单、数据规模、接受率；八个 SFT 任务组未给出具体数据集与许可（§6.6）；主表混合外部分数与本地产出，本地基线按 3 次运行、自有模型按 10 次运行，且均只报均值无方差（§4.1）；部分关键对照（GPT-6 Astra）是 &gt;1T 级模型的不同量级配置。</p>
+<p><strong>为什么重要</strong>：影响可复现性与比较公平性；”引擎产出的监督”是否引入了与评测集同源的数据无法从论文判断；无方差使得 0.74pp 这类小差距的稳定性不可评估。</p>
+<p><strong>当前能够得出的判断</strong>：审稿人判断——流程描述完整但量化披露不足；代码与权重已声明并可见，可以部分补强可复现性，但训练数据一侧仍是黑箱。</p>
+<p><strong>如何验证或补强</strong>：披露训练集合的类别、规模、来源与去重策略（与评测集的隔离说明），报告逐次运行的标准差或置信区间，并对小差距结论补充显著性检验。</p>
+<p><strong>严重程度</strong>：次要问题。</p>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现自回归定位有两件事可以解耦——“写出坐标的顺序”与”空间证据本身的依赖结构”，因此提出把已经训练好的 4B AR 定位模型直接转换为块状掩码扩散模型，通过互补损坏双视图与联合 AR&#x2F;去噪目标实现”训练因果、推理并行”，再配合熵引导提交与自推测调度把并行解码变成实测吞吐。实验在 30 个基准、44 个基线上表明其 AR 变体取得同尺寸最优的汇总分，纯扩散模式在指代与 GUI 上甚至强于自身 AR 变体、并在 COCO 上以 0.74pp 换取 4.51× 吞吐；其中 DLM–MTP 控制实验与双向&#x2F;因果注意力对照证据较强，但 30 项汇总的聚合口径、转换与联合目标的可替代性、以及 OCR&#x2F;微小目标上的大幅质量回归，都没有得到与其叙事分量相称的证据支持。本文最有价值的部分是给”把 AR 多任务定位模型改造成扩散模型”提供了一份完整可复现的工程与评测范例（含解码器设计、奖励设计与四层推理优化）；最大的审稿风险是头号汇总数字与”闪电速度”都建立在未完全披露的聚合与单一操作点上。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强——§3.1 对”结构化视觉证据抽取”的形式化、任务边界与设计假设的表述完整（§1、§3.1）。</li>
+<li><strong>创新性证据</strong>：中——主要组件（掩码扩散、AR→扩散转换、熵提交、GRPO）均为已有，增量为组合与定位场景的落地；作者自己也对”扩散独有优势”作了限定（§2.2、§8.4）。</li>
+<li><strong>方法可信度</strong>：中——注意力对照与 DLM–MTP 控制设计严谨（§8），但转换、联合目标与 RL 组件缺少隔离消融（§9.3）。</li>
+<li><strong>实验支持力度</strong>：中——30 基准覆盖广、协议披露细，但汇总口径缺失、无方差报告、速度结论限于 COCO（§4.1–4.3）。</li>
+<li><strong>可复现性</strong>：中——代码与两套权重仓库已可访问、训练与解码超参披露详尽，但训练数据构成、数据引擎教师与汇总算法未披露（§6、Reproducibility Statement）。</li>
+<li><strong>综合阅读价值</strong>：高——对”扩散语言模型如何落到高精度结构化输出任务”的机制、训练与工程细节都给出了可检查的证据链，适合作为该方向工程化与评测设计的参考。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> GroundAnything：在闪电速度下调和扩散并行解码与精准视觉定位</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-13 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-13 22:22:45
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/13/2609.39600v1_GroundAnything_Reconciling_Parallel_Decoding_with_Precise_Visual_Grounding_at_Flash_Speed/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%A4%9A%E6%A8%A1%E6%80%81/">#多模态</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/GRPO/">#GRPO</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E6%89%A9%E6%95%A3%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B/">#扩散语言模型</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%A7%86%E8%A7%89%E5%AE%9A%E4%BD%8D/">#视觉定位</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%B9%B6%E8%A1%8C%E8%A7%A3%E7%A0%81/">#并行解码</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%87%AA%E6%8E%A8%E6%B5%8B%E8%A7%A3%E7%A0%81/">#自推测解码</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/13/2609.39601v1_GroundingPI_A_Grounding_Foundation_Model_towards_Physical_Intelligence_with_Visual_Primitives/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">GroundingPI：以视觉基元迈向物理智能的定位基础模型</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/13/2610.09326v1_VIS-Ground_Video_Interactive_Storytelling_with_Contextual_Grounding/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">VIS-Ground：带上下文接地的视频交互式叙事</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">GroundAnything：在闪电速度下调和扩散并行解码与精准视觉定位</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98"><span class="nav-text">1. 论文具体想解决什么问题</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88"><span class="nav-text">2. 创新点是什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3"><span class="nav-text">3. 作者如何解决</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7"><span class="nav-text">4. 解决得怎么样</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 126 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
