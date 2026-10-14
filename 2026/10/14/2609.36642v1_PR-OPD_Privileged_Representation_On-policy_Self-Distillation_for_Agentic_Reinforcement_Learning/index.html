@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/14/2609.36642v1_pr-opd_privileged_representation_on-policy_self-distillation_for_agentic_reinforcement_learning/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="PR-OPD: Privileged Representation On-policy Self-Distillation for Agentic Reinforcement Learning">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/14/2609.36642v1_PR-OPD_Privileged_Representation_On-policy_Self-Distillation_for_Agentic_Reinforcement_Learning/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-14T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-14T04:00:58.609Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="GRPO">
+<meta property="article:tag" content="事后反思">
+<meta property="article:tag" content="强化学习">
+<meta property="article:tag" content="自蒸馏">
+<meta property="article:tag" content="隐状态对齐">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>PR-OPD: Privileged Representation On-policy Self-Distillation for Agentic Reinforcement Learning | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">400</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">127</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">PR-OPD: Privileged Representation On-policy Self-Distillation for Agentic Reinforcement Learning</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv5</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-14 12:00</span>
+        <span class="mobile">2026-10-14 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-14 12:58</span>
+            <span class="mobile">2026-10-14 12:58</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">强化学习</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/GRPO/">GRPO</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E8%87%AA%E8%92%B8%E9%A6%8F/">自蒸馏</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E9%9A%90%E7%8A%B6%E6%80%81%E5%AF%B9%E9%BD%90/">隐状态对齐</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/%E4%BA%8B%E5%90%8E%E5%8F%8D%E6%80%9D/">事后反思</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Muyang Li、Jie Yang、Zhengyu Fang、Junchao Zhu、Zhengkun Xiao、Ruining Deng、Zhe Jiang、Shigang Chen</p>
+<p>论文：arXiv 2609.36642v1（PR-OPD: Privileged Representation On-policy Self-Distillation for Agentic Reinforcement Learning）；来源：Hugging Face Daily Papers（2026-10-13 批次）；精读归档日期：2026-10-14</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2609.36642" >https://huggingface.co/papers/2609.36642<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2609.36642" >https://arxiv.org/abs/2609.36642<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>标签：强化学习、自蒸馏、隐状态对齐、事后反思、GRPO。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文诊断出特权自蒸馏（privileged self-distillation）中的”传输通道”问题：技能（skill）让教师表现更好，但这一优势几乎不体现在其 token 概率上（不到四分之一响应 token 概率变化），而是体现在隐状态上（超过 80% 的 token 隐状态变化）。据此提出 PR-OPD：让策略为自己每条轨迹写一份事后反思技能（hindsight skill），以带技能的自身重读作为停止梯度教师，把学生隐状态经逐层投影器对齐到教师的每一层。在 ALFWorld 与 WebShop、两个 Qwen 骨干上总体指标均最优（较 GRPO 最高 +4.7 &#x2F; +14.0 个百分点），但主表基于单训练种子与 128 条评估 episode，部分任务有大幅回退，关键组件的收益还随骨干规模反向。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>用可验证奖励强化学习（reinforcement learning with verifiable rewards，RLVR）训练多轮语言智能体时，每个 episode 只有一个终端奖励，信用分配极其粗糙。现有的一类做法是给稀疏奖励”加稠”：在线策略蒸馏（on-policy distillation，OPD）在学生自己生成的轨迹上提供 token 级密集指导；其中特权自蒸馏（privileged self-distillation）让同一策略在持有额外信息（任务知识、事后反馈）时充当”特权教师”，学生只从教师的输出概率学习，期望推理时不需要该信息也能内化指导（SDAR、OPSD、PCSD、SEED 等）。</p>
+<p>这些方法立足于一个隐含假设：教师的输出概率是足够有信息量的传输通道。但输出概率只反映”教师倾向生成什么”，并不直接揭示额外信息如何改变了它的内部推理；模型的内部表征可以携带输出未表达的信息。一个直观的例子是：事后反思让教师意识到自己漏掉了某个任务约束，而这种”理解”可能不改变任何一个采样 token 的概率。</p>
+<p>作者在”策略为自己的轨迹写 hindsight skill”的自然自演化设置下做了诊断：固定模型权重与已采样响应，比较同一策略在有无技能上下文下的两次前向。结论是两个现象：</p>
+<p><strong>❶ Invisible Advantage（优势不可见）</strong>：技能让教师成为更好的行动者——WebShop 成功率从 42.2% 提升到 56.2%——但加入技能后，不到四分之一响应 token 的概率发生改变，且在真正做决策的动作 token 上几乎为零（图 1a,b：Qwen2.5-3B 输出变化率 23.7%、Qwen3-1.7B 16.4%；ALFWorld、GRPO@100 检查点）。只蒸馏 token 概率，最多只能传递技能价值的薄薄一层。</p>
+<p><strong>❷ Much to Align（大有可对齐）</strong>：同两次前向中，技能改变了超过 80% 响应 token 的隐状态（图 1a：3B 81.3%、1.7B 93.3%），包括输出通道沉默的大多数动作 token。这个变化不是噪声：线性探针能从隐状态分辨”这是本轨迹自己的技能”还是”别人的技能”，而输出特征上的探针接近随机；图 1(c) 进一步显示，一个不加任何参数、直接对齐教师隐状态的学生最终超过教师（WebShop 验证成功率约 64.8% vs 教师 56.2%，图内标注），而带技能行动的学生停留在 42.2%。</p>
+<p>作者由此把问题重新定义为：<strong>学生能否通过隐状态通道，获得事后反思赋予其”特权自我”的优势，尽管该优势几乎不出现在教师 token 中？</strong></p>
+<p>支撑这一判断的证据都是量化的，图 1 给出了完整的量化画面（变化率的分型统计、可解码性探针与行为曲线）；但诊断范围有限：两个现象的系统量化在 ALFWorld 的 GRPO@100 单检查点、两个 Qwen 模型上完成（WebShop 曲线在 3B），普适性尚未验证。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-14/2609.36642_fig1_two_phenomena.png"
+                      alt="图 1：特权自蒸馏中的两个现象"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1）：这张图把论文的动机压缩成一条证据链：同一策略在同一段响应上”带技能重读”与”不带技能重读”两次前向的差异，在输出侧极小、在隐状态侧极大，且在真正做决策的动作 token 上输出几乎不变而隐状态仍然大幅改变；而当训练中直接以隐状态为对齐目标时，学生曲线追过持技能的教师、远高于无技能基线。读者应理解：技能不只是”换了一个更长的上下文”，它改变的是模型对同一段行为的内部表征，而这份表征差异可以转化为真实的行为收益——这正是 PR-OPD 选择传输通道的依据。</p>
+<p>需要再区分三个层次：终端奖励稀疏是领域早已存在的一般问题；上面两个现象及其通道解释是本文的新观察；本文实际解决的具体子问题是——在不引入外部技能库、独立教师模型和推理期开销的前提下，把特权优势传给学生。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>概括地说，本文的实质增量是”一个诊断 + 一次通道迁移 + 一套自演化闭环”。方法主体是已有组件的重组（OPRD 式的学生-教师隐状态对齐、自蒸馏的角色设定、轻量 MLP 投影器），新颖性主要在诊断发现本身，以及把表示对齐迁移到”策略自身作为特权教师、教师在训练中持续演化”的在线 RL 设定。</p>
+<ol>
+<li><strong>诊断并量化了特权自蒸馏的通道问题</strong>。作者把”技能优势到底写在哪里”从直觉变成可测量的问题：token 概率变化率 &lt;25% vs 隐状态变化率 &gt;80%，并配以反事实控制（他轨迹技能、打乱技能、等长无关文本）与线性探针，排除”prompt 变长”等替代解释。这是相对 SDAR&#x2F;OPSD 等”读教师输出”路线的核心差异点，证据在 §4.3 的深度分析与探针实验（图 4、图 5）。</li>
+<li><strong>把逐层隐状态对齐引入特权自蒸馏</strong>。与 OPRD（数学推理、独立且固定的教师）和 LastOPD（因担心深度配对错位而只对齐最后一层）不同，PR-OPD 的教师与学生共享一组权重、层与层一一对应、且随每次更新共同演化，因此可以对齐全部层的每个响应 token；逐层 MLP 投影器作为可学缓冲，使学生原始状态（仍要服务自己的语言模型头）不必照抄更长上下文下计算出的状态。消融显示”读隐状态还是读 token”在同一 warm start 下相差 14.9 个百分点（图 3a），投影器在小骨干上把 36.7% 拉回 46.9%（图 3b），证据见 §4.3。</li>
+<li><strong>学生、分析器、教师三合一的闭环设计</strong>。技能由策略自己为每条轨迹撰写、每个 rollout 批次重写，没有外部技能库、没有单独 SFT 阶段、推理期零开销；相比技能全部取自 SDAR 精编库的 token 蒸馏基线，主表总体更优（最高 +7.8 accuracy &#x2F; +8.1 score，见 §4.2）。</li>
+</ol>
+<p>边界说明：根据本文 related work 与实验对比，只能确认作者声称的差异；诊断的普适性、以及”隐状态通道优于 token 通道”能否脱离技能来源独立成立，还需要更完整的文献检索与更广的受控实验（见 §5）。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>直觉上，技能赋予教师的优势主要写在”教师如何表征学生已有的响应”里，而不是”教师打算生成什么”里。于是 PR-OPD 不动教师的输出，而是让学生直接对齐教师在技能条件下的中间表示。实现上有三个难点，对应三个设计：教师与学生共享权重（层一一对应，但对齐目标每走一步都随权重移动）、教师上下文更长（同一响应 token 的绝对位置不同，不能按位置配对）、学生的原始状态还要继续驱动自己的语言模型头（不能被强行拉去复制长上下文状态）。</p>
+<p><strong>输入与两阶段总览。</strong> 对任务 q，策略 π_θ 与环境多轮交互；每个任务采样 G 条轨迹，每条轨迹得到一个终端奖励 R_i。训练分两阶段：Stage I 只用 GRPO 做热启动（warm start），让策略先把任务学会——因为 Stage II 写技能的分析器就是策略自己，不会做题就写不出值得学习的反思；Stage II 保留奖励目标，叠加表示监督。学生、分析器、教师始终共享一组权重，唯一新增模块是学生侧的逐层轻量 MLP 投影器，训练结束即丢弃（整体流程见图 2）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-14/2609.36642_fig2_method_overview.png"
+                      alt="图 2：PR-OPD 方法总览"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 2）：这张方法总览图把训练时的完整信息流画了出来：GRPO 热启动先让初始策略学会与环境交互，得到”会做题”的检查点；进入 Stage II 后，每轮迭代里学生先无技能地采样轨迹，同一策略随即切换到分析器角色、为每条完成轨迹写一份 hindsight skill（每个新批次重写），再以”GRPO 损失 + 隐状态对齐损失”联合更新策略与投影器。对齐机制本身是同一策略把同一段响应重读两遍：无技能的一遍是学生，带技能的一遍是停止梯度教师，学生的每个响应 token 在每一层经投影器后拉向教师同层同 token 的状态。读者应理解：技能与教师状态都随策略演化不断重算，三个角色共用一组权重，因此整套机制不需要任何外部组件，推理期也不需要保留任何东西。</p>
+<p><strong>Stage I：GRPO 热启动。</strong> 每个任务采样 G 条轨迹，GRPO 把组相对优势 A_i &#x3D; (R_i − mean) &#x2F; std 分配给轨迹 i 的全部响应 token，配合裁剪的重要性比优化策略，共 N 次更新（ALFWorld 100、WebShop 120）。此阶段没有技能、没有教师前向，只让策略具备解题与自我分析的能力。</p>
+<p><strong>Stage II 每一轮迭代</strong>（算法流程见附录 B 的 Algorithm 1）：</p>
+<ol>
+<li><p><strong>采样</strong>：当前 rollout 策略在无技能条件下采集一批新轨迹——这也是推理时唯一可见的信息形态。</p>
+</li>
+<li><p><strong>写技能（分析器角色）</strong>：把一条轨迹的交互记录与最终结果序列化成紧凑文本 z_i，用固定指令 I_hind 让同一策略生成一段简短的、可执行的规则清单 s_i：成功轨迹写”哪些观察决定了可复用的工作流”，失败轨迹写”关键错误与纠正方法”。技能生成不可微（不进梯度），也没有单独的 SFT 阶段；每个新的 rollout 批次都重新写技能，而不是从技能库里检索。</p>
+</li>
+<li><p><strong>教师重读</strong>：对轨迹的每一轮，把技能用固定模板前置到该轮上下文 x̃ &#x3D; H(x, s_i)。学生读 (x, y)、教师读 (x̃, y)：两边看同一段响应 y，教师不生成替换动作。这样学生状态与教师状态可以按”响应中的第 k 个 token”配对，而不是按绝对位置配对（教师上下文更长）。技能之所以是”特权”，因为它来自已完成的 episode，包含决策时不可能有的结果信息，推理时不可得。</p>
+</li>
+<li><p><strong>表示对齐（PRA 损失）</strong>：学生第 ℓ 层第 k 个响应 token 的状态 h_S 先经过该层的 MLP 投影器 g（一个 512 维隐层、输入输出同维 d）得到 p_S，然后向教师同层同 token 的状态 h_T 对齐（教师侧停止梯度）：</p>
+<p>ℒ_PRA &#x3D; 1&#x2F;(L·|M|) · Σ_{ℓ&#x3D;1..L} Σ_{k∈M} ‖ p̂_S,k^(ℓ) − sg(ĥ_T,k^(ℓ)) ‖²</p>
+<p>其中 L 为除嵌入输出外的全部 Transformer 层，M 为该 micro-batch 全部轮次的响应 token（含推理与动作 token，不含 prompt 与 padding），帽子表示 L2 归一化——归一化后每一项等于 2 − 2·cos，即对齐只约束方向、不约束幅度。之所以全层对齐而不是只对齐最后一层，是因为后文探针显示技能信息在中层最清晰、末层反而回落（§4.3）。由于教师共享当前权重，教师状态在每次更新时重算，对齐目标跟随策略移动。</p>
+</li>
+<li><p><strong>联合更新</strong>：总体目标为 ℒ &#x3D; ℒ_RL + λ_t·ℒ_PRA，其中 ℒ_RL &#x3D; GRPO 损失 + β·KL(π‖π_ref) − η·熵(π)，λ_t 在前 N 步为 0、之后固定为 λ&#x3D;0.01；整套目标中没有任何输出空间的蒸馏项。每个 micro-batch 内先跑学生前向（保留梯度）、再跑教师前向（停梯度），累积梯度后一并更新策略参数 θ 与投影器参数 ψ。</p>
+</li>
+</ol>
+<p><strong>推理阶段。</strong> 投影器被丢弃，技能、教师、额外前向全都不存在——部署时就是一个普通策略；全部额外代价（每 micro-batch 一次教师前向、每条轨迹一次技能生成）都只在训练期发生。</p>
+<p><strong>组件归属。</strong> 学生、分析器、教师是同一组权重的三个角色；投影器是唯一新增模块（训练后丢弃）；GRPO 损失、KL 正则、熵正则直接沿用既有实现（基于 SDAR 代码库，配合 verl 分布式训练与 vLLM 采样）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><ul>
+<li><strong>任务与数据</strong>：ALFWorld（文本家务多轮环境，使用 eval_in_distribution 已见划分的 140 个任务实例，报告分任务类型与总体成功率）与 WebShop（网购环境，标准 test 前 500 条指令，同时报告 accuracy（需完整满足要求）与 score（部分满足也给分））。</li>
+<li><strong>骨干与训练</strong>：Qwen2.5-3B-Instruct 与 Qwen3-1.7B-Instruct（隐层 2048）。所有方法训练 150 次更新；PR-OPD 的前 N 次为 GRPO 热启动（ALFWorld N&#x3D;100、WebShop N&#x3D;120）。超参：KL 系数 β&#x3D;0.01、熵系数 η&#x3D;0.001、对齐权重 λ&#x3D;0.01、投影器学习率 1e-4；硬件为 8×NVIDIA B200；实现基于 SDAR + verl + vLLM。</li>
+<li><strong>基线</strong>（每个基线对应一种替代解释）：Vanilla 与 Skill-Prompt（技能对未训练策略是否有用）、GRPO（只用 RL 是否足够）、SDAR 与 OPSD（token 概率蒸馏是否足够）、Skill-SD（更强的 token 级目标能否补齐）。所有技能型基线使用 SDAR 的手写技能库（每任务类型一份），而 PR-OPD 使用自写技能——这是主表比较中无法完全分离的一个变量（见 §5）。</li>
+<li><strong>评测</strong>：取 step 150 检查点，采样温度 0.4，128 条 episode；训练只跑单个种子（seed 0）；热启动敏感性研究额外用 6 个评估种子做配对比较。</li>
+<li><strong>各类实验回答什么</strong>：主表检验”总体是否最优”；消融（Table 2&#x2F;3）逐一检验通道选择、投影器、热启动点三个设计；诊断分析（图 4–6）检验技能信息”在哪里、以何种形式”存在于教师内部。</li>
+</ul>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>Table 1（step 150）的主要数字：</p>
+<ul>
+<li><strong>Qwen2.5-3B-Instruct</strong>：ALFWorld 总体成功率 71.1%（GRPO 66.4，**+4.7<strong>；最强 token 基线 Skill-SD 69.5）；WebShop accuracy 67.2%（GRPO 55.5，</strong>+11.7**；Skill-SD 59.4，+7.8）、score 83.7（Skill-SD 75.6，+8.1）。</li>
+<li><strong>Qwen3-1.7B-Instruct</strong>：ALFWorld 46.9%（GRPO 43.8，+3.1；Skill-SD 45.3）；WebShop accuracy 57.0%（GRPO 43.0，**+14.0**）、score 73.8。</li>
+</ul>
+<p>作者据此得出两点观察：一是两个骨干、两个环境的所有总体指标均最优；二是”对齐隐状态 + 自写技能”胜过”蒸馏 token + 精编技能”（对 Skill-SD 领先 7.8 accuracy &#x2F; 8.1 score），而 token 级方法增益有限——SDAR 至多 +2.4 点，OPSD 更是崩到接近未训练水平（3B：ALFWorld 23.4、WebShop accuracy 1.6）。</p>
+<p>需要同时看到的节制点：3B 的 Look 任务上 PR-OPD 只有 54.5%，比 GRPO 的 72.7% 回退 18.2 个点；1.7B 的 Clean 任务 37.5% 明显低于 Skill-SD 的 58.3%；Skill-Prompt 在 WebShop 上 accuracy 仅 0.8%（与未训练持平）。论文用”每个骨干下至少四个任务类型进前二”的总体口径表述，个别任务的大幅回退没有单独讨论；且主表为单种子、单次 128-episode 评估，没有方差或显著性信息。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p><strong>通道与组件的消融（Table 2、图 3）</strong>——三个变体都从同一个 step-100 GRPO 检查点分叉、用同一批自写技能、训练到同样的 step 150，是最干净的受控对比：</p>
+<ul>
+<li><strong>+ token OPD</strong>（同一技能、只读教师输出概率）：57.8%，比 GRPO 低 8.6 个点——读 token 不只是无益，而是有害；</li>
+<li><strong>+ 隐状态对齐（无投影器）</strong>：72.7%（+6.3）；</li>
+<li><strong>+ 隐状态对齐（有投影器）&#x3D; PR-OPD</strong>：71.1%（+4.7）；</li>
+<li><strong>SDAR</strong>（精编技能、从零训练）：68.8%（+2.4）。</li>
+</ul>
+<p>“读教师的方式”（token 对隐状态）在同一 warm start、同一技能、同一预算下相差 <strong>14.9 个点</strong>（57.8 vs 72.7），这是对现象❶的受控验证。投影器的行为按骨干分裂：3B 上”几乎免费”（72.7→71.1，实际为 −1.6）；1.7B 上则是关键——无投影器的直接对齐跌到 36.7%（低于 GRPO 的 43.8%），加上投影器回到 46.9%（+3.1）。热启动敏感性（WebShop、1.7B）：N&#x3D;120（30 次监督更新）达 57.0% vs N&#x3D;100（50 次）49.5%；6 个评估种子的配对比较显示 N&#x3D;120 在 30 次更新后 +9.62、10 次后 +8.22，N&#x3D;100 为 +3.15，N&#x3D;140 为 +3.63——起步越晚收益先升后降，并非单调。上述三项控制并排汇总在图 3 的坐标面板中，数字明细见附录 D 的 Table 2&#x2F;3。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-14/2609.36642_fig3_ablation.png"
+                      alt="图 3：消融与敏感性研究"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 3）：这张图把四项控制实验放在成功率与增益的坐标上，回答”收益从哪里来”。在同一 GRPO 检查点上只改变”读教师的方式”后，token 蒸馏的结果低于 GRPO 基线、隐状态对齐的结果明显高于基线，通道选择对成败的影响清晰可见；投影器的效果随骨干规模分裂——较大骨干加上它几乎不移动，较小骨干没有它跌破基线、加上它才反超，呈现”小模型更需要可学缓冲”的模式；热启动研究则显示更晚起步用更少的监督更新拿到更高曲线，而把各起点与”同一检查点继续跑 GRPO”做配对比时，中期起步的增益柱远高于最早与最晚的起点。读者应理解：这些面板共同支持一个结论——方法的收益来自”读哪里”与一个有能力的起点，而不是对齐更新的次数。</p>
+<p><strong>技能作用在哪里：深度分析（图 4–6）</strong>——这组分析固定模型权重与响应、只替换上下文（本轨迹技能 &#x2F; 他轨迹技能 &#x2F; 打乱技能 &#x2F; 等长无关文本），把技能的作用定位到具体的深度区段与形式。</p>
+<p>隐状态变化从中层隆起、持续到后层（而不是集中在输出头附近），本轨迹技能的变化最大，相对等长无关文本最高达 9×（3B）&#x2F;7×（1.7B）——“变化来自技能内容”而不是”prompt 变长”；逐层探针把这一区段进一步收窄：区分”本轨迹技能 vs 他轨迹技能”的能力在首层近随机、随层数上升、中层达峰（3B 65.4%@层 18、末层 66.0%；1.7B 79.4%@层 14、末层 70.1%），输出特征始终 50–52%；同层 CKA（centered kernel alignment，中心化核对齐）变化量则显示自技能从第 13 层起结构变化超过全部对照，逐层平均变化量 0.00406 vs 他轨迹技能 0.00269 &#x2F; 打乱 0.00289 &#x2F; 无关文本 0.00067（约 1.5×&#x2F;6×），debias 估计给出同样排序。图 4 把这套深度剖面完整展开。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-14/2609.36642_fig4_depth_analysis.png"
+                      alt="图 4：技能对教师隐状态的逐层作用"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 4）：这张图沿模型深度把技能效应逐层展开，回答技能信息”在网络什么位置、以什么形式”存在。三组曲线沿同一深度轴相互印证：隐状态相对无技能上下文的余弦距离从中层开始隆起并持续到后层，三条技能条件曲线全部高于等长无关文本的对照带，且本轨迹技能始终最高；把探针架在这条深度剖面上，区分”本轨迹技能 vs 他轨迹技能”的能力从首层随机水平攀升、在中层达峰后回落，输出特征在对应位置全部贴在 50% 附近；同层 CKA 的变化量曲线则在第 13 层后与全部对照拉开距离。读者应理解：技能信息不是只在输出头附近存在，而是在中后层形成宽阔、可线性解码的区段——这正是 PR-OPD 要对齐全部层、而非只对齐末层的直接依据。</p>
+<p>线性探针（logistic regression，按轨迹分折、5 折）给出区分度的量化：中层隐状态区分”本轨迹技能” vs 无技能&#x2F;无关文本达 88% 以上；vs 他轨迹技能为 65.4%（3B）&#x2F;79.4%（1.7B）；vs 打乱技能为 86.2%&#x2F;98.3%（末层 87.6%&#x2F;99.4%）。而三个输出特征（采样 token 的 log-prob、技能无关分布 top-64 的 log-prob、256 维随机投影）在最有信息量的两类区分上只有 50.2–54.0%，接近随机。图 5 把全部对比并排呈现。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-14/2609.36642_fig5_probing.png"
+                      alt="图 5：隐状态探针 vs 输出特征探针"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 5）：这张探针矩阵把”信息写在哪里”并排对比：每个面板是一类区分任务（相对无技能、相对无关文本、相对他轨迹技能、相对打乱技能），每个点是一个探针的准确率；输出侧特征（采样 token、top-64、256 维全分布投影）与首&#x2F;中&#x2F;末层隐状态逐类对照，两个骨干各用一种颜色与形状，虚线标出 50% 随机基线。所有输出侧特征在全部四类区分上都贴近随机线；隐状态侧在每一类区分上都显著高于随机，且在训练中真正需要区分的”他轨迹技能”一类仍保持 65–79%。读者应理解：技能的内容可以从隐状态线性读出，却几乎不顺延到输出特征上——技能像一枚”指纹”，只蒸馏 token 概率最多传递它的一小部分，这是”输出通道信息量不足”最直接的证据。</p>
+<p>跨层结构分析（图 6）支持”技能是定向调整表示、而非覆盖表示”：线性 CKA 下，带技能与不带技能的跨层相似度形态几乎一致——同层相似度平均 0.9959、最低 0.9884（36 层）；差异图的同层位置出现有结构的正负调整，后段层同层相似度下沉、邻近区域上升，最大绝对差 0.0118。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-14/2609.36642_fig6_cka.png"
+                      alt="图 6：技能条件下的跨层表示结构"
+                ></p>
+<p><strong>图 6</strong>（论文 Fig. 6）：这张图回答”技能是否把模型的表示整体换掉”：同一模型无技能状态下各层表示之间的跨层 CKA 相似度矩阵、无技能层与带技能层的对应矩阵、以及两者的差图，行列都索引模型深度。两张相似度矩阵形态高度吻合，说明技能完全保留了模型的全局层级结构；差图则显示非均匀的定向调整——后段层同层相似度下降、邻近区域上升，幅度小但结构清晰。读者应理解：高全局相似度与”技能只做定向微调”并不矛盾——CKA 衡量跨位置的整体几何，逐点余弦距离衡量单个向量，两个视角合起来才给出”结构保留 + 局部重塑”的完整图景。</p>
+<p><strong>对齐动态（附录 H、Table 4）</strong>：Stage II 开始时的对齐损失为 1.22–1.52（cos 相似度 0.24–0.39），4–7 次更新降到 0.5 以下、11–19 次降到 0.3 以下（cos&gt;0.85），末 5 步达到 0.134–0.242（cos 0.879–0.933）且仍在下降；八个运行（2 骨干 × 2 环境 × 2 起点）形态一致、无发散。无投影器时，直接测在原始隐状态上的相对距离几乎不动（3B 0.008–0.012、1.7B 0.026–0.033）——因为教师随策略一起移动，固定间隙不消失；投影器把这个”固定间隙”变成一个可学的映射。</p>
+<p><strong>对 §2 创新点逐一核对</strong>：① 通道选择（读隐状态还是读 token）——有同一分叉点、同一技能、同一步数的受控消融（Table 2 变体 1 vs 2&#x2F;3），证据成立；② 投影器——有消融，且骨干间对照存在，但 3B 上收益为负（见 §5 质疑二）；③ 全层对齐 vs 只对末层——<strong>没有直接实验</strong>，仅由探针深度曲线（图 4）间接论证；④ 自写技能 vs 精编技能——只有主表跨变量对比与消融内的”同源技能”控制，<strong>没有单独隔离该变量的实验</strong>；⑤ 按响应 token 配对（而非按位置）——没有消融。<strong>替代解释排查</strong>：计算预算是公平的（所有方法同为 150 次更新，消融变体从同一检查点分叉）；”更长 prompt”用等长无关文本控制；但”技能来源与管理方式”（每批自写重写 vs 固定库）与”传输通道”两个变量在主表中仍然相混。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><ul>
+<li><strong>训练成本</strong>：8×NVIDIA B200，Stage II 每个 micro-batch 需要双份前向（学生 + 教师），此外每条完成轨迹每轮一次技能生成（额外的生成长度级开销，不可微）。论文<strong>未报告</strong>墙钟时长、GPU 小时、token 费用与峰值显存，也没有技能生成的成本数据。</li>
+<li><strong>推理成本</strong>：零——投影器丢弃，技能、教师、额外前向都不存在。这一点的论证是充分的（结构上不引入任何推理期组件）。</li>
+<li><strong>技能质量</strong>：论文没有直接评估技能文本本身的质量（哪些规则算好规则、生成退化的情形会怎样），只通过下游指标间接体现。</li>
+<li><strong>适用范围</strong>：两个文本交互环境（ALFWorld &#x2F; WebShop）、两个 1.7B–3B 的 Qwen 骨干、150 步训练预算、128 条 episode 的评测、ALFWorld 为已见划分（eval_in_distribution）——未见划分、更大模型、更多环境上的行为均未验证。</li>
+<li><strong>已改善与未解决</strong>：改善了”特权优势的传输效率”（最高 +4.7 &#x2F; +14.0），并把机制证据定位到隐状态；未解决主表的统计稳定性、组件收益的规模不一致（投影器 3B 为 −1.6、1.7B 为 +10.2），以及”同条件下 token OPD 为何从有益变成有害（−8.6）”——论文只归因于信号稀疏，没有进一步分析。</li>
+</ul>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：主表结论建立在单训练种子与单次-128-episode-评估上，缺少方差与显著性"><a href="#质疑：主表结论建立在单训练种子与单次-128-episode-评估上，缺少方差与显著性" class="headerlink" title="质疑：主表结论建立在单训练种子与单次 128-episode 评估上，缺少方差与显著性"></a>质疑：主表结论建立在单训练种子与单次 128-episode 评估上，缺少方差与显著性</h4><ul>
+<li><strong>原文依据</strong>：附录 C Evaluation——“Each configuration uses a single training run with training seed 0”，128 条 episode、温度 0.4；Table 1 所有数字无方差、无置信区间；作者在热启动研究（Table 3、图 3）却使用 6 个评估种子做配对比较并展示了 +3.15 与 +9.62 的巨大差距，说明作者了解评测方差的重要性，但主表没有采用。</li>
+<li><strong>为什么重要</strong>：直接影响实验支持力度与”每个设置都总体最优”的结论强度；RL 训练过程本身高方差，单训练种子无法排除运行间波动。</li>
+<li><strong>当前能够得出的判断</strong>：点估计支持方法有效，但关键差值（1.7B ALFWorld +3.1、3B ALFWorld +4.7）的统计显著性当前材料无法确认。</li>
+<li><strong>如何验证或补强</strong>：每个配置至少 3 个训练种子 × 多种子评估，报告均值、方差或置信区间；对主要对照做配对显著性检验。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：3B-上默认配置低于论文自己训练的消融变体，”每设置最优”的叙述掩盖了组件收益的反向"><a href="#质疑：3B-上默认配置低于论文自己训练的消融变体，”每设置最优”的叙述掩盖了组件收益的反向" class="headerlink" title="质疑：3B 上默认配置低于论文自己训练的消融变体，”每设置最优”的叙述掩盖了组件收益的反向"></a>质疑：3B 上默认配置低于论文自己训练的消融变体，”每设置最优”的叙述掩盖了组件收益的反向</h4><ul>
+<li><strong>原文依据</strong>：Table 2——无投影器的直接隐状态对齐 72.7% 高于完整 PR-OPD（有投影器）71.1%，同一分叉点、同一自写技能、同一步数；§4.3 用 “nearly free” 描述这一 −1.6 的变化；Table 1 只列出来 71.1 的版本。</li>
+<li><strong>为什么重要</strong>：影响方法可信度——投影器是方法宣称的组成部分之一（论文称其为”可学缓冲”并默认启用），但它在较大的骨干上收益为负、在较小骨干上收益巨大（+10.2），收益随规模的这种反向变化没有机理解释。</li>
+<li><strong>当前能够得出的判断</strong>：组件叙事在骨干间不一致；且 −1.6 落在单种子评测的噪声范围内（见上一条），当前材料既无法确认投影器在 3B 上真的有害，也无法确认”无害”，论文的默认选择与其自身消融的最优点相矛盾。</li>
+<li><strong>如何验证或补强</strong>：多种子重复该消融；在第三个规模（如 7B 或 0.6B）验证”投影器随规模减弱”的趋势；若趋势成立，给出表示空间几何或容量的解释实验。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：与-token-蒸馏基线的领先同时改变”通道”与”技能来源”两个变量，且-OPSD-的崩坏缺少解释"><a href="#质疑：与-token-蒸馏基线的领先同时改变”通道”与”技能来源”两个变量，且-OPSD-的崩坏缺少解释" class="headerlink" title="质疑：与 token 蒸馏基线的领先同时改变”通道”与”技能来源”两个变量，且 OPSD 的崩坏缺少解释"></a>质疑：与 token 蒸馏基线的领先同时改变”通道”与”技能来源”两个变量，且 OPSD 的崩坏缺少解释</h4><ul>
+<li><strong>原文依据</strong>：§4.1——“All skill-based baselines use the hand-written skills of SDAR, one per task type”，而 PR-OPD 使用自写技能；Table 1 对最强基线 Skill-SD 的 +7.8 accuracy &#x2F; +8.1 score 领先因此混含”隐状态 vs token”与”自写 vs 精编”两个差异；消融变体 (1)（token OPD + 自写技能）只在 3B ALFWorld 一个场景做过；Table 1 中 OPSD 崩至近未训练水平（3B：ALFWorld 23.4、WebShop accuracy 1.6），正文未分析原因。</li>
+<li><strong>为什么重要</strong>：影响实验公平性与核心主张外推——“隐状态通道优于 token 通道”的跨方法证据部分依赖基线表现；若 OPSD 因移植&#x2F;调参问题被低估，则”token 通道不行”的证据被削弱。</li>
+<li><strong>当前能够得出的判断</strong>：在 3B ALFWorld 的受控消融内（同技能、同起点、同步数），通道对比成立（57.8 vs 72.7）；但跨方法与 Skill-SD 的领先无法完全归因于通道；OPSD 崩坏的原因当前材料无法确认。</li>
+<li><strong>如何验证或补强</strong>：在全部环境×骨干上复现”自写技能 × token 通道”变体；披露 SDAR&#x2F;OPSD&#x2F;Skill-SD 的超参与调优记录；对 OPSD 崩坏做失败分析（输出分布统计、截断&#x2F;数值问题）。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：”隐状态通道承载优势”的机制结论存在未处理的反例与有限的诊断范围"><a href="#质疑：”隐状态通道承载优势”的机制结论存在未处理的反例与有限的诊断范围" class="headerlink" title="质疑：”隐状态通道承载优势”的机制结论存在未处理的反例与有限的诊断范围"></a>质疑：”隐状态通道承载优势”的机制结论存在未处理的反例与有限的诊断范围</h4><ul>
+<li><strong>原文依据</strong>：图 1(c)”直接对齐（无投影器）超过教师（约 64.8% vs 56.2%）”是 3B WebShop 的单点观察；Table 2 显示 1.7B 上无投影器直接对齐反而低于 GRPO（36.7 vs 43.8，−7.1）；两个现象的量化诊断只在 ALFWorld GRPO@100 单检查点、两个 Qwen 模型上进行；附录 H 亦显示无投影器时原始相对距离恒定在 0.008–0.033 不动。</li>
+<li><strong>为什么重要</strong>：影响机制解释的边界与创新叙事的普适性；”优势藏在隐状态里、对齐它就能传递”在 1.7B 上需要额外组件（投影器）才成立，论文没有解释为什么小模型上”直接对齐会伤害”。</li>
+<li><strong>当前能够得出的判断</strong>：隐状态承载技能信息的证据（探针&#x2F;CKA&#x2F;反事实控制）较强；但”对齐隐状态即传递优势”依赖投影器与骨干规模，普适性结论当前证据不足，属于”论文观察到了现象（探针可解码）但未完全验证因果链（规模依赖的机制）”。</li>
+<li><strong>如何验证或补强</strong>：跨检查点、跨模型规模的现象复现（如 0.6B–7B、训练早&#x2F;中&#x2F;晚期）；对 1.7B 直接对齐失败做表示几何分析（层间对齐难度、表示秩、各向异性）。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h4 id="质疑：训练成本、技能质量与-warm-start-规律未充分报告"><a href="#质疑：训练成本、技能质量与-warm-start-规律未充分报告" class="headerlink" title="质疑：训练成本、技能质量与 warm-start 规律未充分报告"></a>质疑：训练成本、技能质量与 warm-start 规律未充分报告</h4><ul>
+<li><strong>原文依据</strong>：附录 C 只给硬件（8×B200）与超参；全文未报告墙钟、GPU 小时、token 用量、峰值显存；技能文本的长度分布与质量没有任何评估；热启动收益非单调（N&#x3D;140 仅 +3.63 vs N&#x3D;120 +9.62，图 3 与 Table 3），”策略先学会任务、反思才值得读”的解释只基于 WebShop + 1.7B 单一场景。</li>
+<li><strong>为什么重要</strong>：影响可复现性与实际采用决策——双份前向加逐轨迹技能生成的训练开销，决定该方法在更大规模上的经济性；非单调规律若成立也需要更广的证据。</li>
+<li><strong>当前能够得出的判断</strong>：训练代价是否可接受当前无法确认（论文未报告）；热启动规律证据有限。</li>
+<li><strong>如何验证或补强</strong>：补充训练成本表（墙钟、GPU 小时、峰值显存、技能生成 token 量、占总计算比）；技能质量的人工或自动评估；N 扫描覆盖第二环境与另一骨干。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现特权自蒸馏中技能带来的优势几乎不走 token 概率通道（&lt;25% 变化），而是写在教师隐状态里（&gt;80% 变化、线性探针可解码、CKA 显示定向重塑），因此提出 PR-OPD：GRPO 热启动后，让策略为每条轨迹写事后反思技能并以带技能重读作为停止梯度教师，把学生逐层隐状态经投影器对齐到教师全部层。实验在 ALFWorld 与 WebShop、两个 Qwen 骨干条件下表明总体指标最优（+4.7 &#x2F; +14.0）；其中”读隐状态 vs 读 token”的同起点受控消融（14.9 点差异）与表示分析（探针&#x2F;CKA&#x2F;深度曲线）证据较强，但主表单种子评测、3B 上默认配置低于消融变体、跨方法比较中的技能来源混淆仍缺少充分支持。本文最有价值的部分是把”特权信息如何进入学生”从输出空间问题重新定义为表示空间问题，并给出一个完整、可运行、推理零开销的在线闭环；最大的审稿风险是统计强度不足与组件收益的规模不一致。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强——两个现象定义与量化明确（图 1），核心问题可检验（隐状态通道能否传输优势）。</li>
+<li><strong>创新性证据</strong>：中——诊断新颖、通道迁移的设定清晰；但方法主体为 OPRD 式对齐向自蒸馏场景的重组，且与最强基线的比较混含技能来源变量（质疑三）。</li>
+<li><strong>方法可信度</strong>：中——算法完整、损失与组件作用清晰、无推理期开销；但默认配置在 3B 上劣于其消融变体（质疑二），1.7B 直接对齐崩坏缺解释（质疑四）。</li>
+<li><strong>实验支持力度</strong>：中——两环境两骨干、消融设计规范（同起点分叉）；但单种子、128 episodes、无方差（质疑一），个别任务大幅回退未讨论。</li>
+<li><strong>可复现性</strong>：中——代码开源（github.com&#x2F;balibata&#x2F;PR-OPD，可访问）、超参完整、骨干开源；但单种子训练、硬件门槛高（8×B200），成本报告缺失。</li>
+<li><strong>综合阅读价值</strong>：高——“优势在表示里而不在输出里”的诊断与通道消融具有很强的迁移价值，对理解自蒸馏、隐状态对齐类方法的适用边界很有帮助。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> PR-OPD: Privileged Representation On-policy Self-Distillation for Agentic Reinforcement Learning</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-14 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-14 12:00:58
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/14/2609.36642v1_PR-OPD_Privileged_Representation_On-policy_Self-Distillation_for_Agentic_Reinforcement_Learning/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E5%BC%BA%E5%8C%96%E5%AD%A6%E4%B9%A0/">#强化学习</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/GRPO/">#GRPO</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E8%87%AA%E8%92%B8%E9%A6%8F/">#自蒸馏</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E9%9A%90%E7%8A%B6%E6%80%81%E5%AF%B9%E9%BD%90/">#隐状态对齐</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/%E4%BA%8B%E5%90%8E%E5%8F%8D%E6%80%9D/">#事后反思</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/13/2606.03127v1_TTT-VLA_Test-Time_Latent_Prompt_Optimization_for_Vision-Language-Action_Models/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">TTT-VLA: Test-Time Latent Prompt Optimization for Vision-Language-Action Models</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">PR-OPD: Privileged Representation On-policy Self-Distillation for Agentic Reinforcement Learning</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 127 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
