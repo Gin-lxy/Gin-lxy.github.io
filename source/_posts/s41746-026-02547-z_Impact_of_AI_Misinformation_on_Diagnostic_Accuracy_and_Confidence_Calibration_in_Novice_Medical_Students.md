@@ -2,7 +2,7 @@
 title: "Impact of AI misinformation on diagnostic accuracy and confidence calibration in novice medical students"
 date: 2026-10-14 12:00:00
 categories: ["daily paper"]
-tags: ["医学教育","大语言模型","信心校准","随机对照试验","自动化偏差"]
+tags: ["Medical Education", "Medical AI", "Confidence Calibration", "Automation Bias", "Randomized Controlled Trials"]
 ---
 
 
@@ -12,7 +12,7 @@ Da Teng、Lihua Tan（共同第一作者）、Qiyuan Cao、Yanwei Xia、Na Zhang
 
 官方原文：https://www.nature.com/articles/s41746-026-02547-z（访问核查 2026-10-14：WebFetch 工具被 303 重定向拦截，改以直接 HTTP 请求成功；页面标题、七位作者、DOI、卷 9、文章号 356、在线日期 2026-03-17 均与本地 PDF 一致）
 
-标签：医学教育、大语言模型、信心校准、随机对照试验、自动化偏差。
+标签：Medical Education、Medical AI、Confidence Calibration、Automation Bias、Randomized Controlled Trials。
 
 ## 0. 一句话结论
 

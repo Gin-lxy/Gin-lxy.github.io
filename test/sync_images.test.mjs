@@ -42,7 +42,7 @@ function fixture(t, report) {
 test('rewrites image links whose alt text contains square brackets', (t) => {
   const { result, written } = fixture(
     t,
-    '# 测试报告\n\n分析范围：全文。\n\n标签：测试、图片改写。\n\n## 0. 一句话结论\n\n'
+    '# 测试报告\n\n分析范围：全文。\n\n标签：LLMs、Benchmark Evaluation、Tool Use。\n\n## 0. 一句话结论\n\n'
       + '![普通说明](images/0000.00000_fig1.png)\n\n'
       + '![含引用 [33] 与 Var[ρ] 的说明](images/0000.00000_fig2.png)\n\n正文。\n',
   );

@@ -11,7 +11,7 @@ EXPECTED_ROUTES = [
   "categories/index.html", "tags/index.html", "about/index.html",
   "categories/本科/index.html", "categories/漫谈/index.html", "categories/daily-paper/index.html", "categories/笔记/index.html",
   "tags/数据结构/index.html", "tags/计算机网络/index.html", "tags/随笔/index.html", "tags/强化学习/index.html", "tags/LLM/index.html",
-  "tags/线性叠加/index.html",
+  "tags/Linear-Superposition/index.html",
   "search.xml",
   "2023/11/15/2023秋-关于当下和未来/index.html",
   "2023/11/15/数据结构复习/index.html",
@@ -141,7 +141,7 @@ if known_page.file?
   errors << "expected KaTeX-rendered math in #{DAILY_PAPER_ROUTE}" unless contents.include?('class="katex"')
   errors << "expected source TeX preserved in #{DAILY_PAPER_ROUTE}" unless contents.include?('\mathcal{R}_{\mathcal{D}}')
   errors << "expected local KaTeX stylesheet link in #{DAILY_PAPER_ROUTE}" unless contents.include?('href="/css/katex/katex.min.css"')
-  errors << "expected daily paper tag link in #{DAILY_PAPER_ROUTE}" unless contents.include?("/tags/#{CGI.escape("线性叠加")}/")
+  errors << "expected daily paper tag link in #{DAILY_PAPER_ROUTE}" unless contents.include?("/tags/Linear-Superposition/")
 else
   errors << "missing route: #{DAILY_PAPER_ROUTE}"
 end

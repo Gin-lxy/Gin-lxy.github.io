@@ -2,7 +2,7 @@
 title: "Simulated patient systems powered by large language model-based AI agents offer potential for transforming medical education"
 date: 2026-10-14 12:00:00
 categories: ["daily paper"]
-tags: ["医学教育","模拟患者","多智能体","知识图谱","检索增强生成","大语言模型"]
+tags: ["Medical Education", "Simulated Patients", "Multi-Agent Systems", "Knowledge Graphs", "Retrieval-Augmented Generation"]
 ---
 
 
@@ -12,7 +12,7 @@ tags: ["医学教育","模拟患者","多智能体","知识图谱","检索增强
 
 官方原文：https://www.nature.com/articles/s43856-025-01283-x（2026-10-14 访问核查：页面正常，官网引用行为「Yu, H., Zhou, J., Li, L. et al. … Commun Med 6, 27 (2026)」，在线发表日期 2025-12-19；补充材料为单一 Supplementary Information PDF；未公开同行评审文件，仅致谢三位评审人；本地 PDF 与官网版本一致，共 12 页。）
 
-标签：医学教育、模拟患者、多智能体、知识图谱、检索增强生成、大语言模型。
+标签：Medical Education、Simulated Patients、Multi-Agent Systems、Knowledge Graphs、Retrieval-Augmented Generation。
 
 ## 0. 一句话结论
 

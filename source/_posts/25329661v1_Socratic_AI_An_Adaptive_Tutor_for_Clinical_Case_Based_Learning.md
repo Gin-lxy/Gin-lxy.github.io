@@ -2,7 +2,7 @@
 title: "Socratic AI: An Adaptive Tutor for Clinical Case Based Learning"
 date: 2026-10-14 12:00:00
 categories: ["daily paper"]
-tags: ["医学教育","大语言模型","临床推理","苏格拉底式教学","基于案例的学习","医学智能体"]
+tags: ["Medical Education", "Socratic Teaching", "Clinical Reasoning", "Case-Based Learning", "Medical AI"]
 ---
 
 
@@ -12,7 +12,7 @@ Niloufar Golchini、Evan Passalacqua（University of California, Berkeley）；L
 
 官方原文：https://www.medrxiv.org/content/10.1101/2025.06.22.25329661v1（2026-10-14 核查访问返回 HTTP 403（medRxiv 反爬），无法在线读取页面；版本、发布日期、DOI 与"未经同行评审"状态据本地 PDF 页边注记核对："this version posted June 23, 2025"、"doi: https://doi.org/10.1101/2025.06.22.25329661"、"not certified by peer review"。）
 
-标签：医学教育、大语言模型、临床推理、苏格拉底式教学、基于案例的学习、医学智能体。
+标签：Medical Education、Socratic Teaching、Clinical Reasoning、Case-Based Learning、Medical AI。
 
 ## 0. 一句话结论
 

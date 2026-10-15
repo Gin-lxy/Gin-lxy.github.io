@@ -77,6 +77,37 @@ function parseTags(content) {
   return null;
 }
 
+// The vocabulary is extensible: reject known aliases, but allow new English
+// research topics. Semantic coverage (e.g. introducing vs. using a benchmark)
+// still requires the paper-level review specified in daily-paper-prompt.md.
+const vocabularyFile = join(args.wiki, 'tag-vocabulary.json');
+const canonicalTags = new Map();
+const tagKey = (tag) => tag.trim().replace(/\s+/g, ' ').toLowerCase();
+if (existsSync(vocabularyFile)) {
+  const vocabulary = JSON.parse(readFileSync(vocabularyFile, 'utf8'));
+  for (const { name, aliases = [] } of vocabulary.labels) {
+    for (const label of [name, ...aliases]) {
+      const key = tagKey(label);
+      if (canonicalTags.has(key) && canonicalTags.get(key) !== name) {
+        throw new Error(`标签词表存在歧义：${label}`);
+      }
+      canonicalTags.set(key, name);
+    }
+  }
+}
+
+function validateTags(tags) {
+  if (tags.length < 3 || tags.length > 6) return '去重后应有 3–6 个英文标签';
+  for (const tag of tags) {
+    if (!/^[\x20-\x7e]+$/.test(tag) || !/[A-Za-z]/.test(tag)) {
+      return `标签必须使用英文名称：${tag}`;
+    }
+    const canonical = canonicalTags.get(tagKey(tag));
+    if (canonical && tag !== canonical) return `标签 ${tag} 请统一为 ${canonical}`;
+  }
+  return null;
+}
+
 const newPosts = [];
 const skipped = [];
 const errors = [];
@@ -146,6 +177,11 @@ for (const date of dateDirs) {
     const tags = parseTags(content);
     if (!tags || tags.length === 0) {
       tagErrors.push(`${date}/${name}: ${tags ? '标签行为空' : '缺少标签行'}——需重新审读论文摘要补写「标签:」行后重跑`);
+      continue;
+    }
+    const tagIssue = validateTags(tags);
+    if (tagIssue) {
+      tagErrors.push(`${date}/${name}: ${tagIssue}`);
       continue;
     }
     const { title, body } = splitTitle(content, stem);

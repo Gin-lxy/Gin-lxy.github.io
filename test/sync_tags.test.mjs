@@ -16,6 +16,7 @@ function fixture(t, report) {
   const wiki = mkdtempSync(join(tmpdir(), 'sync-tags-'));
   t.after(() => rmSync(wiki, { recursive: true, force: true }));
   writeFileSync(join(wiki, 'daily-paper-prompt.md'), SPEC, 'utf8');
+  writeFileSync(join(wiki, 'tag-vocabulary.json'), JSON.stringify({labels: [{name: 'Agent Harness', aliases: ['harness', 'Agent harness design']}]}));
   const hash = createHash('sha256').update(SPEC).digest('hex').slice(0, 16);
   const dateDir = join(wiki, DATE);
   mkdirSync(dateDir);
@@ -31,10 +32,10 @@ function fixture(t, report) {
 test('dry-run reports the planned tags parsed from the header', (t) => {
   const result = fixture(
     t,
-    '# 测试报告\n\n分析范围：全文。\n\n标签：强化学习，信用分配；GRPO。\n\n## 0. 一句话结论\n\n正文。\n',
+    '# 测试报告\n\n分析范围：全文。\n\n标签：Agentic RL，Credit Assignment；GRPO。\n\n## 0. 一句话结论\n\n正文。\n',
   );
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /标签: 强化学习、信用分配、GRPO/);
+  assert.match(result.stdout, /标签: Agentic RL、Credit Assignment、GRPO/);
 });
 
 test('rejects a report without a tag line', (t) => {
@@ -52,8 +53,32 @@ test('rejects a report with an empty tag line', (t) => {
 test('deduplicates repeated tags and trims the trailing period', (t) => {
   const result = fixture(
     t,
-    '# 测试报告\n\n标签：强化学习、强化学习；LLM。\n\n## 0. 一句话结论\n\n正文。\n',
+    '# 测试报告\n\n标签：Agentic RL、Agentic RL；GRPO、Tool Use。\n\n## 0. 一句话结论\n\n正文。\n',
   );
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /标签: 强化学习、LLM\n/);
+  assert.match(result.stdout, /标签: Agentic RL、GRPO、Tool Use\n/);
+});
+
+// These cases prevent non-English labels and alias fragmentation from returning.
+test('rejects Chinese tag values', (t) => {
+  const result = fixture(t, '# Report\n\n标签：强化学习、GRPO、Tool Use。\n\n## 0. Conclusion\n');
+  assert.equal(result.status, 9, result.stderr);
+});
+
+test('rejects too few or too many tags after deduplication', (t) => {
+  for (const tags of ['GRPO、GRPO、Tool Use', 'A、B、C、D、E、F、G']) {
+    const result = fixture(t, `# Report\n\n标签：${tags}。\n\n## 0. Conclusion\n`);
+    assert.equal(result.status, 9, result.stderr);
+  }
+});
+
+test('rejects a known alias and suggests its canonical name', (t) => {
+  const result = fixture(t, '# Report\n\n标签：harness、Multimodal Agents、Visual Memory。\n\n## 0. Conclusion\n');
+  assert.equal(result.status, 9, result.stderr);
+  assert.match(result.stderr, /Agent Harness/);
+});
+
+test('accepts new English topics without imposing a closed vocabulary', (t) => {
+  const result = fixture(t, '# Report\n\n标签：New Research Topic、Multimodal Agents、Visual Memory。\n\n## 0. Conclusion\n');
+  assert.equal(result.status, 0, result.stderr);
 });

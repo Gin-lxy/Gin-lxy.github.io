@@ -2,7 +2,7 @@
 title: "Scaffolded AI-Supported Problem-Based Learning for Medical Interns: Exploratory Retrospectively Registered Randomized Controlled Evaluation With a Voluntary Feasibility Follow-Up"
 date: 2026-10-14 12:00:00
 categories: ["daily paper"]
-tags: ["医学教育","问题导向学习","多智能体","临床推理","大语言模型","随机对照试验"]
+tags: ["Medical Education", "Problem-Based Learning", "Multi-Agent Systems", "Clinical Reasoning", "Randomized Controlled Trials"]
 ---
 
 
@@ -12,7 +12,7 @@ Zhengqi Zhao¹˒²（BEng）、Baijing Wu³（BM）、Shuyuan Tian³（PhD）、
 
 官方原文：https://mededu.jmir.org/2026/1/e95039（2026-10-14 访问核查：curl 两轮均返回 HTTP 202 空响应、WebFetch 返回空内容，属 JMIR 反爬/排队机制，HTML 版未能程序化核对，本报告元数据与全部数字以本地 PDF 为准；代码仓库 https://github.com/eMoLii/PBL 同日核查为公开可访问——26 次提交、README 以 MAPLE-CR 为题、根目录含 backend、frontend、agent_collaboration 等，未声明许可证；未逐文件核验代码与论文系统的一致性。）
 
-标签：医学教育、问题导向学习、多智能体、临床推理、大语言模型、随机对照试验。
+标签：Medical Education、Problem-Based Learning、Multi-Agent Systems、Clinical Reasoning、Randomized Controlled Trials。
 
 ## 0. 一句话结论
 
