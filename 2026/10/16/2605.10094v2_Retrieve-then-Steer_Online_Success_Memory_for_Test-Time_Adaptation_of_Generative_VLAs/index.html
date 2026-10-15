@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/16/2605.10094v2_retrieve-then-steer_online_success_memory_for_test-time_adaptation_of_generative_vlas/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Retrieve-then-Steer: Online Success Memory for Test-Time Adaptation of Generative VLAs">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/16/2605.10094v2_Retrieve-then-Steer_Online_Success_Memory_for_Test-Time_Adaptation_of_Generative_VLAs/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-16T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-15T16:55:50.393Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Agent Memory">
+<meta property="article:tag" content="Flow Matching">
+<meta property="article:tag" content="Robot Manipulation">
+<meta property="article:tag" content="Self-Improvement">
+<meta property="article:tag" content="Test-Time Adaptation">
+<meta property="article:tag" content="VLA">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Retrieve-then-Steer: Online Success Memory for Test-Time Adaptation of Generative VLAs | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">206</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">147</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Retrieve-then-Steer: Online Success Memory for Test-Time Adaptation of Generative VLAs</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-16 12:00</span>
+        <span class="mobile">2026-10-16 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-16 00:55:50</span>
+            <span class="mobile">2026-10-16 00:55:50</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Test-Time-Adaptation/">Test-Time Adaptation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/VLA/">VLA</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Robot-Manipulation/">Robot Manipulation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Self-Improvement/">Self-Improvement</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Agent-Memory/">Agent Memory</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Flow-Matching/">Flow Matching</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Jianchao Zhao、Huoren Yang（College of Artificial Intelligence, Xi’an Jiaotong University；One Robotics）、Yusong Hu、Yuyang Gao、Qiguan Ou（One Robotics）、Cong Wan（College of Artificial Intelligence, Xi’an Jiaotong University）、SongLin Dong、Zhiheng Ma（Shenzhen University of Advanced Technology）、Yihong Gong（College of Artificial Intelligence, Xi’an Jiaotong University；Shenzhen University of Advanced Technology）</p>
+<p>论文：arXiv 2605.10094v2（Retrieve-then-Steer: Online Success Memory for Test-Time Adaptation of Generative VLAs；abs 页核对结果：v1 提交于 2026-05-11、v2 修订于 2026-05-12，v2 为截至 2026-10-16 的最新版本）；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-16（Asia&#x2F;Shanghai）。</p>
+<p>官方原文：arXiv abs <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2605.10094" >https://arxiv.org/abs/2605.10094<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；HTML（v2）<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2605.10094v2" >https://arxiv.org/html/2605.10094v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF（v2）<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2605.10094v2" >https://arxiv.org/pdf/2605.10094v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 。</p>
+<p>官方仓库：论文未提供公开代码仓库（截至 2026-10-16 未发现）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2605.10094" >https://huggingface.co/papers/2605.10094<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> （页面存在）。</p>
+<p>标签：VLA、Test-Time Adaptation、Agent Memory、Robot Manipulation、Flow Matching、Self-Improvement。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>本文把 VLA（Vision-Language-Action models，视觉-语言-动作模型）的部署重新表述为同一环境下的持续过程，让冻结的生成式 VLA 把测试期内经进度校准验证的成功观测—动作片段存入在线成功记忆（online success memory），推理时检索、过滤并聚合成精英动作先验（elite action prior），注入 flow matching（流匹配）采样器的中间状态，在不更新任何参数的前提下提升闭环可靠性。证据在 LIBERO-10、SimplerEnv 与两个真实双臂平台上一致为正，但平均增益多为 2–4 个百分点、真机实验缺少方差报告、评估协议与零样本基线的可比性未完全说明，结论应限定为「在这些基准与这种持续部署设置下有效」。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>论文面向的问题是语言条件机器人操作中生成式 VLA 的闭环可靠性：这类策略用 diffusion 或 flow matching 动作头生成动作块（action chunk），基础能力不弱，但在真实部署中容易因感知噪声、视角偏移与误差累积，在几乎相同的状态下从一次成功滑向失败（§1）。作者想回答的核心问题是：一个无法再训练的基础 VLA，能否通过复用自己测试期的成功经验来提高可靠性？</p>
+<p>现有做法分三类，各自都有缺口（§1、§2）。部署前的预训练与下游微调能提升策略基础水平，但无法在测试期持续从成功中学习；强化学习与人在回路方法会利用部署经验，但需要额外反馈、安全探索与较重的参数更新；近期的测试时引导方法（RoboMonkey 用 VLM 验证器筛选扰动候选、MG-Select 用条件掩码置信度免验证器筛选、TACO 用伪计数把生成约束到稳定模式）虽然是免训练的，但都遵循「先生成再筛选」（generate-then-select）的短视范式：候选在局部评估后被丢弃，跨回合积累的成功经验无法被利用，且筛选本身带来额外采样开销（§2）。</p>
+<p>本文的新观察属于评测范式层面：主流基准把每个测试回合当作独立的零样本试验，而真实机器人通常在同一或缓慢变化的环境中反复执行任务，物理布局、相机视角、标定误差与任务模式在回合间高度相关；一次成功执行隐式记录了该环境下的视觉几何、执行偏差与时序信息，是「环境验证过的证据」，不应随评估结束被丢弃（Abstract、§1）。需要区分三层：VLA 闭环不稳定是领域已知问题；「部署应建模为持续在线过程、成功经验可复用」是本文提出的视角（论文没有给出跨回合相关性或成功复用率的定量测量来支撑这一视角）；本文实际解决的具体子问题是——如何自动、非参数地从测试期经验中抽取可复用的成功片段，并把它们安全地注入冻结策略的生成过程。</p>
+<p>作者把失败归因于闭环执行中的感知噪声、视角变化与累积误差（§1），由此导向核心假设：成功观测—动作片段可以被当作「软行为先验」，在相似状态下引导生成器回到本环境中被证明有效的动作模式，同时保留基于当前观测的生成式修正。论文的动机表述如图 1 所示，其核心对照是：常规部署丢弃成功回合、失败重复出现，而带记忆的持续部署让成功行为在后续回合中反复被利用。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2605.10094v2_fig1_motivation.jpg"
+                      alt="图 1：持续部署与成功记忆动机"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1）：该图用一组对照回合说明论文的问题动机：在无记忆的常规部署中，每个试验独立开始，一次成功后经验随即被丢弃，同样的失败状态在后续试验中反复出现；在论文主张的持续部署中，成功试验被写入在线成功记忆，并作为后续试验的执行引导，使同一环境中的成功行为模式能够被持续利用。读者应理解的核心是：论文要改变的不是单次动作生成的质量，而是试验之间信息不流动的部署方式，这也是「成功记忆」在方法中承担的角色。</p>
+<p>把这一视角转成可检验的形式，论文的核心假设包含三个可操作条件：记忆只收经外部评估器验证的成功前缀（保证先验确实来自成功经验）；检索必须在状态相似之外通过动作层的一致性检验（保证先验可用而非错配）；先验只能作为生成式采样的起点而非最终动作（保证当前观测仍保有修正权）。§3 的方法与 §4.3 的消融分别围绕这三个条件展开。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>本文的真正技术增量是一个非参数式的「检索—引导」测试时自适应组合：把部署期验证过的成功观测—动作片段组织成可检索的记忆，检索结果不作为待执行动作，而是作为生成式采样的中间状态起点注入冻结策略，并用检索置信度调节注入强度。它与已有做法的差异集中在三点。</p>
+<p>第一，在线进度校准的成功记忆（online progress-calibrated memory）。新增机制是用外部预训练 VLAC critic（一个视觉-语言-动作评论家模型）以成对观测的带符号进度增量自动判断轨迹是否包含成功经验，并只写入「进度峰值之前」的观测—动作前缀，失败轨迹整条丢弃。与离线演示库检索、经验回放缓冲区相比，记忆在部署期即时构建、不参与任何训练，也不需要人工成功标签；与「存整条轨迹」的朴素做法相比，前缀截断的去噪作用有消融支撑（§4.3，论文 Table 5）。</p>
+<p>第二，检索—过滤—聚合的精英动作先验。机制是复用 VLA 自身视觉编码器特征作检索键，经余弦相似度门控、top-K 初筛后，用多元 DTW（dynamic time warping，动态时间规整）距离剔除「状态相近但动作轨迹模式不一致」的离群候选，再按相似度软加权聚合成先验；旋转分量用 SO(3) 上的测地均值处理，避免直接线性平均。相对已有的最近邻式演示检索，这里显式加入了动作层一致性过滤与多候选聚合（§4.3，论文 Table 4 与 Table 8）。</p>
+<p>第三，置信度自适应的采样器内引导（confidence-adaptive prior guidance）。机制是不修改模型与速度场，把先验注入 flow matching 采样的中间状态（等价于用先验替换掉一段噪声初始化），引导强度由「状态级相似度减去动作级离散度」构成的置信度决定，检索不可靠时自动恢复为原始采样。相对「先生成再筛选」的测试时方法，先验在动作生成之前介入且不增加采样次数；相对直接重放检索动作，保留了当前观测下的生成式修正——后者在消融中显著更差（§4.3，论文 Table 4）。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>核心直觉是：同一环境中成功过的执行包含该环境特有的视觉几何、执行偏差与节奏信息；若能在相似状态下提供一条「接近成功」的动作参考，让生成器从它附近出发、再结合当前观测完成细化，就能降低采样噪声与分布漂移造成的失误，同时避免直接复制旧动作带来的时序错配。整体流程可以概括为「写记忆—检索—引导」的循环：部署中冻结 VLA 正常闭环执行，同时把验证过的成功片段写入记忆；后续每个决策步先按当前观测检索历史成功片段，过滤后合成先验，用先验初始化生成式采样并产出动作块。图 2 给出了该框架的完整结构。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2605.10094v2_fig2_overview.jpg"
+                      alt="图 2：retrieve-then-steer 总览"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 2）：该图展示 retrieve-then-steer 框架的数据流：左下方冻结的生成式 VLA 在闭环执行中被复用为两个角色——一方面其视觉编码器特征经池化拼接形成检索键，配合外部进度估计器对回合打分、把进度峰值前的观测—动作对写入右下方的在线成功记忆；另一方面在当前决策步，用当前检索键从记忆检索 top-K 历史动作，经相似度与 DTW 一致性过滤后，按归一化相似度软加权聚合成精英先验，再把先验与置信度映射为采样起点注入动作头的生成过程，产出被执行的动作块。读者应理解两个闭环：记忆写入回合是「执行→验证→存储」，动作生成回合是「检索→过滤→聚合→引导采样」，两者通过检索键共享同一视觉表示。</p>
+<p>记忆写入发生在每个测试回合中（§4.1）：执行期间维护缓冲区，记录每一步的检索键与动作块；检索键不使用单独的编码器，而是直接复用 VLA 视觉编码器的 patch token，经 2×2 平均池化、展平与多视角拼接归一化得到。每隔固定间隔 Δ 调用一次 VLAC critic（§4.1、Appendix A），输入相邻两帧观测、任务指令与一条成功参考视频，输出带符号进度增量（正为前进、负为回退、近零为停滞）；进度按饱和形式逐段累加，回合完成度取累计进度的峰值而非末端值——因为临近成功后的越界、碰撞或多余动作会造成回退，峰值才能保留「最好的任务状态」。峰值超过阈值 η 的回合判为成功，只把峰值之前的前缀写入记忆，其余整条丢弃。Appendix A 解释了选 VLAC 的原因：这里需要的是保守地抽取可复用成功片段，宁可漏掉（漏检只让记忆长得慢），不可误收（误收会污染记忆并误导先验）。</p>
+<p>检索发生在记忆非空时的每个决策步（§4.2）：对当前检索键与记忆中的所有键计算余弦相似度，取 top-K 候选并用阈值过滤弱相关项；随后对候选动作块两两计算多元 DTW 距离，以「到其余候选距离的中位数」度量每个候选的轨迹不一致度，剔除离群候选。这一步针对的是状态级相似度无法排除的「状态像、动作模式不像」错配。</p>
+<p>聚合产生精英动作先验（§4.2、Appendix C）：对过滤后的候选按归一化相似度做带温度参数的 softmax 加权，加权求和各候选动作块得到先验，而不是直接取最近邻——聚合可以平抑单条历史轨迹的噪声。动作向量按组件分别处理：欧氏空间分量（位置增量、关节角增量等）线性加权平均；姿态增量先映射到 SO(3) 再求加权测地均值；夹爪命令连续时加权平均并裁剪，离散开合时加权投票，出现开合方向冲突时退回最相似近邻的夹爪命令。</p>
+<p>最后是引导生成（§4.3）：flow matching 动作头原本从高斯噪声出发积分速度场生成动作块；本文不改模型、不改速度场，只把采样起点换成「先验与噪声的插值」这一中间状态：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>x</mi><msub><mi>t</mi><mn>0</mn></msub></msub><mo>=</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>t</mi><mn>0</mn></msub><mo stretchy="false">)</mo><mtext> </mtext><msub><mi>a</mi><mtext>elite</mtext></msub><mo>+</mo><msub><mi>t</mi><mn>0</mn></msub><mtext> </mtext><mi>ϵ</mi><mo separator="true">,</mo><mspace width="2em"/><mi>ϵ</mi><mo>∼</mo><mi mathvariant="script">N</mi><mo stretchy="false">(</mo><mn>0</mn><mo separator="true">,</mo><mi>I</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">x_{t_0}=(1-t_0)\,a_{\text{elite}}+t_0\,\epsilon,\qquad \epsilon\sim\mathcal{N}(0,I)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6807em;vertical-align:-0.2501em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3173em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2501em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">elite</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8095em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">ϵ</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">ϵ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∼</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathcal" style="margin-right:0.1474em;">N</span><span class="mopen">(</span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mclose">)</span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 控制引导强度：越小起点越靠近先验，越大则保留越多随机性、直至退化为原始采样。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 由检索置信度决定：置信度综合归一化平均相似度与 DTW 不一致度的标准差，按 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub><mo>=</mo><msub><mi>t</mi><mi>min</mi><mo>⁡</mo></msub><mo>+</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>t</mi><mi>min</mi><mo>⁡</mo></msub><mo stretchy="false">)</mo><mtext> </mtext><mi>σ</mi><mo stretchy="false">(</mo><mo>−</mo><mi>γ</mi><mi>c</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">t_0=t_{\min}+(1-t_{\min})\,\sigma(-\gamma c)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mop mtight"><span class="mtight">m</span><span class="mtight">i</span><span class="mtight">n</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mop mtight"><span class="mtight">m</span><span class="mtight">i</span><span class="mtight">n</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">σ</span><span class="mopen">(</span><span class="mord">−</span><span class="mord mathnormal" style="margin-right:0.0556em;">γ</span><span class="mord mathnormal">c</span><span class="mclose">)</span></span></span></span> 映射——置信度越高 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 越小。确定起点后仍用同一条件速度场从 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 积分到 0，也就是说先验只决定「从哪里出发」，当前观测条件化的生成式修正被完整保留。Appendix B 给出 diffusion 动作头的对应版本：把先验按前向加噪过程扰动到中间噪声级别，再执行剩余去噪。</p>
+<p>整个流程在测试期不做任何训练、不更新参数：可学习组件只有基础 VLA 自身与外部预训练的 VLAC critic；每个任务用训练集中一条成功演示视频作参考过程（仅作 critic 的上下文示例，不提供动作监督，也不更新策略）。记忆为空或检索未通过相似度与一致性过滤时，不构造先验，系统直接回退到原始采样。最终输出与基线一致：每个决策步一个动作块，闭环执行；记忆随后续回合持续增补，形成「越用越稳」的部署循环。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p>仿真实验在 LIBERO-10 与 SimplerEnv 上进行（§5.1.1）：LIBERO-10 是 LIBERO 套件中最难的长程多阶段套件（更简单的套件已近饱和），用于检验状态漂移与累积误差下的稳定性；SimplerEnv 使用 Google Robot 平台的四个任务（Pick Coke Can、Move Near、Open&#x2F;Close Drawer、Open Top Drawer and Place Apple），覆盖布局变化、视觉扰动与精细操作。基础模型为 flow matching &#x2F; diffusion 动作头的生成式策略：LIBERO 上用 π0 与 π0.5，SimplerEnv 上用 CogACT；直接对比的测试时基线是 TACO，另列出 OpenVLA、π0-FAST、RT-1、RT-1-X、RT-2-X、Octo 的参考成功率。仿真每个任务评估 50 个回合，复现结果（带 *）报告 3 个随机种子的 mean ± std（论文 Table 1、Table 2）。真机实验在两个双臂平台进行（§5.2、Appendix D）：OpenArm（7 自由度双臂）上做 Bowl Stacking、Cube Handoff、Sequential Test-Tube Placement，ALOHA-PiPER（6 自由度 AgileX PiPER 双臂）上做双臂 T 恤折叠；每任务用 100 条演示微调基础策略（batch size 64、学习率 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2.5</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">2.5\times10^{-5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">2.5</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span>、8k–10k 步），评估 50 个回合，基线与本方法使用同一批初始状态，且基础策略全程冻结（Appendix D.3）。主实验回答方法是否有效；组件与记忆质量消融（论文 Table 4、Table 5）回答「哪部分设计在起作用」；连续部署与记忆容量（论文 Table 6）、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 分析、推理时延（论文 Table 7）与超参敏感性（论文 Table 8、Table 9）回答机制与成本。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>LIBERO-10 上（论文 Table 1）：π0 平均成功率从 81.6%±0.8 提升到 84.4%±0.4（+2.8），超过 TACO 的 83.8%±0.2（+2.2）；更强的 π0.5 从 92.4%±0.2 提升到 94.4%±0.3（+2.0）。任务级上长程多阶段任务收益明显（Moka Pots on Stove 64%→70%、Soup and Sauce in Basket 90%→100%），但也存在回退：Book in Caddy 上 π0.5+Ours 为 92% 而 π0.5 为 100%（−8）；Cheese and Butter in Basket 上 π0+Ours 为 92%，低于 π0 的 98% 与 TACO 的 94%。论文对这些回退未做解释，也未报告任务级显著性。SimplerEnv 上（论文 Table 2）：CogACT 平均从 75.8%±0.3 提升到 79.5%±0.2（+3.7），四个任务全部为正，最大增益 +5.5 点出现在最长的 Open Top Drawer and Place Apple。</p>
+<p>真机 OpenArm 上（§5.2.2、论文 Table 3）：Bowl Stacking 从 72% 提升到 80%，Cube Handoff 从 40% 提升到 52%；试管依次放置任务上完整 4&#x2F;4 成功率从 18% 提升到 24%（即 50 次中 9 次→12 次），平均完成长度从 1.54 提升到 1.94。真机每任务 50 个回合，论文未报告方差或置信区间（两种任务的对照见图 3）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2605.10094v2_fig3a_real_openarm.png"
+                      alt="图 3：OpenArm 真机成功率"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 3(a)）：该图给出 OpenArm 双臂平台上两个真实任务的成功率对照（π0、π0.5 与 π0.5+Ours 三种配置）。读者应从中理解：增益发生在硬件真机上而非只在仿真里，且需要双臂协调的反手递接任务（Cube Handoff）上的提升幅度大于单侧合理的叠碗任务，与论文「记忆主要稳定闭环协调执行」的解释方向一致；同时该图没有误差棒，绝对差值（如 9 次与 12 次成功）在 50 次试验规模下是否超出波动范围，需要读者自行保持怀疑。</p>
+<p>随后在 ALOHA-PiPER 的 T 恤折叠任务上（论文 Fig. 3(b)）：域内黄色 T 恤上从 42% 提升到 50%，域外未见颜色的白色 T 恤上从 36% 提升到 46%，两者平均从 39% 提升到 48%。域外条件是本文对「外观分布偏移」的唯一直接测试（两种条件的对照见图 4）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2605.10094v2_fig3b_real_folding.png"
+                      alt="图 4：T 恤折叠域内与域外成功率"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 3(b)）：该图展示双臂折叠可形变物体（T 恤）任务在域内（黄色）与域外（白色，未见颜色）两种外观条件下的成功率。读者应理解两点：其一，域外条件的提升说明在线成功记忆机制不要求测试外观与训练演示完全一致，记忆积累的是当前部署回合中验证过的成功片段；其二，两个条件各自的记忆是否独立初始化、域内经验是否影响域外结果，论文没有说明（Appendix D.3 只说明「每个任务的评估中记忆被初始化并持续更新」），引用该结果时应避免推断跨外观迁移。</p>
+<p>把仿真与真机合起来看：两个仿真基准上平均提升 2–3.7 点且带 3 种子方差，真机两个任务上提升 8–12 点但没有方差数据；方向一致，但真机部分与任务级回退（Book in Caddy、Cheese and Butter）使「平均有效」与「每次都有效」之间存在明显距离。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>记忆构建（对应 §2 创新点一）：论文 Table 5 用四个变体分离了两个设计。完整性验证：把未验证的所有轨迹存入记忆得到 87.6%，反而低于无记忆基线的 92.4%——说明增益不是「只要有记忆」就有，被污染的条目会产生有害先验；进度峰值截断：存「预测成功的整条轨迹」只有 91.8%，低于存「预测成功的前缀」的 94.4%，接近环境标签 oracle 记忆的 94.8%，说明截断后段的回退与冗余动作是必要的。成功判别器本身精度 0.970、召回 0.678、准确率 0.676，作者主张「高精度低召回」对记忆构建更合适（论文 Table 5、Appendix A）；但判别器评估所用的数据集、样本量与任务分布论文未报告。</p>
+<p>先验的使用方式（对应 §2 创新点三）：论文 Table 4 在同一套 top-K+DTW 先验下比较三种用法：直接重放先验动作 87.8%（低于基线）、把生成动作与先验做输出插值 93.0%、把先验注入采样器中间状态 94.4%。这组消融支持「先验必须经由生成器在当前观测下重新修正」的因果叙事，也是方法区别于「检索即执行」类做法的关键证据。</p>
+<p>先验的构造（对应 §2 创新点二）：Top-1 最近邻 93.6% → top-K 软聚合 94.0% → 完整方法 94.4%（论文 Table 4），方向一致但增量很小；完整方法与软聚合之间的 0.4 点同时包含 DTW 过滤的作用，论文没有单独报告关闭 DTW 的结果。超参敏感性（论文 Table 8）显示 K、相似度阈值、聚合温度与成功阈值在各自合理范围内波动约 1 点，说明结论不依赖精调，但也说明这些组件的边际影响本身就在毫厘之间。</p>
+<p>连续部署与自适应引导（§6、Appendix E）：在 Moka Pots on Stove 上从空记忆开始跑 300 条轨迹，累计成功率随记忆增长从约 64% 爬升并稳定在约 69.5%，同期基线 π0.5 平稳在 60–62% 区间；记忆达到 3.5k 条目上限（FIFO 淘汰）后收益保持（论文 Fig. 4(a)）。容量扫描显示 5k 条目时累计成功率 70.8%、无限记忆 71.2%，4k 后饱和，说明方法不依赖无限增长的记忆（论文 Table 6）；累计成功率随部署推进的完整曲线见图 5。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2605.10094v2_fig4a_cumulative.png"
+                      alt="图 5：连续部署累计成功率"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 4(a)）：该图是「记忆累积驱动改进」这一核心机制的直接证据：横轴为连续部署的测试轨迹数，冻结基线策略的累计成功率基本持平，而带在线记忆的方法从空记忆出发随成功片段积累稳步上升，并在记忆达到有界容量、进入 FIFO 淘汰阶段后维持在新水平——说明提升来自部署过程中积累的环境验证经验，且在有界存储下依然成立。读者还应注意到曲线上升段与记忆增长段同相位，这是作者把因果归给记忆而非随机波动的依据，但论文未附多种子重复。</p>
+<p>引导强度的自适应（§6、论文 Fig. 4(b)）：固定 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的扫描呈清晰的折衷形态——<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub><mo>=</mo><mn>0.0</mn></mrow><annotation encoding="application/x-tex">t_0=0.0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.0</span></span></span></span> 时成功率 28%（先验约束过强）、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub><mo>=</mo><mn>0.6</mn></mrow><annotation encoding="application/x-tex">t_0=0.6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.6</span></span></span></span> 时最优 68%、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub><mo>=</mo><mn>1.0</mn></mrow><annotation encoding="application/x-tex">t_0=1.0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">1.0</span></span></span></span> 时 64%（等于几乎不用先验）；动态 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（置信度自适应）达到 70%，比最优固定值高 2 点（对照见图 6）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2605.10094v2_fig4b_t0.png"
+                      alt="图 6：动态 t0 与固定 t0 对比"
+                ></p>
+<p><strong>图 6</strong>（论文 Fig. 4(b)）：该图解释先验引导强度的作用机制：横轴是采样起点时间 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，越小表示起点越靠近检索先验、引导越强；固定 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的曲线表明引导过强会压制当前观测下的生成式修正、过弱则几乎退回原始采样，中间存在明确的最优点；动态 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 曲线则按每次检索的置信度把不同样本映射到不同起点，整体高于任何固定设置。读者应据此理解：引导强度本身是敏感量，这正是作者引入置信度映射的动机；但该证据只有单个任务且无方差，效应量也只有 2 点。</p>
+<p>对替代解释的排除程度：方法不增加采样次数（引导从中间状态出发反而略快，论文 Table 7），「增益来自更多随机采样」的解释基本被排除；未验证记忆劣于无记忆，排除了「记忆内容不重要、只要有历史数据即可」的解释；论文没有设计「从其他任务或随机片段构建的记忆」对照，因此无法完全排除一部分增益来自「高相似度门控把动作约束到更保守一致的模式」而非「成功经验的内容」本身。视觉状态混叠（相似状态需要不同动作）被作者列为未解决问题（Appendix I）。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p>训练成本：测试期零训练、零参数更新；真机的 100 条演示微调（8k–10k 步）属于获得基础策略的既有流程，不是本方法的开销。推理时延（论文 Table 7）：仅引导采样为基线的 0.95×（从中间状态出发步数更少），包含检索、过滤、聚合的完整流程为 1.10×，开销主要来自最近邻搜索；这些都是相对值，绝对时延、显存与特征存储占用论文未报告。外部进度估计器（VLAC critic）在部署中以固定间隔被反复调用，其单次推理成本与额外调用次数论文未报告。存储与系统复杂度：有界 FIFO 记忆，连续部署分析中上限 3.5k 条目（§6），容量扫描表明 4k 条目后收益饱和（Appendix E）——主文使用的 3.5k 与附录扫描的 1k–5k 档位没有对齐，3.5k 的选点依据未说明。外部依赖：预训练 VLAC critic（论文引用 [28]，其训练与权重来源未展开）、每任务一条参考演示视频、无人工成功标注。</p>
+<p>适用范围的边界由作者在 Appendix I 明确列出并在实验中间接验证：方法假设环境稳定或缓慢变化、基础策略偶尔能够成功（否则记忆生长过慢）；外观快速变化时旧先验可能变得误导；进度估计器误差会污染记忆（未验证记忆 87.6% 的结果说明风险真实存在）；状态混叠无法被视觉相似度检索完全消解；任务级回退案例（论文 Table 1 的 Book in Caddy）说明先验在个别任务上可能有害。未被改善的部分：基础策略完全不会的任务无法被挽救；跨任务&#x2F;跨环境的记忆组织、遗忘与变化检测留作未来工作。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：主表把零样本基线与带在线记忆的方法放在一起比较，且该协议的关键细节披露不足"><a href="#质疑：主表把零样本基线与带在线记忆的方法放在一起比较，且该协议的关键细节披露不足" class="headerlink" title="质疑：主表把零样本基线与带在线记忆的方法放在一起比较，且该协议的关键细节披露不足"></a>质疑：主表把零样本基线与带在线记忆的方法放在一起比较，且该协议的关键细节披露不足</h4><ul>
+<li><strong>原文依据</strong>：论文 Table 1、Table 2 的基线按独立回合评估，而 π0.5+Ours 等配置在部署中积累测试期成功经验（Abstract、§5.1.1、Appendix D.3）；LIBERO 上记忆如何在 50 个评估回合内初始化与更新、平均成功率是否包含冷启动回合、十个任务是否各用独立记忆，主文与附录均未报告；连续部署曲线的稳态值（约 69.5%）与 Table 1 中 94.4% 的统计口径关系也未说明。</li>
+<li><strong>为什么重要</strong>：这直接决定增益的归因与结论范围——论文的核心主张「复用经验提升可靠性」成立与否，取决于能否把「协议变化带来的信息优势」与「机制本身」分开。</li>
+<li><strong>当前能够得出的判断</strong>：论文的设定与其研究问题自洽（要研究的正是持续部署），但按现有材料，读者无法复算主表数字对应的协议，也无法判断 +2.0 至 +3.7 点中有多少来自「同一环境反复试验」这一信息优势；这是可核实性而非内部矛盾的问题。</li>
+<li><strong>如何验证或补强</strong>：披露 LIBERO 评估协议（记忆初始化时机、冷启动处理、任务间记忆隔离），并同时报告「前 K 回合预热口径」与「全体回合累计口径」；对基线补充同等信息量下的对照（例如先验来自 oracle 检索的行为克隆式回放）。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：置信度自适应引导与-DTW-过滤这两个核心卖点缺少独立、有统计支撑的消融"><a href="#质疑：置信度自适应引导与-DTW-过滤这两个核心卖点缺少独立、有统计支撑的消融" class="headerlink" title="质疑：置信度自适应引导与 DTW 过滤这两个核心卖点缺少独立、有统计支撑的消融"></a>质疑：置信度自适应引导与 DTW 过滤这两个核心卖点缺少独立、有统计支撑的消融</h4><ul>
+<li><strong>原文依据</strong>：动态 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 仅以 70% 对 68% 超过最优固定 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，且只报告在 Moka Pots on Stove 单个任务上、无种子方差（§6「Effect of <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>」、论文 Fig. 4(b)）；论文 Table 4 中 top-K 软聚合 94.0% 与完整方法 94.4% 的差值同时混合了 DTW 过滤的贡献，单独关闭 DTW 的结果未报告；论文 Table 8 只扫描了 K、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>γ</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">m</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\gamma_{\mathrm{sim}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0556em;">γ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:-0.0556em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">sim</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>η</mi></mrow><annotation encoding="application/x-tex">\eta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">η</span></span></span></span> 四个检索侧超参，置信度映射的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi></mrow><annotation encoding="application/x-tex">\alpha</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi></mrow><annotation encoding="application/x-tex">\beta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0528em;">β</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>γ</mi></mrow><annotation encoding="application/x-tex">\gamma</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0556em;">γ</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>s</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi></mrow></msub></mrow><annotation encoding="application/x-tex">s_{\mathrm{scale}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">scale</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>c</mi><mi>max</mi><mo>⁡</mo></msub></mrow><annotation encoding="application/x-tex">c_{\max}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">c</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mop mtight"><span class="mtight">m</span><span class="mtight">a</span><span class="mtight">x</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mi>min</mi><mo>⁡</mo></msub></mrow><annotation encoding="application/x-tex">t_{\min}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mop mtight"><span class="mtight">m</span><span class="mtight">i</span><span class="mtight">n</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 未做敏感性实验，而 Appendix G 却声称这些参数「not sensitive within reasonable ranges」。</li>
+<li><strong>为什么重要</strong>：这决定创新性的证据强度——若 2 点的自适应增益不可复现，或 DTW 过滤可被直接去掉，方法的核心构件退化为「检索 + 固定强度的采样器初始化」，创新叙事会显著减弱。</li>
+<li><strong>当前能够得出的判断</strong>：证据不足。固定 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的折衷形态足以证明「引导强度是敏感量」，但「自适应优于固定」在单任务、无方差的条件下只是两点之差，无法排除波动；置信度映射参数的稳健性主张目前没有实验支撑，只有一个高阈值（0.9992）的手工设定。</li>
+<li><strong>如何验证或补强</strong>：在多个任务、多个随机种子上比较动态 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与最优固定 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>t</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">t_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7651em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>；补 DTW 开关消融；对置信度映射参数做论文 Table 8 式的扫描；报告置信度与检索正确率之间的校准分析。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：可复现性受限——无公开代码、匿名材料链接不可访问、关键外部组件与判别器评估细节缺失"><a href="#质疑：可复现性受限——无公开代码、匿名材料链接不可访问、关键外部组件与判别器评估细节缺失" class="headerlink" title="质疑：可复现性受限——无公开代码、匿名材料链接不可访问、关键外部组件与判别器评估细节缺失"></a>质疑：可复现性受限——无公开代码、匿名材料链接不可访问、关键外部组件与判别器评估细节缺失</h4><ul>
+<li><strong>原文依据</strong>：正文与附录未给出代码仓库；Appendix H 提供的匿名定性材料链接（anonymous.4open.science&#x2F;r&#x2F;nips2026-1D23&#x2F;）经实际访问在 2026-10-16 返回 HTTP 401，无法核实其内容；方法依赖外部预训练 VLAC critic（Appendix A、引用 [28]），其权重与推理配置（分辨率、调用间隔 Δ、单次成本）未报告；论文 Table 5 的成功判别器评估未说明评估数据集、样本量与任务分布。</li>
+<li><strong>为什么重要</strong>：影响第三方复现与验证，尤其是「高精度低召回即可支撑安全记忆」这一关键设计假设的普适性——换一个领域或具身环境后判别器精度是否仍为 0.970，是方法可信度的核心变量。</li>
+<li><strong>当前能够得出的判断</strong>：方法描述在论文层面相当完整（公式、默认超参、真机协议都有），但没有可运行实现与判别器评估细节，复现只能从重训或获取 VLAC critic 开始，门槛高；匿名链接的失效使附录承诺的定性证据当前不可查。</li>
+<li><strong>如何验证或补强</strong>：公开代码与 VLAC critic 推理脚本；披露判别器评估集构成与构造方式；把匿名材料转为公开链接。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：任务级回退与真机小样本差异被平均值掩盖"><a href="#质疑：任务级回退与真机小样本差异被平均值掩盖" class="headerlink" title="质疑：任务级回退与真机小样本差异被平均值掩盖"></a>质疑：任务级回退与真机小样本差异被平均值掩盖</h4><ul>
+<li><strong>原文依据</strong>：论文 Table 1 中 Book in Caddy 上 π0.5+Ours 92% 对 π0.5 100%（−8），Cheese and Butter in Basket 上 π0+Ours 92% 低于 π0 的 98% 与 TACO 的 94%；真机每任务仅 50 个回合且无方差（论文 Table 3、论文 Fig. 3），试管任务 4&#x2F;4 成功率 24% 对 18% 折合 50 次中 12 次对 9 次；论文未报告任何显著性检验，也未讨论回退任务的先验内容。</li>
+<li><strong>为什么重要</strong>：这影响结论边界——「提升闭环稳定性」的表述在部分任务上不成立，真机几组差异可能落在抽样噪声内；记忆在任务级上「越用越稳」与「被错误先验拖累」的风险同时存在，而后者恰好是论文自己识别的状态混叠问题。</li>
+<li><strong>当前能够得出的判断</strong>：平均结论可能成立，但「每次部署都获益」的强表述不成立；真机小差异的统计稳健性无法从现有材料确认。论文对这组负面结果的沉默是可观察到的报告缺口。</li>
+<li><strong>如何验证或补强</strong>：报告任务级置信区间或重复实验；对回退任务做先验内容分析（是否检索到状态混叠样本）；补充失败案例与记忆误导的统计。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：最接近的检索式-记忆式-VLA-方法未做实验对比"><a href="#质疑：最接近的检索式-记忆式-VLA-方法未做实验对比" class="headerlink" title="质疑：最接近的检索式&#x2F;记忆式 VLA 方法未做实验对比"></a>质疑：最接近的检索式&#x2F;记忆式 VLA 方法未做实验对比</h4><ul>
+<li><strong>原文依据</strong>：§2 讨论了 STRAP（子轨迹检索）、检索增强的技能模仿、MemoryVLA、ExpReS-VLA、持续技能进化等记忆&#x2F;检索路线，并用论证区分（离线数据、仅作上下文、需要策略更新），但没有把它们中的任何一个纳入实验；实验对比的测试时方法只有 TACO 一个（论文 Table 1），且只在 π0 上比较。</li>
+<li><strong>为什么重要</strong>：影响创新性判断——「部署期即时构建记忆、非参数、引导冻结策略采样」的定位目前靠文字论证而非实验证据支撑，读者无法排除已有检索式方法在相同设置下也有类似增益。</li>
+<li><strong>当前能够得出的判断</strong>：这些方法多数面向离线演示或伴随策略更新的场景，与本文的冻结策略 + 在线记忆设置确实不同，不对比有合理成分；但在「检索到的动作如何被使用」这一维度上，论文自己的 Direct Replay（87.8%）只覆盖了本文先验的重放形式，不等于覆盖了既有方法的更强实现。</li>
+<li><strong>如何验证或补强</strong>：在相同冻结策略与持续部署协议下加入至少一个检索式记忆基线（例如 STRAP 检索加采样器注入的适配版本），以及 TACO 在 π0.5 与 SimplerEnv 上的对比。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现主流 VLA 评测把测试回合当作互相独立的零样本试验，而真实部署是同一环境下的持续过程、成功回合蕴藏环境验证过的行为证据，因此提出 retrieve-then-steer：用进度校准的成功记忆 + DTW 一致性过滤聚合成精英动作先验，以置信度自适应的方式注入冻结策略的 flow matching 采样器中间状态，全程零参数更新。实验在 LIBERO-10、SimplerEnv 与两个真实双臂平台上表明平均成功率一致提升（π0.5 92.4%→94.4%、CogACT 75.8%→79.5%、真机多任务 +8 至 +12 点）；其中「记忆质量决定成败」与「先验必须经生成器修正而非重放」两组消融证据较强（未验证记忆降至 87.6%、直接重放 87.8%、前缀记忆 94.4% 接近 oracle 94.8%），但置信度自适应引导与 DTW 过滤的独立增益缺少多任务、有方差的支撑，主表协议与零样本基线的可比性、任务级回退（Book in Caddy 100%→92%）以及无代码状态仍缺少充分说明。本文最有价值的部分是把「成功测试经验」变成可检索、可注入且带安全回退的非参数机制，并诚实地报告了负结果（未验证记忆比无记忆更差）；最大的审稿风险是协议披露不足叠加组件级证据薄弱，读者难以判断增益中有多少真正来自论文提出的检索与自适应引导机制。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强（§1 把问题明确界定为持续部署下的成功经验复用，给出可操作的核心问题与假设，限制条件在 Appendix I 中自陈）。</li>
+<li><strong>创新性证据</strong>：中（检索、DTW、采样器初始化均为已有零件，组合方式有明确差异与新意，但范式重述的成分大于全新机制，最接近的检索&#x2F;记忆类方法未做实验对比，见 §5 质疑五）。</li>
+<li><strong>方法可信度</strong>：中（流程、公式与回退路径清楚，含 diffusion 版本；但依赖外部 critic、置信度映射存在多个未做敏感性实验的手调参数，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>γ</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">m</mi></mrow></msub><mo>=</mo><mn>0.9992</mn></mrow><annotation encoding="application/x-tex">\gamma_{\mathrm{sim}}=0.9992</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0556em;">γ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:-0.0556em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">sim</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.9992</span></span></span></span> 的极高阈值说明方法对表示空间质量敏感，见 §5 质疑二、三）。</li>
+<li><strong>实验支持力度</strong>：中（两个仿真基准带 3 种子方差、两个真机平台、消融覆盖记忆构建与使用方式并含负结果；但平均增益小、存在任务级回退、真机无方差、无显著性检验，见 §4.2、§5 质疑一、四）。</li>
+<li><strong>可复现性</strong>：弱（无公开代码，匿名补充材料链接当前返回 401，成功判别器评估细节与 VLAC critic 配置未披露，见 §5 质疑三）。</li>
+<li><strong>综合阅读价值</strong>：中（对关注 VLA 部署、测试时自适应与记忆机制读者有直接参考价值，消融设计的负结果尤其值得一读；引用其结论时需保留「持续部署设置、小样本、无代码」三个边界）。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Retrieve-then-Steer: Online Success Memory for Test-Time Adaptation of Generative VLAs</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-16 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-16 00:55:50
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/16/2605.10094v2_Retrieve-then-Steer_Online_Success_Memory_for_Test-Time_Adaptation_of_Generative_VLAs/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Test-Time-Adaptation/">#Test-Time Adaptation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/VLA/">#VLA</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Robot-Manipulation/">#Robot Manipulation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Self-Improvement/">#Self-Improvement</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Agent-Memory/">#Agent Memory</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Flow-Matching/">#Flow Matching</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/16/2507.06973v1_Free_on_the_Fly_Enhancing_Flexibility_in_Test-Time_Adaptation_with_Online_EM/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Free on the Fly: Enhancing Flexibility in Test-Time Adaptation with Online EM</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/16/2608.25585v2_RA-VLA_Retrieval-Augmented_VLA_for_Test-Time_Adaptation/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">RA-VLA: Retrieval-Augmented VLA for Test-Time Adaptation</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Retrieve-then-Steer: Online Success Memory for Test-Time Adaptation of Generative VLAs</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 147 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

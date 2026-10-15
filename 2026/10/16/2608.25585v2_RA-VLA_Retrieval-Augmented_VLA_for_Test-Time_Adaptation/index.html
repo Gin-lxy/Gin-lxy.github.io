@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/16/2608.25585v2_ra-vla_retrieval-augmented_vla_for_test-time_adaptation/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RA-VLA: Retrieval-Augmented VLA for Test-Time Adaptation">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/16/2608.25585v2_RA-VLA_Retrieval-Augmented_VLA_for_Test-Time_Adaptation/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-16T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-15T16:55:50.394Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Imitation Learning">
+<meta property="article:tag" content="Retrieval-Augmented Generation">
+<meta property="article:tag" content="Test-Time Adaptation">
+<meta property="article:tag" content="VLA">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>RA-VLA: Retrieval-Augmented VLA for Test-Time Adaptation | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">206</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">147</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">RA-VLA: Retrieval-Augmented VLA for Test-Time Adaptation</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-16 12:00</span>
+        <span class="mobile">2026-10-16 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-16 00:55:50</span>
+            <span class="mobile">2026-10-16 00:55:50</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Test-Time-Adaptation/">Test-Time Adaptation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/VLA/">VLA</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Imitation-Learning/">Imitation Learning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Retrieval-Augmented-Generation/">Retrieval-Augmented Generation</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Sanghwan Jang、Minjin Jeon、Minsoo Kim、Seongjin Choi、Dongha Kim、Hwanjo Yu（POSTECH，韩国浦项：Department of Computer Science and Engineering 与 Graduate School of Artificial Intelligence）</p>
+<p>论文：arXiv 2608.25585v2（RA-VLA: Retrieval-Augmented VLA for Test-Time Adaptation；abs 页核对结果：v1 提交于 2026-08-26、v2 修订于 2026-10-07，v2 为截至 2026-10-16 的最新版本）；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-16（Asia&#x2F;Shanghai）。</p>
+<p>官方原文：arXiv abs <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2608.25585" >https://arxiv.org/abs/2608.25585<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；HTML（v2）<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2608.25585v2" >https://arxiv.org/html/2608.25585v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF（v2）<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2608.25585v2" >https://arxiv.org/pdf/2608.25585v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 。</p>
+<p>官方仓库：论文未提供公开代码仓库（截至 2026-10-16 未发现）。</p>
+<p>Hugging Face：无公开 Daily 页面（HTTP 404）。</p>
+<p>标签：VLA、Test-Time Adaptation、Imitation Learning、Retrieval-Augmented Generation。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>RA-VLA 解决视觉-语言-动作模型（Vision-Language-Action，VLA）在未见操作任务上的适配瓶颈：检索到的专家示范与任务行为阶段对不上，策略又倾向于忽略示范、退回预训练先验。作者用按行为对齐训练的检索器加强制依赖检索上下文的训练目标，让专家示范在部署时无需更新权重即可转化为可执行动作；LIBERO 与 UR5e 上成功率分别比最强基线高 17.6 与 20.8 个百分点，但绝对成功率仍偏低（38.5% &#x2F; 56.3%）且未做方差与显著性检验。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>背景与任务：VLA 模型（如 GR00T N1.5、π0 等）把多模态基础模型先验与大规模机器人数据结合，用于通用操作，但面对训练分布之外的指令明显退化：要么退回熟悉的训练行为，要么产生与目标无关的乱动（论文 §1）。恢复性能通常需要昂贵的重新训练，难以适应部署中的动态环境。具体任务设定是语言条件下的机器人操作（language-conditioned robotic manipulation）：策略根据视觉观测、语言指令与机器人本体状态输出长度 h 的动作块（action chunk）（论文 §3.1）。</p>
+<p>现有做法：In-Context Imitation Learning（上下文模仿学习，ICIL）被视为免重训练的测试时自适应（test-time adaptation）途径——把少量专家示范作为上下文线索放进输入，引导策略完成新任务（论文 §1）。代表方法 RAEA 把专家片段拼接进多模态 prompt，RICL 进一步把专家动作块与策略生成的动作做距离加权融合（论文 §5.1、论文 Appendix D）。</p>
+<p>现有方法表现不好的条件：在完全未见任务上，这些框架存在一个”适配瓶颈（adaptation bottleneck）”——无法把上下文引导有效翻译成精确动作（论文 §1，论文 Fig. 1）。</p>
+<p>作者发现的新现象与瓶颈：他们把瓶颈拆成可分别验证的三个环节。（1）检索（retrieval）环节：现有检索器（如 SigLIP 2）优先表面视觉相似度而非功能意图，取回的示范与目标行为不一致，反而成为功能性干扰物（distractor）（论文 Fig. 1、论文 Fig. 4）。（2）执行环节：行为惯性（behavioral inertia）使策略无法按上下文调节执行；作者用自定义指标 Relative Contextual Sensitivity（相对上下文敏感度，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">S</mi><mtext>ctx</mtext></msub></mrow><annotation encoding="application/x-tex">\mathcal{S}_{\text{ctx}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.075em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">ctx</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>）量化——把检索上下文换成随机上下文后动作预测的相对变化，RAEA 仅 0.0247、RICL_R 仅 0.0788，而 RA-VLA 为 0.3639（论文 Table 3）。（3）系统环节：把专家段直接拼进 prompt 会使上下文窗口膨胀，推理延迟随检索段数 K 迅速上升（论文 Fig. 1、论文 Fig. 5）。</p>
+<p>支撑证据：论文 Fig. 1 给出未见任务”turn on the stove”的失败案例；论文 Table 3 给出 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">S</mi><mtext>ctx</mtext></msub></mrow><annotation encoding="application/x-tex">\mathcal{S}_{\text{ctx}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.075em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">ctx</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的跨方法对比；论文 Fig. 1 与论文 Fig. 5 给出延迟随 K 的增长曲线。三组证据分别对应上述三个环节。</p>
+<p>图 1 用统一视图呈现了这条失败链条。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2608.25585v2_fig1_bottleneck.png"
+                      alt="图 1：现有 ICIL 的适配瓶颈"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1）：该图把 ICIL 的适配瓶颈呈现为”检索—执行—系统开销”三段链条：给定未见指令时，检索器返回的示范在功能上与当前行为阶段不匹配，策略无视上下文、退回预训练时的抓取先验，同时把示范直接拼接进输入的机制使推理延迟随检索段数增长，形成可扩展性瓶颈。作者用它论证问题不只是策略容量不足，而是”上下文进入模型”与”上下文影响动作”两处同时失效，这正对应后文方法的两条主线（检索对齐与上下文遵循）。</p>
+<p>作者归因：检索不好的原因是通用视觉表征与机器人操作的功能动态之间存在语义鸿沟（论文 §5.4）；策略忽视上下文的原因是标准行为克隆（behavioral cloning）目标——训练分布里当前观测本身就足以最小化回归损失，模型没有依赖上下文的动机（论文 §5.3、论文 Appendix A）。</p>
+<p>核心假设：如果（i）检索按行为对齐、（ii）训练目标强制策略依赖检索上下文、（iii）架构上让专家段独立编码与缓存，则无需权重更新即可把留出任务的专家示范转化为有效的动作引导。需要区分的是：VLA 泛化差是早已存在的一般问题；”适配瓶颈”的系统化拆解与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">S</mi><mtext>ctx</mtext></msub></mrow><annotation encoding="application/x-tex">\mathcal{S}_{\text{ctx}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.075em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">ctx</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 量化上下文忽视是本文的新观察；本文实际解决的是在固定骨干上让检索上下文成为有效控制信号这一具体子问题。行为惯性的因果解释主要靠失败案例与后验的方法有效性支撑，论文观察到了现象但没有独立的前置诊断（分析者判断）。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的技术增量是在 ICIL 的”检索—执行”链路上各引入一个对症的训练信号，并把整套流程改造为可缓存、与检索规模解耦的推理架构；三者与第 1 节的瓶颈一一对应，证据统一在第 4 节核对。</p>
+<p>（1）行为对齐的检索器：为检索编码器引入 behavioral alignment loss（行为对齐损失），用 Dynamic Time Warping（动态时间规整，DTW）对齐同一任务两条演示的动作序列来构造正样本对，再做对比学习。与 SigLIP 2、Eagle 2 等现成检索的差异在于检索目标从”画面相似”变为”行为阶段一致”；这是对已有组件针对 ICIL 瓶颈的新组合，证据见 §4.3。</p>
+<p>（2）上下文遵循损失：针对行为惯性提出 contextual adherence loss（上下文遵循损失），用”相关上下文与随机上下文之间的回归误差间隔”惩罚忽略上下文的策略，并把去噪起点初始化为检索段的平均动作块（论文 §4.3 Remark）。与对比解码（contrastive decoding，需多次前向）和固定权重双损失（信号不稳定）的差异见论文 Appendix A；证据见 §4.3。</p>
+<p>（3）解耦编码与逐层接地架构：专家段独立经冻结 VLM 预编码并缓存，推理时动作头在交叉注意力（cross-attention）层中各拼接一个专家段，使延迟与检索段数解耦；与把专家段拼接进 prompt 的 RAEA&#x2F;RICL 直接相对，证据见 §4.4。</p>
+<p>使用 GR00T N1.5 骨干（backbone）、LIBERO 与 UR5e 平台属直接使用既有资源，不计入创新。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>直觉上，作者把”教机器人新任务”类比为查案例手册：不要按画面像不像找案例，而要按”示范里机器人正处于哪个动作阶段”找；还要强迫策略养成”看了手册再动手”的习惯。系统由三部分组成：存专家片段的缓冲区（buffer）、按行为对齐训练的两层 Transformer 检索器、在交叉注意力层里消费检索结果的动作头。整体范式是有训练的方法：部署时不做权重更新（即测试时自适应），但检索器与动作头都在留出任务之外的训练任务上训练过；VLM 骨干全程冻结（论文 Fig. 2 中带雪花图标的组件）。</p>
+<p>第一步，离线构造上下文缓冲区（context buffer）（论文 §4.1）。长时程专家演示用长度 h&#x3D;16 的滑窗、步长 s&#x3D;4 切成功能片段（segment），每段作为独立编码单元送冻结 VLM 得到多模态特征，与本体状态、动作块一起缓存为 key-value：key 用于检索，value 提供引导。独立编码是为避免拼接 prompt 带来的上下文膨胀，也是延迟不随检索量增长的前提；按论文 Appendix B 的估算，一条 128 步演示切成 15 个片段，每段约 2MB 特征张量。</p>
+<p>第二步，训练检索器（论文 §4.2）。取同一任务的两条演示，用 DTW 对齐动作序列，得到行为上对应的片段对作为正样本；再用类似 NT-Xent 的对比损失训练检索编码器，使其仅依赖观测输入（图像 token 与文本 token 平均池化）就能近似这种动作层面的对齐。这样设计的原因：测试时只有观测、没有动作，检索必须只靠观测可计算的表征。该检索器的必要性在第 4 节验证。</p>
+<p>第三步，微调动作头，明确训练什么、冻结什么（论文 §4.3）。VLM 冻结，训练检索器与动作头（Diffusion Transformer）。每个训练样本同时计算两路损失：用检索器取回的相关上下文损失与随机片段的无关上下文损失，然后用间隔（margin）项</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mtext>adhere</mtext></msub><mo>=</mo><mi>max</mi><mo>⁡</mo><mo stretchy="false">(</mo><mn>0</mn><mo separator="true">,</mo><mtext> </mtext><mi>m</mi><mo>−</mo><mo stretchy="false">(</mo><msub><mi mathvariant="script">L</mi><mtext>irrel</mtext></msub><mo>−</mo><msub><mi mathvariant="script">L</mi><mtext>rel</mtext></msub><mo stretchy="false">)</mo><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\mathcal{L}_{\text{adhere}} = \max(0,\ m - (\mathcal{L}_{\text{irrel}} - \mathcal{L}_{\text{rel}}))</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">adhere</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop">max</span><span class="mopen">(</span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">m</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">irrel</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">rel</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">))</span></span></span></span></span>
+<p>强制”相关上下文下的回归误差至少比无关上下文小 m”，总目标为相关损失加 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>λ</mi></mrow><annotation encoding="application/x-tex">\lambda</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">λ</span></span></span></span> 倍的遵循损失（论文 Eq. (5)–(7)）。如果策略无视上下文，两路误差接近、间隔被违反并受罚——这是打破行为惯性的直接机制。另一个细节（论文 §4.3 Remark）：流匹配（flow matching）去噪的起点不再采样标准高斯，而用检索段的经验平均动作块作”有信息先验”，作者声称它能加速收敛、稳定未见任务的去噪，但未给出任何数字。</p>
+<p>第四步，推理与测试时自适应（论文 §4.1）。面对新任务，用户只提供 1–5 条专家演示填入缓冲区（LIBERO 评测用 3 条、真机用 4 条），不更新任何权重。每步控制时，当前观测与指令经同一视觉编码器与分词器送入检索器得到查询向量，与缓冲区 key 做余弦相似度（cosine similarity）取 top-K；动作头以当前观测特征、本体状态与含噪动作块为输入，在八个交叉注意力层中每层拼接一个专家段特征。哪个层拼接哪个段由固定规则控制（论文 Appendix B、论文 Table 5，如 K&#x3D;2 时为 [2,2,2,2,1,1,1,1]，越深的层拿到越相关的段），不经模型学习。最终输出长度为 16 的动作块，经 4 步去噪（denoising）生成后交给机器人执行。</p>
+<p>图 2 展示了上述数据流。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2608.25585v2_fig2_overview.png"
+                      alt="图 2：RA-VLA 整体框架"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 2）：该图给出 RA-VLA 的运行时 pipeline。左侧缓冲区把专家演示切成片段并离线预编码，retriever（带火焰图标表示可训练）只在片段的 key 表征上做 top-K 检索；右侧动作解码器（同样可训练）把当前观测特征与检索到的专家段逐一配对后送入各交叉注意力层，输出去噪后的动作块。读者应从中理解该架构的关键决策：大型 VLM 前向只处理当前观测、不重复编码专家上下文（雪花图标），专家信息经旁路的交叉注意力注入，检索规模因此与主干的注意力开销解耦——这既是效率设计，也避免了检索质量差时专家段污染主干表示。</p>
+<p>最后说明边界：缓冲区内容、片段切分与层间分配规则都是固定流程；模型只决定”检索哪些段”与”生成什么动作”。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p>任务与数据：仿真用 LIBERO 的四个任务套件（Spatial、Object、Goal、Long，各 10 个任务、每任务 50 条专家演示）；真机用 UR5e 环境的四个日常任务（Stack Box、Throw Trash、Close Drawer、Press Pedal，每任务 30 条 GELLO 遥操作（teleoperation）采集演示，10Hz 控制）。训练与评测任务严格解耦：LIBERO 用三个套件训练、留出一个套件整体评测；真机采用留一法（leave-one-out），三个域内训练任务再辅以 LIBERO 数据作为辅助训练来源（论文 §5.1）。评测时缓冲区填 3 条（LIBERO）&#x2F;4 条（真机）专家演示，主指标为成功率（success rate），每任务 50 trials（LIBERO）&#x2F;12 trials（真机）。</p>
+<p>基础模型与配置：所有方法统一使用 GR00T N1.5 作 VLA 骨干，双视角 RGB（第三人称加腕部相机），动作时域 16、去噪 4 步，单张 NVIDIA A100 GPU；真机为 UR5e 机械臂加 Robotiq 2F-85 夹爪与两个 RealSense D435 相机（论文 §5.1、论文 Appendix C）。</p>
+<p>基线：Vanilla VLA（只在训练任务上训练，衡量无引导的固有泛化）、RAEA、RICL 的两个加权变体 RICL_G 与 RICL_R。注意基线是作者自行适配到 VLA&#x2F;流匹配的实现（论文 Appendix D 脚注），非原方法官方数字。预算公平性方面，作者让基线也可换用同一 action-aware 检索器、使用同一缓冲区内容，这一点较到位；但训练时长与算力预算未报告。</p>
+<p>各实验回答的问题：论文 Table 1&#x2F;2 是未见任务主结果；论文 Table 3 是上下文敏感度与遵循损失消融（ablation）；论文 Fig. 4 是检索对齐可视化；论文 Fig. 5 是推理延迟随 K 的可扩展性；论文 Table 4 是缓冲区与检索规模敏感度。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>主结果（仿真，论文 Table 1）：完全未见套件上 RA-VLA 平均成功率 38.45%，同为 action-aware 检索器的最强基线 RICL_R 为 20.85%，提升 17.6 个百分点；Vanilla VLA 仅 1.7%，现成 SigLIP 2 检索下各 ICIL 方法都 ≤8.85%，说明检索质量是主要变量。分套件提升不均匀：LIBERO-Object 55.6%、Goal 53.2%，而 LIBERO-Long 仅 13.0%，长时程任务仍是弱项。</p>
+<p>真机结果（论文 Table 2）：RA-VLA 平均 56.25%，基线最高 RICL_R 为 35.42%，提升 20.8 个百分点；子目标行显示基线有时能完成前半段（如 RAEA 的 Touch Drawer 66.7%）但完成不了整体任务，失败集中在抓取后的精细放置阶段。与预训练先验重合度高的任务（Close Drawer）Vanilla VLA 也有 33.3%，说明四个”未见任务”与预训练分布的重叠程度不一（论文 Fig. 8 对此有定性说明）。</p>
+<p>图 3 用真机 rollout 展示了上述差异的行为来源。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2608.25585v2_fig3_rollout_stackbox.png"
+                      alt="图 3：真机 Stack Box rollout 对比"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 3）：该图对比同一未见任务”把小盒子放到大盒子上”中三种策略的完整执行轨迹。所有方法用的是同一个 action-aware 检索器与同一份专家上下文，差别只在策略如何使用它：RAEA 在指令下仍抓起了垃圾桶（被预训练先验支配），RICL_R 能抓起正确物体但在搬运放置阶段失去精度，RA-VLA 完成了整个序列。作者借此论证瓶颈在”上下文到动作”的翻译环节而非检索本身，这是全文最重要的定性证据之一。</p>
+<p>敏感性与稳定性：缓冲区越大成功率越高（N 从 1 到 4 时 48.2% 到 55.2%）；检索段数 K 从 1 到 4 只有边际提升（53.2% 到 54.6%，论文 Table 4），作者解释为当前任务下少量段已提供足够功能线索。论文未报告任何实验的方差、置信区间或显著性检验；真机每任务仅 12 次试验，这些差异的稳定性当前材料无法确认。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>“有效”层面的证据较充分：检索器替换使 RA-VLA 在 LIBERO-Goal 从 10.2% 升到 53.2%（论文 §5.4）；上下文遵循损失移除后 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">S</mi><mtext>ctx</mtext></msub></mrow><annotation encoding="application/x-tex">\mathcal{S}_{\text{ctx}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.075em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">ctx</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 从 0.3639 降到 0.0353、成功率从 53.2% 掉到 9.8%（论文 Table 3）。两项都有直接的移除或替换对照，覆盖了第 2 节两个训练侧创新。</p>
+<p>图 4 从定性角度展示移除遵循损失后的行为差异。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2608.25585v2_fig10_sensitivity.png"
+                      alt="图 4：移除遵循损失后的失败模式"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 10）：该图对比保留与移除遵循损失时策略在多个未见任务上的执行。移除后策略不再跟随检索到的专家行为，而是回到预训练行为模式或产生不连贯动作；保留时策略能按上下文调整动作序列。它把论文 Table 3 中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">S</mi><mtext>ctx</mtext></msub></mrow><annotation encoding="application/x-tex">\mathcal{S}_{\text{ctx}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.075em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">ctx</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 的数值变化对应到可视行为上，是”遵循损失确实改变策略对上下文的依赖”的直接观察证据；但它仍属相关性层面的定性证据，任务与试验数量有限。</p>
+<p>检索质量本身的机制证据来自图 5 的轨迹级对齐可视化（论文 Fig. 4）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2608.25585v2_fig4_retrieval.png"
+                      alt="图 5：检索对齐的可视化对比"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 4）：该图考察检索空间是否编码了行为阶段：给定查询轨迹，把每个片段在另一条源轨迹中找最相似片段，并标出行为上正确与错误的匹配。现成的 SigLIP 2（视觉编码器）与 Eagle 2（VLM）经常把处于拿起阶段的查询段匹配到源轨迹的搬运阶段，说明通用视觉相似度与操作行为相位并不对应；作者的 action-aware 检索器建立的对齐在行为相位上大体一致。它解释了为什么”行为对齐”改变的是检索的语义内容本身，而不只是效率。</p>
+<p>但机制证据有明显缺口，对第 2 节创新逐一核对：（1）行为对齐检索器有替换对照与可视化，但 DTW 正样本构造本身没有消融（例如换成同任务随机片段对），DTW 对齐是否不可替代无法确认；（2）上下文遵循损失只有 LIBERO-Goal 单套件消融，且”有信息先验”在论文 §4.3 Remark 中只有定性声称，没有任何数字；（3）逐层接地（pairwise grounding）与整段拼接的对照缺失，无法排除”只是注入了更多专家特征”的解释；（4）无法排除训练量的替代解释——训练预算完全未披露。此外 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">S</mi><mtext>ctx</mtext></msub></mrow><annotation encoding="application/x-tex">\mathcal{S}_{\text{ctx}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.075em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">ctx</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 与成功率的正相关建立在四个数据点上（论文 Table 3），是相关而非因果。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p>推理成本是本文做得最扎实的一面。图 6（论文 Fig. 5）显示延迟与检索规模解耦。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2608.25585v2_fig5_latency.png"
+                      alt="图 6：推理延迟随检索段数变化"
+                ></p>
+<p><strong>图 6</strong>（论文 Fig. 5）：该图把单次动作块生成的延迟分解到视觉编码与检索、LLM 主干、动作头三部分，并对比检索段数 K 从 1 增到 8 的变化。RICL 的 LLM 主干开销随 K 近线性增长（K&#x3D;8 时总延迟约 0.156s），因为专家段被直接拼进 prompt 扩大了上下文窗口；RA-VLA 因专家段独立编码、缓存并只经交叉注意力注入，总延迟几乎不变（K&#x3D;8 时约 0.055s）。读者应理解这是架构分工而非常数级调参：主干的序列长度只与当前观测有关，专家信息走旁路。</p>
+<p>检索阶段本身也不是瓶颈：N 达 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>7</mn></msup></mrow><annotation encoding="application/x-tex">10^7</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">7</span></span></span></span></span></span></span></span></span></span></span> 个片段时矩阵检索约 0.18ms（占总推理延迟 0.36%，论文 Appendix B），每段存储约 2MB 特征张量。训练侧成本则相反地不透明：检索器与动作头需要两阶段训练（对比学习加增广回归），论文只报告使用单张 A100，未报告训练时长、GPU 小时数或数据规模。人工成本上，真机每任务 30 条演示由 GELLO 遥操作采集，评测还需每任务 3–4 条演示放入缓冲区。方法不依赖外部闭源服务。</p>
+<p>适用范围与未解决问题：作者在论文 Appendix F 自认绝对成功率仍低（与分布内性能差距明显）、性能对超参数敏感，并指出需要更大规模训练、非流匹配架构与更复杂任务上的验证；跨具身迁移与使用人类视频作示范被列为未来方向（论文 Appendix G）。结论目前只适用于 GR00T N1.5 加流匹配架构加 10Hz 单臂操作这一组设定。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：所有结果都没有方差或显著性检验，真机证据尤其薄弱"><a href="#质疑：所有结果都没有方差或显著性检验，真机证据尤其薄弱" class="headerlink" title="质疑：所有结果都没有方差或显著性检验，真机证据尤其薄弱"></a>质疑：所有结果都没有方差或显著性检验，真机证据尤其薄弱</h4><ul>
+<li><strong>原文依据</strong>：论文 Table 1&#x2F;2 只报告平均值；真机每任务 12 trials（论文 §5.1）；论文 Appendix F 自认绝对成功率低、性能对超参数敏感。</li>
+<li><strong>为什么重要</strong>：主结论的幅度（加 17.6 与 20.8 个百分点）建立在无重复统计的均值上，若单次试验波动大，结论置信度会被高估；真机 12 trials 下单个成功率的分辨率为 8.3%。</li>
+<li><strong>当前能够得出的判断</strong>：跨平台、跨检索器方向一致的提升不太可能是纯噪声，但提升幅度的稳定性与显著性证据不足。</li>
+<li><strong>如何验证或补强</strong>：报告多 seed 的均值与标准差，真机增加试验次数并给置信区间，对主要对比做显著性检验。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：关键组件缺少消融，机制归因存在替代解释"><a href="#质疑：关键组件缺少消融，机制归因存在替代解释" class="headerlink" title="质疑：关键组件缺少消融，机制归因存在替代解释"></a>质疑：关键组件缺少消融，机制归因存在替代解释</h4><ul>
+<li><strong>原文依据</strong>：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">L</mi><mtext>adhere</mtext></msub></mrow><annotation encoding="application/x-tex">\mathcal{L}_{\text{adhere}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">adhere</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 消融只有 LIBERO-Goal 单套件（论文 Table 3）；DTW 正样本构造、逐层接地分配、平均动作块初始化（论文 §4.3 Remark）都没有消融实验；训练预算完全未报告。</li>
+<li><strong>为什么重要</strong>：这决定”为什么有效”。例如无法排除”多训练了动作头”本身带来提升，不确认 DTW 对齐是否必要（同任务随机正样本是否也行），也不确认逐层分配优于一次性注入全部专家特征。</li>
+<li><strong>当前能够得出的判断</strong>：两个核心训练组件的必要性得到单套件支持，其余设计点的增益无法从现有证据归因。</li>
+<li><strong>如何验证或补强</strong>：补齐上述消融，并报告各方法的训练时长与算力以排除训练量差异。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：基线是作者自行适配的实现，横向比较不完全中立"><a href="#质疑：基线是作者自行适配的实现，横向比较不完全中立" class="headerlink" title="质疑：基线是作者自行适配的实现，横向比较不完全中立"></a>质疑：基线是作者自行适配的实现，横向比较不完全中立</h4><ul>
+<li><strong>原文依据</strong>：论文 Appendix D 脚注明确说明 RAEA 是”VLA-adapted implementation”、RICL 的公式为适配流匹配做了重排；Vanilla VLA 成功率低至 1.7%（论文 Table 1），论文未解释其偏低的原因。</li>
+<li><strong>为什么重要</strong>：若基线实现偏弱（例如未按原方法调优超参），RA-VLA 的相对优势会被放大，读者无法区分方法差距与实现差距。</li>
+<li><strong>当前能够得出的判断</strong>：作者给基线提供了同样的检索器与缓冲区，方向上是公平的；但基线强度本身无法用当前材料确认。</li>
+<li><strong>如何验证或补强</strong>：公开基线适配代码与调参过程，或引用原方法报告的数值并说明适配差异。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：”training-free”-的表述容易被误读，结论范围需收窄"><a href="#质疑：”training-free”-的表述容易被误读，结论范围需收窄" class="headerlink" title="质疑：”training-free” 的表述容易被误读，结论范围需收窄"></a>质疑：”training-free” 的表述容易被误读，结论范围需收窄</h4><ul>
+<li><strong>原文依据</strong>：摘要强调”training-free robotic adaptation”；脚注说明 training 在此特指赋予策略上下文适应能力的过程；实际训练需要三个 LIBERO 套件或三个真机任务的数据，真机评测还混入 LIBERO 数据作辅助训练（论文 §5.1）。</li>
+<li><strong>为什么重要</strong>：训练的数据与算力需求是部署决策的关键信息；”training-free”只在”部署后无权重更新”意义上成立，若被误读为”不需要任何训练”会高估易用性。</li>
+<li><strong>当前能够得出的判断</strong>：测试时无权重更新的主张成立且被实验直接支持；但完整的成本画像缺失。</li>
+<li><strong>如何验证或补强</strong>：报告端到端部署成本（训练时间、数据采集、缓冲区维护人力），并在摘要层面明确其测试时语义。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h4 id="质疑：架构描述存在不一致，削弱可复现性"><a href="#质疑：架构描述存在不一致，削弱可复现性" class="headerlink" title="质疑：架构描述存在不一致，削弱可复现性"></a>质疑：架构描述存在不一致，削弱可复现性</h4><ul>
+<li><strong>原文依据</strong>：论文 Table 1&#x2F;2 的说明写”our SigLIP 2-based action-aware retriever”，而论文 §4.1 把检索编码器描述为对送入 VLM 的多模态 token 做平均池化的两层 Transformer（论文 Appendix E 给出超参：hidden 512、8 头、2 层），两者对”检索器用什么表征”的表述不一致。</li>
+<li><strong>为什么重要</strong>：检索器是方法核心组件，其输入表征与初始化含糊会让复现出现偏差，也影响对检索增强创新归属的判定。</li>
+<li><strong>当前能够得出的判断</strong>：按论文 §4.1 与 Appendix E 应以两层 Transformer 编码器为准，”SigLIP 2-based”更可能是表述疏漏，但当前材料无法最终确认。</li>
+<li><strong>如何验证或补强</strong>：作者补充检索器输入与初始化说明，或公开代码。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现现有 ICIL 框架存在”检索不适合行为、策略不采纳上下文、延迟随上下文增长”的适配瓶颈，因此提出 RA-VLA：用 DTW 对齐的对比学习训练行为感知检索器，用带间隔的上下文遵循损失迫使策略依赖检索结果，并把专家段改为独立编码缓存后经交叉注意力逐层注入，实现部署时免权重更新的新任务适配。实验在 LIBERO 一个留出套件与 UR5e 四个未见任务上表明，成功率分别比最强基线高 17.6 与 20.8 个百分点，推理延迟与检索规模解耦；其中检索器与遵循损失的移除或替换对照证据较强，但方差、显著性、部分组件消融与训练成本披露仍缺少支持。本文最有价值的部分是把 ICIL 的失败拆成可分别度量、可分别修复的瓶颈并给出效率解耦的详细分析；最大的审稿风险是统计证据薄弱与消融不全，使”各设计贡献多少、能否泛化”的结论下得偏早。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强——瓶颈被拆成检索、执行、开销三个可度量的环节（论文 Fig. 1、论文 Table 3、论文 Fig. 5），问题与方法一一对应。</li>
+<li><strong>创新性证据</strong>：中——行为对齐检索与间隔式遵循损失是针对具体瓶颈的针对性新组合，但 DTW、对比学习、margin 损失均为既有组件，组合的必要性未全部用消融证明。</li>
+<li><strong>方法可信度</strong>：中——设计自洽，效率分析（0.18ms 检索、延迟不随 K 增长）可信；但超参敏感（论文 Appendix F）与训练不透明削弱了稳健性判断。</li>
+<li><strong>实验支持力度</strong>：中——两个平台、检索器对照与缓冲区&#x2F;检索规模分析较完整；但无方差与显著性、真机 12 trials、单套件消融、单骨干。</li>
+<li><strong>可复现性</strong>：中——骨干、超参、检索器结构与硬件均有披露；但无公开代码、训练时长未报告、检索器表述不一致。</li>
+<li><strong>综合阅读价值</strong>：高——瓶颈分析框架与”独立编码加缓存”的架构决策对做机器人策略部署的读者有直接参考价值，且论文对失效条件的自我披露较为克制。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> RA-VLA: Retrieval-Augmented VLA for Test-Time Adaptation</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-16 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-16 00:55:50
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/16/2608.25585v2_RA-VLA_Retrieval-Augmented_VLA_for_Test-Time_Adaptation/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Test-Time-Adaptation/">#Test-Time Adaptation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/VLA/">#VLA</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Imitation-Learning/">#Imitation Learning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Retrieval-Augmented-Generation/">#Retrieval-Augmented Generation</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/16/2605.10094v2_Retrieve-then-Steer_Online_Success_Memory_for_Test-Time_Adaptation_of_Generative_VLAs/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Retrieve-then-Steer: Online Success Memory for Test-Time Adaptation of Generative VLAs</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/16/2610.07946v1_Adapting_Vision-Language-Action_Models_to_Unknown_Visual_Disruptions_During_Execution/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Adapting Vision-Language-Action Models to Unknown Visual Disruptions During Execution</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">RA-VLA: Retrieval-Augmented VLA for Test-Time Adaptation</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 147 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
