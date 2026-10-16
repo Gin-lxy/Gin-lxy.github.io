@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/16/2603.13875v2_gradmem_learning_to_write_context_into_memory_with_test-time_gradient_descent/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="GradMem: Learning to Write Context into Memory with Test-Time Gradient Descent">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/16/2603.13875v2_GradMem_Learning_to_Write_Context_into_Memory_with_Test-Time_Gradient_Descent/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-16T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-16T06:07:02.107Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Fast Weights">
+<meta property="article:tag" content="LLMs">
+<meta property="article:tag" content="Long Context">
+<meta property="article:tag" content="Test-Time Training">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>GradMem: Learning to Write Context into Memory with Test-Time Gradient Descent | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">207</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">151</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">GradMem: Learning to Write Context into Memory with Test-Time Gradient Descent</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-16 12:00</span>
+        <span class="mobile">2026-10-16 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-16 14:07:02</span>
+            <span class="mobile">2026-10-16 14:07:02</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Test-Time-Training/">Test-Time Training</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLMs/">LLMs</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Long-Context/">Long Context</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Fast-Weights/">Fast Weights</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>Yuri Kuratov、Matvey Kairov、Aydar Bulatov、Ivan Rodkin、Mikhail Burtsev（Cognitive AI Systems Lab（莫斯科）、MIRAI（莫斯科）、MBZUAI（阿布扎比）、London Institute for Mathematical Sciences（伦敦））</p>
+<p>论文：GradMem（ICML 2026 接收（arXiv Comments 标注）；arXiv:2603.13875v2；v1 2026-03-14、v2 2026-05-29；cs.CL；精读基于 v2）；来源：用户指定（非 Hugging Face Daily 批次；用户提供 arXiv 链接）；精读归档日期：2026-10-16（Asia&#x2F;Shanghai）。</p>
+<p>官方原文：arXiv 页 <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2603.13875v2" >https://arxiv.org/abs/2603.13875v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；arXiv HTML <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2603.13875v2" >https://arxiv.org/html/2603.13875v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 。</p>
+<p>官方仓库：<a class="link"   target="_blank" rel="noopener" href="https://github.com/yurakuratov/gradmem" >https://github.com/yurakuratov/gradmem<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> （论文脚注、附录 B 与附录 K 均给出该地址；2026-10-16 核验 HTTP 200）。</p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2603.13875" >https://huggingface.co/papers/2603.13875<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 。</p>
+<p>标签：LLMs、Long Context、Test-Time Training、Fast Weights。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>GradMem 想解决”读一次长上下文、压进固定大小的记忆、之后不再看原文也能回答多个查询”这一压缩记忆（compressive memory）需求的写入质量问题：它把记忆写成一个显式优化问题——用上下文重建损失在测试时对一小撮前缀记忆向量（prefix memory tokens）做数步测试时梯度下降（test-time gradient descent），并用二阶元学习（meta-learning）把模型参数与记忆初始化训练到”少步即能写好”。在论文报告的协议内（合成键值检索、bAbI&#x2F;短 SQuAD&#x2F;WikiText-103，基座模型 124M–160M、大模型仅验证文本重建，READ 阶段完全移除原文），梯度式写入在同一记忆尺寸下容量显著高于前向式写入，且测试时增加梯度步数可继续换取容量；但自然语言任务上的优势明显小于合成基准，该结论不能外推为”梯度写入可普遍取代前向记忆写入”。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>研究背景与具体任务：LLM 应用越来越需要条件化于长外部上下文——文档、代码库、agent 工具交互记录、跨会话对话历史（论文 §1）。主流做法是用 KV-cache（KV 缓存）保留每层激活：省去重算，但内存开销大，而且不是可携带的上下文表示。更理想的替代是压缩记忆：上下文读一次、存成紧凑状态、随后多个查询从该状态作答。作者强调许多应用要求不动预训练参数——不重训整个模型，而把新信息写进一个独立的记忆表示（论文 §1）。论文把这一需求形式化为上下文移除（context removal）设置：每个任务实例拆成上下文 C、查询 Q、目标 Y 三段序列，WRITE 阶段把 C 编码进固定大小的记忆 M（如 m 个 d 维向量），READ 阶段模型只看到 M 与 Q、不能访问原始 C（论文 §2.1）。</p>
+<p>现有方法如何处理：一类是前向式写入器（forward-only context encoder）——句向量&#x2F;文档向量编码（Le and Mikolov 2014 等）、循环记忆 Transformer（RMT）的段级记忆向量、ARMT 的每层联想矩阵加 DeltaNet 式更新、以及测试时训练（test-time training, TTT）层的变体——TTT layers 把自监督重建做在每层激活上、逐 token 在线更新（论文 §2.2、附录 A）。它们的共同点是：一次前向计算直接产出记忆，之后没有对该上下文”写得够不够好”的样本级反馈——记忆一旦发出，写入过程无法自查或纠错（论文 §2.2）。</p>
+<p>现有方法在哪些条件下表现不好：论文引用的既往工作（Kuratov et al. 2025）表明，用重建目标直接优化嵌入可以把上万 token 无损压进一个向量，但要成千上百乃至上万步梯度（约 1500× 压缩率），且主要利于文本重建而非下游任务；而前向式写入器在固定记忆尺寸下可存储的信息量随上下文增长迅速饱和（论文 §2.2、附录 A）。</p>
+<p>论文发现的新瓶颈与被忽略的问题：作者把”记忆形成”重新识别为一个优化问题——既然标准训练可视为用梯度把数据写进参数，那么记忆也可以当作”类参数状态”，用梯度下降写出（论文 §1）。被忽略的点是：前向写入缺少”什么还没被编码”的显式信号；而重建损失恰好提供这个信号，它天然聚焦于模型当前预测不佳（即高熵、不可预测）的部分，从而支持迭代纠错（论文 §1）。支撑这一判断的既有证据是 embedding 优化的成功与少步不可用并存；论文自己新报告的证据则在 KV 检索与自然语言任务上（见 §4）。</p>
+<p>作者认为问题产生的原因与核心假设：问题不在于记忆尺寸不足，而在于写入操作本身的表达力——前向计算是一次性映射，无法按样本分配计算、无法纠错、也无法用更多测试时计算换容量（论文 §2.2）。核心假设因而有三条：(i) 在同一架构与同一记忆尺寸下，梯度式 WRITE 比前向式 WRITE 存入更多信息；(ii) 增加梯度步数可持续扩容量，而重复前向写入收益有限；(iii) 同一任务无关的重建目标可迁移到预训练语言模型（论文 §1、§3.3）。需要区分：长上下文与记忆压缩是领域早已存在的一般问题；本文的新观察是”少步测试时梯度写入 + 元学习初始化”这一组合可行；实际解决的子问题是固定尺寸模型级记忆的写入容量与测试时计算可调性。论文对”重建损失聚焦不可预测部分”等因果解释多为直觉性论证，未单独验证（分析者为审稿人判断）。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的技术增量可以概括为：把”上下文写入记忆”从一次性前向计算改造成显式的、可迭代的测试时优化问题——记忆是输入级的少量前缀向量（而非每层状态），写入是 K 步对模型级重建损失的梯度下降，且通过二阶元学习把”少步写入可靠”训练成现实。逐项分析：</p>
+<p>（一）显式优化式、模型级、上下文级的 WRITE。新增机制：把 m 个 d 维记忆向量当作可写参数，用上下文重建的自监督损失、只对记忆求梯度做 K 步梯度下降得到记忆，模型权重在写入中保持冻结（论文 §2.2）。与最接近方法的差异：RMT 用同架构同记忆尺寸但纯前向写入；TTT layers 每层维护局部快速状态、逐 token 在线更新、重建的是层输入&#x2F;激活；前缀调优类方法只压缩提示或示例。相比它们，本文差异既有新设定（每条上下文只写一次、目标作用于模型可见的上下文 token），也有已有组件的新组合。对应问题：前向写入无样本级反馈、无法纠错（§1 第三条瓶颈）。证据见 §4.2 与 §4.3（含输入级 vs 每层参数化的消融，论文附录 J，对应图 5）。</p>
+<p>（二）二阶元学习使少步写入可用，把”迭代优化编码”从上百上千步压到 K≤5 步。新增训练流程：外循环（outer loop）把模型参数 θ 与共享记忆初始化 M0 一起训练，损失是 READ 阶段的下游任务损失，反传要穿过整个 WRITE 内循环（inner loop，得到二阶梯度），使梯度下降本身成为”学会的写入算子”（论文 §2.2）。与已有工作的差异：以往 embedding 优化不做元训练、需极多步；本文用元学习把少步作为训练目标。对应问题：迭代优化虽可行但不实用（§1 第四条）。代价与必要性证据指向 §4.2（无二阶消融）与 §4.4（训练成本）。</p>
+<p>（三）测试时计算—容量可调杠杆：K_eval 可在推理时超过训练时的 K_train，用固定参数换取更高容量。机制上等价于把 WRITE 的收敛程度当成可控旋钮（loss-driven 迭代纠错），这是前向一次写入不具备的自由度（论文 §3.4）。证据指向 §4.2（论文 Fig. 4(a) 外推趋势）与 §4.3（内循环损失与下游精度的相关性）。</p>
+<p>此外，附录 C 的高效 double backward 与附录 I 的在 1–3B 模型上的 LoRA 写入适配属于工程实现改进，帮助方法落地，但不是概念层面的创新。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>核心直觉：把预训练权重看作”慢权重”，GradMem 把记忆看作一组快速权重（fast weights）——上下文出现时，用对上下文的重建损失做几次梯度下降，把信息压进这组向量；模型本身不动。与”一次性前向编码”相比，优化自带明确的误差信号：重建得差的部分正是还没写进去的部分，所以写入可以逐轮修正、按样本分配计算；与”逐 token 在线更新”相比，整条上下文被作为一个整体优化进一个固定大小的状态，写入只发生一次（论文 §1–§2.2）。</p>
+<p>第一步，输入与表示。每个样本是三元组（C, Q, Y）：C 是可用信息（文档、事实列表、对话历史），Q 指定要对信息做什么（问题、检索键、指令），Y 是期望输出。记忆 M 取 m 个 d 维向量（M ∈ R^{m×d}），在 decoder-only Transformer 中作为前缀嵌入拼在输入最前面（论文 §2.2）。与 KV-cache 的关键差别：长度 N 的上下文在标准缓存里占 layers×N×d×2 个浮点，而 M 与上下文长度无关，只占 m×d；实验配置里 KV 检索用 m&#x3D;8、d&#x3D;128，合计 1024 个浮点数（论文 §2.2、Table 6）。选用输入级而非每层参数化有专门消融——对齐总参数量时输入级更省参数（论文附录 J，见 §4.3 与图 5）。</p>
+<p>第二步，WRITE：把上下文写进记忆。对给定 C&#x3D;(t_1,…,t_N)，模型先计算重建损失——把当前记忆拼在前面、对上下文 token 做自回归交叉熵（论文 Eq. 4）：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mtext>write</mtext></msub><mo stretchy="false">(</mo><mi mathvariant="script">M</mi><mo separator="true">;</mo><mi>C</mi><mo stretchy="false">)</mo><mo>=</mo><mo>−</mo><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mi>log</mi><mo>⁡</mo><msub><mi>f</mi><mi>θ</mi></msub><mo fence="true" stretchy="true" minsize="1.2em" maxsize="1.2em">(</mo><msub><mi>t</mi><mi>i</mi></msub><mo>∣</mo><mo stretchy="false">[</mo><mi mathvariant="script">M</mi><mo separator="true">;</mo><msub><mi>t</mi><mrow><mo>&lt;</mo><mi>i</mi></mrow></msub><mo stretchy="false">]</mo><mo fence="true" stretchy="true" minsize="1.2em" maxsize="1.2em">)</mo></mrow><annotation encoding="application/x-tex"> \mathcal{L}_{\text{write}}(\mathcal{M}; C) = -\sum_{i=1}^{N} \log f_{\theta}\bigl(t_i \mid [\mathcal{M}; t_{&lt; i}]\bigr) </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">write</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathcal">M</span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:3.106em;vertical-align:-1.2777em;"></span><span class="mord">−</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8283em;"><span style="top:-1.8723em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.2777em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen"><span class="delimsizing size1">(</span></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2em;vertical-align:-0.35em;"></span><span class="mopen">[</span><span class="mord mathcal">M</span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">t</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">i</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">]</span><span class="mclose"><span class="delimsizing size1">)</span></span></span></span></span></span>
+<p>然后只对 M 做梯度下降，重复 K 步（论文 Eq. 5）：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">M</mi><mrow><mi>k</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><msub><mi mathvariant="script">M</mi><mi>k</mi></msub><mo>−</mo><mi>α</mi><msub><mi mathvariant="normal">∇</mi><msub><mi mathvariant="script">M</mi><mi>k</mi></msub></msub><msub><mi mathvariant="script">L</mi><mtext>write</mtext></msub><mo stretchy="false">(</mo><msub><mi mathvariant="script">M</mi><mi>k</mi></msub><mo separator="true">;</mo><mi>C</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex"> \mathcal{M}_{k+1} = \mathcal{M}_k - \alpha \nabla_{\mathcal{M}_k} \mathcal{L}_{\text{write}}(\mathcal{M}_k; C) </annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8917em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathcal">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0059em;vertical-align:-0.2559em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mord"><span class="mord">∇</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathcal mtight">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3488em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1512em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2559em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord text mtight"><span class="mord mtight">write</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathcal">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">;</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="mclose">)</span></span></span></span></span>
+<p>记最终记忆 M̂ &#x3D; M_K。由谁执行：整个更新由固定流程控制——K 与内学习率（inner learning rate）α 是超参（α 在 [0.01,10] 范围调，NLP 实验默认 0.4），梯度由标准反向传播计算，模型参数 θ 全程冻结。”写什么”由重建损失决定，”每一步怎么写”由梯度下降决定。为什么这样设计：损失是任务无关的，因此写入不依赖下游标签，也不依赖具体任务；而梯度提供了前向写入没有的逐样本纠错信号。工程上还有两个默认稳定器（论文附录 B）：对记忆梯度做裁剪（gradient clipping）；更新前后各接一个可学习线性层，并为 WRITE 与 READ 配分开的预测头（语言建模实验除外），这些增强在所有实验默认开启。</p>
+<p>第三步，READ：只从记忆与查询预测。把优化后的 M̂ 与查询 Q 拼接，模型直接自回归预测目标（论文 §2.2 的 READ 定义），READ 阶段看不到 C——所有信息必须已经通过 M̂ 这一”独木桥”（论文 §2.1）。READ 不再有梯度参与。</p>
+<p>第四步，训练：外循环元学习（离线阶段）。训练目标是 READ 阶段的下游任务损失（论文 §2.2），对 θ 与 M0 求导——关键在于梯度要穿过 WRITE 的 K 步内循环（内循环只更新每条样本自己的 M），这要求二阶梯度，就是把 MAML 式元学习（论文引用 Finn et al. 2017）用在”梯度下降作为写入算子”上：M0 被学成一个好的出发点，θ 学会在自己的表示空间里配合这种写入（论文 §2.2；结构见图 1）。训练稳定性靠课程学习（curriculum learning）：KV 检索从少量键值对逐步升到 96，先小 K 后大 K；论文报告增加 K 会让元梯度计算更不稳定，课程学习是最有效的稳定手段（论文附录 B）。自然语言实验中基座模型（GPT-2 124M、Pythia 160M、Mamba 130M）从预训练 checkpoint 初始化后连同记忆机制一起微调；θ 与记忆初始化都是训练出来的。</p>
+<p>第五步，推理阶段发生了什么变化。推理时 θ、M0、两个预测头全部冻结，唯一变化是每条上下文各自从 M0 出发跑 K_eval 步梯度得到 M̂；K_eval 允许大于 K_train，论文发现把 K_eval 调大往往继续提升准确率——这是”测试时算力换容量”的直接体现（论文 §3.4）。成本结构因此被重排：WRITE 比一次前向贵得多（每步都要对整条上下文做前向加反传），READ 则变便宜（只 attend [M̂; Q] 而非 [C; Q]），并且同一上下文被重复查询越多，总账越有利（论文 §4、附录 D，成本细节见 §4.4）。</p>
+<p>第六步，实现组件。训练侧最大的开销是对 attention 的双重反向传播（double backward，即对内循环梯度再求导）：FlashAttention 与 PyTorch SDPA 只支持一阶反传，训练必须绕开它们；论文实现了更省显存、更快的自定义 double backward，并对比了五种实现方案（论文 §4、附录 C）。在 Llama 规模的文本重建实验中（论文附录 I），WRITE 阶段给冻结基座挂可学习的 LoRA（低秩适配）适配器，只用来帮助优化记忆向量；READ 阶段恢复为不带 LoRA 的冻结基座，证明写入好的记忆可以直接被预训练模型消费。</p>
+<p>整套数据流与训练结构见图 1。</p>
+<p><img src="/images/dailypaper/2026-10-16/2603.13875v2_fig1_overview.png" alt="图 1：GradMem 的 WRITE/READ 流程与元学习结构"></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：该图是 GradMem 的全局视图，把方法串成三个互相关联的层面。任务层面：每个样本被表示为上下文、查询与目标，上下文经写入算子编码成固定尺寸的记忆 M̂，随后在看不到上下文的情况下，由记忆与查询联合预测目标——“上下文只进不出”是这一层的硬约束。训练层面：它是一个元学习问题——模型参数 θ 与共享记忆初始化 M0 在外循环中跨样本优化，而每条上下文在测试时从同一 M0 出发，走各自几步梯度轨迹到达自己的记忆；外循环的损失是 READ 出来的任务损失，梯度要穿过写入内循环才能到达 θ 与 M0。优化层面：写入本身就是内循环——以重建损失为目标、只对记忆参数做梯度下降，反复若干步。把三层连起来读，GradMem 的核心机制就是”把梯度下降当作写入算子”：模型被训练成配合这种写入的模型，共享初始化被训练成好起点，而测试时唯一变动的只有每个样本自己的记忆。</p>
+<p>至此从输入到输出的主干已完整走完，与图 1 的三个层面一一对应；完整算法与最小实现代码见论文 Algorithm 1 与附录 K。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p>任务与数据（论文 §3.1）：(i) 关联键值检索（associative key–value retrieval），主合成基准——每条样本含 N 个键值对，键与值各由 62 字符词表中的 2 个符号组成，查询是 “?k_j:”、目标是 v_j，模型只有把键值映射写进记忆才能答对，N 可自由缩放以控制信息量；(ii) bAbI QA1–QA5 多事实推理，QA1–QA3 依次需要 1&#x2F;2&#x2F;3 个支撑事实，QA4 与 QA5 涉及两句&#x2F;三句关系推理；(iii) Short SQuAD——为控制长度，只保留含答案句的短文版本；(iv) WikiText-103 语言建模，256 token 连续块，前 128 token 为上下文、后 128 为预测目标，报后 128 token 的平均交叉熵（cross-entropy, CE），非分段模型按位置对齐以可比。所有实验都遵循上下文移除设置。</p>
+<p>基础模型与配置：KV 检索用 4 层、128 维、4 头的小型 Llama 从零训练；NLP 任务用 GPT-2 (124M)、Pythia (160M)、Mamba-2 (130M)，从预训练 checkpoint 初始化后微调；记忆向量数 m 在 KV 检索与 bAbI 用 8，Short SQuAD 与语言建模用 32（论文 Table 2、Table 6）。</p>
+<p>对比基线（论文 §3.2）：全上下文 Transformer（KV-cache，非压缩，作上界）；Mamba-2（预训练状态空间模型（state-space model, SSM），每层循环状态，容量大得多）；ARMT（每层联想矩阵、DeltaNet 式前向写入）；RMT（同架构、同记忆尺寸、只差 WRITE 规则——主对照）；附录 H 另加两个测试时训练方法 TTT-Linear 与 LaCT。</p>
+<p>评价指标：KV 检索、bAbI、SQuAD 用精确匹配（exact match, EM），3 次运行 mean±std；语言建模用 CE。KV 检索中约定一旦某方法在较小 N 处精度骤降就不再往上扫（表中记 “–”）；除非声明，训练与推理的更新步数一致（论文 §3.3）。</p>
+<p>预算与公平性口径：RMT 与 GradMem 严格同架构、同记忆尺寸，唯一变量是写入规则；Mamba&#x2F;ARMT 是不同记忆接口、状态大得多的参照；与 TTT-Linear&#x2F;LaCT 的对比明确”不按状态大小对齐”（1024 vs 17k&#x2F;49k 浮点，论文附录 H）。主实验回答”梯度写入是否更强、能否迁移”；消融回答”二阶元学习是否必要、记忆放在输入级还是每层、状态对齐后如何”；附录回答成本（D 计算分析、C 实现）、损失与精度关系（E）、内存尺寸与步数（F）、状态合并对比（G）、更大模型（I）。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>KV 检索（论文 Table 1，EM，3 次运行 mean±std）：固定 8 个记忆向量（1024 浮点）时，GradMem K&#x3D;1 在 16&#x2F;32 键值对上为 96.3±0.9 &#x2F; 86.9±0.5，前向写入的 RMT 同尺寸只有 45.5±0.2 &#x2F; 44.3±0.0；把 K 增到 5，同一尺寸记忆在 64&#x2F;96 对上保持 99.1±0.3 &#x2F; 88.4±2.3，而 RMT 掉到 19.3±3.1 &#x2F; 12.9±0.2。全 KV-cache 上界在 96 对为 98.8±0.0，Mamba 92.2±0.4、ARMT 15.2±0.2（后两者状态分别约 4.1 万与 19.8 万浮点）。三个趋势被作者概括为（论文 §3.3）：梯度写入有效；单步梯度写入即显著强于同尺寸前向写入；更多梯度步把容量推到更大 N。重复前向写入则收益弱且不稳：RMT 重读上下文 2–3 次，16 对从 45.5 变成 69.6±28.1 &#x2F; 60.0±42.0（方差近 30–42 个百分点），32 对最高只到 38.1——论文解释每次前向是”覆盖式重写”而非累积纠错（论文 §3.3）。两类写入操作的完整容量曲线见图 2。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2603.13875v2_fig2_kv_retrieval.png"
+                      alt="图 2：同记忆尺寸下梯度写入与前向写入的容量对比"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 3）：该图把”同一份 1024 浮点记忆能装下多少信息”画成随键值对数量变化的精度曲线，用来对照两类写入操作的规模行为。非压缩的 KV-cache 始终贴着满精度，作为容量上界；前向写入在 8 对附近即发生断崖式下跌，随后长期停在低容量平台——重复前向写入也救不回来（论文 Table 1 中多次前向更新行）。梯度写入的曲线形态不同：单步梯度已经把断崖推迟，多步梯度几乎把高位平台一路拖到 96 对。读者应从中读到论文的核心主张——改变写入规则改变的是”容量随信息量增长时的衰减速度”这一规模律，而不只是在某个工作点上多几个百分点的精度差；图 1 中”内循环可多步继续收敛”的结构正是这条曲线拉长的原因。</p>
+<p>K_eval 外推（论文 §3.4、论文 Fig. 4(a)）：固定参数、只加推理时梯度步数即可提升 EM。64 对、K_train&#x3D;2 的模型在 K_eval&#x3D;2 时 EM 72.8，K_eval&#x3D;5 时 89.9，K_eval&#x3D;30（3 次运行最好值）93.9；96 对、K_train&#x3D;5 的模型 K_eval&#x3D;5 时 88.4，K_eval&#x3D;30 时 95.8。两个重要的限制：该图的范围被限定为”微调时未达到 99% EM 的设置”；且反例存在——64 对、K_train&#x3D;1 的模型外推几乎无收益（58.6→54.9→…→58.6）。方差口径也需注意：论文 Table 1 报 mean±std，但论文 Fig. 4(a) 中 K_eval&#x3D;10&#x2F;20&#x2F;30 三列标注的是 best-of-3，未报方差，全文未见显著性检验。外推收益与内循环损失的整体图景见图 3。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2603.13875v2_fig3_keval_loss.png"
+                      alt="图 3：推理时增加梯度步的收益与内循环损失的关联"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 4）：这组图把”测试时算力—容量”杠杆与它的机制线索接在一起。一部分证据是以训练时步数与推理时步数为两个维度的 EM 矩阵：固定参数下沿推理维增加步数，精度持续爬升、在约 5 步后进入平台，越是在训练时没写好的设置（如 96 对）爬升越陡；训练时步数不足造成的写入质量上限可以被推理步数部分补救，但不可能无中生有（64 对、K_train&#x3D;1 的行几乎平坦）。另一部分证据把内循环重建损失——以及按键&#x2F;值拆分后的两份损失——与最终 EM 做成散点：重建损失越低、EM 越高（r&#x3D;-0.83），拆分后值的损失与 EM 相关（r&#x3D;-0.81）且其数值随写入充分程度大幅下行，键的损失（r&#x3D;-0.75）几乎不动。读者应理解到：WRITE 是一个可以继续收敛的优化过程，收敛得越多下游越准；同时记忆对键与值的使用是不对称的——这正是下一小节机制证据的主题。</p>
+<p>自然语言任务（论文 Table 2，EM &#x2F; CE，3 次运行 mean±std）：bAbI 上 GradMem（K&#x3D;1）在 QA1&#x2F;QA4&#x2F;QA5 与全上下文上界打平（100.0&#x2F;100.0&#x2F;99.2），QA2 94.2±0.4 与 RMT 93.9、ARMT 93.8 相当；但 QA3（约 300 token、信息密度最高）GradMem 80.0±0.2 明显低于 RMT 87.9±0.4，也低于 ARMT 92.3±0.8 与 Mamba 96.7±0.2，且增大 K 无改善（79.3±0.2）。Short SQuAD 是梯度写入优势最清楚的一处：把 K 从 1 提到 5，EM 从 38.1±0.1 升到 54.9±0.4，超过前向写入 RMT 的 42.6±0.3，也超过非压缩的 Pythia-160m 48.9±0.4，但仍低于 Mamba 63.3±0.2 与 GPT-2 全上下文上界 64.2±0.3。语言建模上压缩模型都优于把 GPT-2 截断到 128 token（CE 3.20±0.00），全上下文 GPT-2 2.72±0.00 是上界；GradMem 2.91±0.01 与 RMT 2.91±0.00 持平，逊于 ARMT 2.85±0.00 与 Mamba 2.69±0.00，且增大 K 几乎无增益。作者自述”大 K 的收益是任务相关的”（论文 §3.5）：Short SQuAD 大幅受益、语言建模微微受益、bAbI 无益。附录 I 把方法推到 Llama-3.2-1B&#x2F;3B 的文本重建（1–2 个记忆向量、K&#x3D;1–2、READ 保持冻结基座）：3B 模型在 K&#x3D;2、2 个向量时于粗略网格 {8,16,32,64} 上达到 N@95&#x3D;64、N@99&#x3D;32，约合 16×–32× 压缩，论文明确说明这是近似容量估计。</p>
+<p>小结失败与持平情形：bAbI QA3 输给三类基线、语言建模没有增益、64 对 K_train&#x3D;1 外推无效、RMT 多次前向写入方差极大（近 30–42 个百分点）、LaCT 在 64&#x2F;96 个键值对时的方差高达 24–25 个百分点（论文 Table 8，属基线一侧）。这些情形在后面 §5 会被再次讨论。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>证据一（关键设计不可省：二阶元学习消融，论文 Table 1 末两行）：去掉穿过 WRITE 的二阶反传、只给 M0 一阶信号后，8 对、K&#x3D;1 的 GradMem 只剩 12.9±8.1，16 对掉到 3.0±0.6；K&#x3D;2 也只是 46.7±8.3 &#x2F; 4.2±0.7——与完整元训练的 100.0&#x2F;99.7 差距悬殊。这说明”少步写入”不是任何优化都能做到，元学习信号是该方法成立的前提；代价是训练必须承担二阶计算（见 §4.4）。</p>
+<p>证据二（状态对齐后与 Mamba 比较，论文附录 G、Table 7）：把隐藏维都限制为 128 并对齐总状态大小后，GradMem（1024 浮点）K&#x3D;2 在 16&#x2F;32 对达 99.6±0.1 &#x2F; 98.3±0.1；Mamba 用 4096 浮点状态时 16 对仅 56.8±6.9、32 对 12.4±15.5；Mamba 要加到 40,960 浮点（GradMem 的 16 倍）才在 8&#x2F;16 对接近（98.8±1.5 &#x2F; 98.7±0.8），32 对仍明显落后（90.4±4.7 vs 99.9±0.1）。在状态受限条件下，梯度写入的压缩效率更高。</p>
+<p>证据三（与测试时训练方法对比，论文附录 H、Table 8）：在记忆状态远小于对手的前提下（1024 vs TTT-Linear 约 17k、LaCT 约 49k 浮点），GradMem K&#x3D;5 在 96 对为 88.4±2.3，TTT-Linear 11.9±10.8、LaCT 46.9±24.3（LaCT 三次最好一次 74.9 仍有差距）；但 GradMem K&#x3D;1 与 TTT-Linear 相当（96.3±0.9 vs 96.9±0.7）、低于 LaCT 的最好成绩——这提示容量优势主要来自”把多步梯度用于同一条上下文的写入”这一新自由度，单步写入质量本身与对手同级。这与图 2 展示的曲线形态一致。</p>
+<p>证据四（内循环损失与下游精度的关系，论文附录 E 与论文 Fig. 4(b)）：如图 3 所示，重建总损失与 EM 的相关系数 r&#x3D;-0.83（键 r&#x3D;-0.75、值 r&#x3D;-0.81，反向 96 对 KV 检索）；损失的键&#x2F;值分解显示，随 K_eval 增加，值的损失快速下降并贴近 0，而键的损失几乎不变。作者据此主张记忆是选择性的：键只充当检索线索，值才是 READ 要输出的内容，因此精修值就足以提升 EM（论文附录 E；论文原文用 “suggests” 表述）。键与值损失随写入步数的完整演化见图 4。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2603.13875v2_fig4_value_loss.png"
+                      alt="图 4：写入步数增加时值的损失单独下降"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 9）：该图把同一条记忆在推理时不断追加梯度步的过程拆成两条同步演化的量：精确匹配随推理步数上升并趋于平台，重建损失连同按键、按值拆分后的两份损失同步变化。读者的关注点应是拆分后的不对称：随写入步数增加，值的损失快速收敛到接近零，而键的损失大体保持原水平，重构总损失的下降几乎全部由值贡献。这正是论文“记忆选择性保留答案侧信息、键只作索引”解释的直接可视化证据——如果键与值被同等重要地存储，两份拆分损失应同步下降；实际不同步，说明模型学到的写入在按下游需要分配表示容量。需要注意证据形态：这里展示的是损失与精度的同步关联，而不是干预实验。</p>
+<p>这一解释的局限必须强调：相关性不能排除共同混杂（例如“写入越充分、两项同时改善”），论文没有对记忆内容做探针或干预实验，机制解释仍属未证实的主张。</p>
+<p>证据五（记忆该放在哪：输入级 vs 每层，论文附录 J）：同一模型级重建目标下，只改变测试时可训练参数的位置与规模——输入级前缀向量（1024 参数）对比每层可训练 KV 状态（同尺寸 1024 参数），以及 8 倍大的每层状态（8192 参数）。见图 5。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2603.13875v2_fig5_input_perlayer.png"
+                      alt="图 5：输入级记忆与每层记忆的参数效率对比"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 11）：该消融把”记忆存放在哪里”作为唯一变量：目标函数不变，只替换测试时可训练参数的位置与规模，观察 8&#x2F;16&#x2F;32 键值对三个难度下的 EM。读法上，总参数量对齐时输入级参数化在全部难度上不劣、在最难的 32 对上明显更好；而每层状态拿到 8 倍参数后反超。这说明输入级记忆的优势是参数效率——上游少量向量可以经模型各层变换展开成更丰富的内部表示，只有当每层状态获得大得多的容量时，直接优化每层 KV 才占优。它同时也给出设计边界：输入级前缀不是绝对上限意义的最优参数化。</p>
+<p>关于替代解释的排除程度：消融隔离了”二阶 vs 一阶”（证据一）、”输入级 vs 每层”（证据五）、”状态尺寸对齐后的模型间对比”（证据二、三）；但论文没有单独拆分读写双头、记忆线性投影等默认增强的贡献（论文附录 B 说明默认开启，未报告移除后的数字），也未报告训练数据量、训练算力等预算对齐实验——这些缺口在 §5 展开。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p>训练与实现成本（论文 §4、附录 C）：训练必须把梯度穿过展开的 K 步写入，计算与显存都高于前向写入器和普通全上下文训练；而且 FlashAttention 与 PyTorch SDPA 不支持所需的高阶微分，训练必须改用自定义 double backward。论文报告在其设置下（1024 token）反向传播耗时从约 1000 ms 降到约 600 ms、峰值显存从约 60 GB 降到约 30 GB（相对朴素 eager 实现），并在五种实现中给出速度&#x2F;显存权衡（Manual HVP 最省显存、Fast forward→autograd 最快、Flash HVP 最平衡）。论文建议 iMAML、Reptile 等一阶或隐式方法作为未来降本方向。训练阶段的总算力（GPU 小时&#x2F;FLOPs）与各基线的等预算对照：论文未报告。</p>
+<p>推理时延与盈亏平衡（break-even，论文附录 D、论文 Fig. 6 至 论文 Fig. 8）：理论分析给出启发式阈值——当同一上下文被重复查询的次数 N 超过约 c·(RK−1)&#x2F;q（c 为上下文长度、q 为查询长度、R 为一次记忆更新相对一次上下文前向的成本、K 为写入步数）时，GradMem 的总计算低于”全上下文推理 + 缓存”（论文 Eq. 11）。实测口径（A100，GPT-2 124M 基座、K&#x3D;1、batch 16、查询 24 token）：上下文 256 与 1024 token 时，约 64 次 READ 之后与 GPT-2 打平，达到盈亏平衡点；随 READ 次数增长全程快于 Mamba，最多约 1.6×（论文 Fig. 7）。见图 6。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/2603.13875v2_fig6_latency.png"
+                      alt="图 6：重复查询下的累计时延与盈亏平衡"
+                ></p>
+<p><strong>图 6</strong>（论文 Fig. 7）：该图把”一次 WRITE 加连续多次 READ”的累计时延画成随查询数增长的曲线，对比三种记忆载体在同一上下文上的成本结构。KV-cache 与 Mamba 循环状态的构建便宜，但每次 READ 都要背着整条上下文重算，斜率大——查询越多总时延越快上升；GradMem 的 WRITE 起步贵（要跑梯度步），READ 只 attend 少量记忆向量所以斜率小，两条线在数十次重复查询处交叉。它给出的实证结论与附录 D 的理论阈值一致：GradMem 的适用面是”同一上下文、多查询”的复用场景，且盈亏平衡点随上下文变长而前移（因为 READ 侧省下的是随上下文长度增长的成本）。</p>
+<p>更大模型与更长上下文的效率（论文 Fig. 8）：Llama-3.2-1B 在 4096 token 上下文下，约 5 次 READ 后比 LaCT-760M 更省、约 10 次后优于 TTT-Linear-1.3B，WRITE 本身也快于 TTT-MLP-1.3B；Llama-3-8B 的 WRITE+READ 在 4k&#x2F;8k&#x2F;16k 分别约 1870&#x2F;4860&#x2F;14400 ms，而标准 prefill+decode 为 364&#x2F;747&#x2F;1620 ms，对应盈亏平衡约 27&#x2F;43&#x2F;61 次重复 READ；记忆解码约 23 ms，而 8k&#x2F;16k KV-cache 解码 49.1&#x2F;76.6 ms。适用范围总结：已改善的是固定小记忆的写入容量（合成任务上显著）与”测试时算力换容量”的可调性，并验证了 ≤3B 模型上写入后冻结 READ 的可行性；仍未解决或未验证的是——自然语言下游任务的普适增益（bAbI QA3、语言建模均未胜出）、单查询&#x2F;少量查询场景的成本劣势、训练的二阶开销与自定义内核的实现复杂度、数千 token 级下游任务与多轮 agent 记忆等场景。论文未报告训练算力、失败案例分析（case study）与 K 与 m 的自动配比方法。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：训练成本未与基线对齐，”梯度写入更强”可能有训练算力混杂"><a href="#质疑：训练成本未与基线对齐，”梯度写入更强”可能有训练算力混杂" class="headerlink" title="质疑：训练成本未与基线对齐，”梯度写入更强”可能有训练算力混杂"></a>质疑：训练成本未与基线对齐，”梯度写入更强”可能有训练算力混杂</h4><ul>
+<li><strong>原文依据</strong>：GradMem 训练需反传穿过 K 步 WRITE、依赖二阶元学习（论文 §2.2、§4），无二阶消融直接崩溃（论文 Table 1 末两行）；而 Table 1 的对照只对齐了架构与记忆尺寸，没有对齐训练预算&#x2F;训练步数，论文也没有报告任何训练 FLOPs、GPU 小时或训练墙钟时间。</li>
+<li><strong>为什么重要</strong>：核心结论”gradient-based WRITE 比 forward-only 更强”若部分来自更多的训练计算（二阶梯度、更长训练、课程学习），机制层面的论断就被削弱；这直接决定论文的中心声明是否被公平证据支持。</li>
+<li><strong>当前能够得出的判断</strong>：同尺寸下的性能差距存在且部分机制已被消融支持（二阶不可省、输入级更省参数）；但无法排除训练算力差异对差距的贡献，”更强”的因果归属证据不足。</li>
+<li><strong>如何验证或补强</strong>：报告各方法训练 FLOPs 与墙钟时间；在固定训练算力预算下重训 RMT&#x2F;ARMT 做对照；补齐移除读写双头、线性投影等默认增强的消融数字。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：自然语言迁移增益有限，摘要口径偏乐观"><a href="#质疑：自然语言迁移增益有限，摘要口径偏乐观" class="headerlink" title="质疑：自然语言迁移增益有限，摘要口径偏乐观"></a>质疑：自然语言迁移增益有限，摘要口径偏乐观</h4><ul>
+<li><strong>原文依据</strong>：论文 Table 2 中，bAbI QA3 GradMem 80.0±0.2 低于前向写 RMT 87.9±0.4；WikiText-103 上 CE 2.91 与 RMT 持平、逊于 Mamba 2.69 与 ARMT 2.85；增大 K 对 bAbI 与语言建模无增益（论文 §3.5 自述”任务相关”）。所有下游任务上下文都很短（bAbI QA3 约 300 token、Short SQuAD 约 40 token），Short SQuAD 还被裁剪为只含答案句的版本。</li>
+<li><strong>为什么重要</strong>：”transfers beyond synthetic benchmarks…attains competitive results” 是摘要级声明；实际优势集中在一个被简化的 QA 变体上，未检验长文档、多干扰段落的真实压缩场景，结论范围被摘要表述掩盖。</li>
+<li><strong>当前能够得出的判断</strong>：迁移性存在（机制能跑通、部分任务最好）但”普遍更强”不成立；”competitive”成立。</li>
+<li><strong>如何验证或补强</strong>：在完整 SQuAD（含干扰段落）、更长上下文 QA 与多查询复用场景上与 RMT&#x2F;TTT-Linear 对照；报告失败案例。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：测试时计算不对等，”同记忆尺寸”对比未对齐推理成本"><a href="#质疑：测试时计算不对等，”同记忆尺寸”对比未对齐推理成本" class="headerlink" title="质疑：测试时计算不对等，”同记忆尺寸”对比未对齐推理成本"></a>质疑：测试时计算不对等，”同记忆尺寸”对比未对齐推理成本</h4><ul>
+<li><strong>原文依据</strong>：论文 Table 1 与 论文 Fig. 3 的对照以记忆尺寸为口径（m&#x3D;8），但 GradMem 的 K 步 WRITE 每步都要对整条上下文前向加反传，RMT 只做 1 次前向；论文未在精度对照中给出各方法的单样本推理 FLOPs 或墙钟时间。论文附录 D 与 论文 Fig. 7–8 的延迟分析是独立实验，未回填到表 1 的比较口径里，且这两组测量中 GradMem 的 K&#x3D;1，仍未覆盖 K&#x3D;5 的对比。</li>
+<li><strong>为什么重要</strong>：若按等推理算力比较，”梯度步换容量”的性价比需要重新核算——96 对 88.4 的写法可能要拿 5 倍以上的写入成本来换；读者容易把”同记忆尺寸更优”误读为”同成本更优”。</li>
+<li><strong>当前能够得出的判断</strong>：功能上”同等记忆尺寸下梯度写入容量更高”成立；但成本口径缺失，公平性无法从现有材料确认。</li>
+<li><strong>如何验证或补强</strong>：补充”EM vs 推理 FLOPs&#x2F;墙钟”的等成本曲线，覆盖 RMT 多次前向、TTT-Linear&#x2F;LaCT 与 GradMem 的 K∈{1,2,5}。</li>
+<li><strong>严重程度</strong>：主要问题</li>
+</ul>
+<h4 id="质疑：论文-Fig-4-a-外推收益使用-best-of-3-且只展示未收敛设置，存在选择性报告风险"><a href="#质疑：论文-Fig-4-a-外推收益使用-best-of-3-且只展示未收敛设置，存在选择性报告风险" class="headerlink" title="质疑：论文 Fig. 4(a) 外推收益使用 best-of-3 且只展示未收敛设置，存在选择性报告风险"></a>质疑：论文 Fig. 4(a) 外推收益使用 best-of-3 且只展示未收敛设置，存在选择性报告风险</h4><ul>
+<li><strong>原文依据</strong>：论文 Fig. 4(a) 的 K_eval&#x3D;10&#x2F;20&#x2F;30 三列标注为 “best of 0.10&#x2F;0.20&#x2F;0.30”，即 3 次运行的最好值；该图范围被限定为”微调时未达到 99% EM 的设置”；64 对、K_train&#x3D;1 的行外推无收益（58.6→58.6）虽然画出，但未在正文讨论；全报告未见显著性检验。</li>
+<li><strong>为什么重要</strong>：评估协议（均值 vs 最好一次）混用会系统性高估外推收益；”测试时多花算力即可继续提升”这一卖点的边界（哪些设置有效）被淡化，复现者可能得到更差的结果。</li>
+<li><strong>当前能够得出的判断</strong>：外推在部分设置上有效可以确认（K_train≥2 的行爬升明确且单调）；收益幅度与普适性无法从现有图确认。</li>
+<li><strong>如何验证或补强</strong>：所有外推点以 mean±std 报告并给显著性检验；对已达 99% 的设置也展示 K_eval 增大后的行为；解释 64 对 K_train&#x3D;1 行平坦的原因。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h4 id="质疑：机制解释均为相关性证据，”选择性保存值”缺少直接验证"><a href="#质疑：机制解释均为相关性证据，”选择性保存值”缺少直接验证" class="headerlink" title="质疑：机制解释均为相关性证据，”选择性保存值”缺少直接验证"></a>质疑：机制解释均为相关性证据，”选择性保存值”缺少直接验证</h4><ul>
+<li><strong>原文依据</strong>：论文报告的是内循环损失与 EM 的相关（r&#x3D;-0.83&#x2F;-0.75&#x2F;-0.81，论文 Fig. 4(b)，见图 3）与损失分解观察（值的损失随 K_eval 下行、键的几乎不变，论文附录 E）；”记忆把容量分配给答案相关内容”是解释性归因，论文用 “suggests” 表述，未做记忆内容探针或干预实验；同理，”重建损失聚焦不可预测部分”的直觉（论文 §1）也未单独验证。</li>
+<li><strong>为什么重要</strong>：若把相关性当因果，”损失驱动的迭代纠错是性能来源”的主张不牢固——“写入越充分，损失与精度同时改善”本身就是统一混杂的解释。</li>
+<li><strong>当前能够得出的判断</strong>：机制解释合理但未证实；当前证据只能算与机制一致，不能算机制被证明。</li>
+<li><strong>如何验证或补强</strong>：干预实验（如固定键损失只优化值、或对已收敛记忆做扰动观察 EM 变化）、线性探针读出记忆中的键值信息、控制 K 的同时控制损失收敛程度。</li>
+<li><strong>严重程度</strong>：次要问题</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现前向式上下文写入缺少样本级反馈、在固定记忆尺寸下容量迅速饱和，因此提出 GradMem：把记忆写成输入级前缀向量的显式优化问题——用上下文重建损失做 K 步测试时梯度下降，并以二阶元学习把”少步写入”训练成现实。实验在合成 KV 检索上给出清晰且可复现的容量优势（同尺寸 8 向量记忆下 16 对 96.3 vs 45.5，K&#x3D;5 时 96 对 88.4），在 bAbI&#x2F;Short SQuAD&#x2F;WikiText-103 与 ≤3B 模型上表明同一任务无关目标可以迁移；其中”梯度步数换容量”与”二阶元学习不可省”两条证据较强，但自然语言端的普适增益、等计算口径的公平性、以及外推收益的统计口径仍缺少充分支持。本文最有价值的部分是把”测试时梯度写入记忆”做成一个机制清楚、代码开源、带成本分析的可复现系统，并给出与 Mamba&#x2F;TTT 系方法的对齐比较；最大的审稿风险是训练成本未对齐与自然语言结果的乐观口径。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强——上下文移除（context removal）的 WRITE&#x2F;READ 形式化干净，任务三元组统一了合成与自然语言实验（§1–§3.1）。</li>
+<li><strong>创新性证据</strong>：中——“优化式写入 + 元学习少步化”相对 TTT layers&#x2F;前缀调优是新设定与新组合，论文对最接近工作的差异表（论文 Table 3&#x2F;4）清楚；但单步写入质量与 TTT-Linear 同级（§4.3），增量的独立贡献主要落在”多步”这一自由度上。</li>
+<li><strong>方法可信度</strong>：中——机制自洽、算法与最小代码齐备（论文附录 K）、二阶消融证明关键设计不可省；但训练昂贵、依赖自定义内核，训练成本未披露。</li>
+<li><strong>实验支持力度</strong>：中——合成任务证据强且报方差；自然语言任务混合结果、仅一个任务显著占优；大模型验证止于文本重建。</li>
+<li><strong>可复现性</strong>：中——代码开源（GitHub 2026-10-16 核验 200）、超参表详细（论文 Table 5&#x2F;6）、内学习率鲁棒性有报告；但精确训练配方（课程细节）、自定义 double backward 工程细节与训练算力未完整披露。</li>
+<li><strong>综合阅读价值</strong>：高——对”测试时训练做记忆写入”路线给出了清晰机制、可复现基线与成本分析，适合作为该方向的入门与对照读物。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> GradMem: Learning to Write Context into Memory with Test-Time Gradient Descent</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-16 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-16 14:07:02
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/16/2603.13875v2_GradMem_Learning_to_Write_Context_into_Memory_with_Test-Time_Gradient_Descent/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Test-Time-Training/">#Test-Time Training</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLMs/">#LLMs</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Long-Context/">#Long Context</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Fast-Weights/">#Fast Weights</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/16/2603.12255v1_Spatial-TTT_Streaming_Visual-based_Spatial_Intelligence_with_Test-Time_Training/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Spatial-TTT: Streaming Visual-based Spatial Intelligence with Test-Time Training</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/16/2607.06988v2_WAM-TTT_Steering_World-Action_Models_by_Watching_Human_Play_at_Test_Time/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">WAM-TTT: Steering World-Action Models by Watching Human Play at Test Time</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">GradMem: Learning to Write Context into Memory with Test-Time Gradient Descent</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 151 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
