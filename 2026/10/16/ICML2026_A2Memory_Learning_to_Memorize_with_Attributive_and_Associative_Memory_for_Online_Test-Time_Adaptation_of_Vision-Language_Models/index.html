@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/16/icml2026_a2memory_learning_to_memorize_with_attributive_and_associative_memory_for_online_test-time_adaptation_of_vision-language_models/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Learning to Memorize with Attributive and Associative Memory for Online Test-Time Adaptation of Vision-Language Models">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/16/ICML2026_A2Memory_Learning_to_Memorize_with_Attributive_and_Associative_Memory_for_Online_Test-Time_Adaptation_of_Vision-Language_Models/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-16T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-16T03:40:49.887Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Associative Memory">
+<meta property="article:tag" content="Test-Time Adaptation">
+<meta property="article:tag" content="Test-Time Training">
+<meta property="article:tag" content="VLMs">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Learning to Memorize with Attributive and Associative Memory for Online Test-Time Adaptation of Vision-Language Models | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">207</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">148</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Learning to Memorize with Attributive and Associative Memory for Online Test-Time Adaptation of Vision-Language Models</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-16 12:00</span>
+        <span class="mobile">2026-10-16 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-16 11:40:49</span>
+            <span class="mobile">2026-10-16 11:40:49</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/VLMs/">VLMs</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Test-Time-Adaptation/">Test-Time Adaptation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Test-Time-Training/">Test-Time Training</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Associative-Memory/">Associative Memory</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>Yuchao Zhang、Hao Wang、Fan Zhang、Qirui Mi、Mengyue Yang、Yisen Wang、Jun Wang、Haoxuan Li（通讯）、Zhouchen Lin（通讯）（北京大学人工智能研究院；北京化工大学；北京大学智能学院通用人工智能国家重点实验室；香港中文大学；上海财经大学；布里斯托大学；伦敦大学学院）</p>
+<p>论文：A2Memory（ICML 2026，PMLR v306，pp. 159160–159177；PMLR 页核对结果：作者名单与 PDF 一致；官方 PDF 18 页已下载核读；截至 2026-10-16 未检索到 arXiv 版本）；来源：用户指定（非 Hugging Face Daily 批次；用户提供 PMLR 链接）；精读归档日期：2026-10-16（Asia&#x2F;Shanghai）。</p>
+<p>官方原文：ICML 2026 PMLR 官方页 <a class="link"   target="_blank" rel="noopener" href="https://proceedings.mlr.press/v306/zhang26gj.html" >https://proceedings.mlr.press/v306/zhang26gj.html<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；官方 PDF（PMLR 页面所链）<a class="link"   target="_blank" rel="noopener" href="https://raw.githubusercontent.com/mlresearch/v306/main/assets/zhang26gj/zhang26gj.pdf" >https://raw.githubusercontent.com/mlresearch/v306/main/assets/zhang26gj/zhang26gj.pdf<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 。</p>
+<p>官方仓库：论文未提供公开代码仓库（截至 2026-10-16 未发现；如作者后续公开请核实）。</p>
+<p>Hugging Face：无（该论文为 ICML 2026 会议论文、无 arXiv 版本，HF Daily 无对应页面）。</p>
+<p>标签：Test-Time Adaptation、VLMs、Associative Memory、Test-Time Training。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>A2Memory 解决的是记忆式（memory-based）视觉-语言模型在线测试时自适应（test-time adaptation, TTA）的两个具体缺陷：按 CLIP 伪标签把样本硬分配到单一类记忆所造成的记忆污染（memory contamination），以及固定容量下按低熵淘汰（eviction）样本带来的选择偏差与信息丢失；做法是把”存样本”整体换成”学关联”——用 LLM 生成的类共享视觉属性构造先验文本表征（prior textual representation），对每个测试样本做属性级软分配（soft assignment）生成代理视觉表征（surrogate visual representation），再用 delta 规则把流式样本在线压缩进每类一个固定尺寸的联想记忆（associative memory）矩阵，检索样本自适应类原型（sample-adaptive class prototype）并与零样本分支置信度加权融合。在论文报告的 15 个图像分类基准上（CLIP ViT-B&#x2F;16 与 RN50 两种骨干），其平均精度超过包括 ADAPT 在内的全部对比基线，但主表缺方差与显著性检验、与最强基线的差距只有约 0.1–0.9 个百分点，且记忆矩阵的显存开销未报告，因此”一致提升”的结论只在论文设定的分类任务与单样本流式协议内成立。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>研究背景与任务：CLIP 等视觉-语言模型（vision-language models, VLMs）依赖大规模图文预训练获得对齐的视觉-文本表征，但在部署时遇到分布偏移（背景、风格、纹理、腐蚀等变化）精度显著下降；测试时自适应只允许用无标签的测试样本流在线调整预测。这个领域有两条主流路线（§1、§4）：一是提示微调（prompt tuning，如 TPT、DynaPrompt），在推理时通过熵最小化优化可学习提示，需要反传整个编码器、在线延迟高；二是免反传（backpropagation-free）的记忆方法（memory-based methods，由 TDA 开创，DPE、BCA、ADAPT 等跟进），维护按类划分的样本槽位记忆 Mc：用 CLIP 的伪标签把流式样本的视觉特征塞进某一个类，预测时对记忆做相似度加权检索，再与零样本 logits 融合。记忆方法因轻量而成为在线场景的主流范式，本文即在这条线上。</p>
+<p>现有方法的问题（作者诊断）：论文指出样本级记忆存在两个固有缺陷（§1、§3.1）。❶ 硬分配：每个样本按 CLIP 预测只进入一个类记忆，CLIP 一旦预测错误，错误样本就污染该类记忆，偏置后续检索与预测；这在适配早期尤其严重——容量未满时几乎不做过滤，错误伪标签被原样保留。❷ 有偏淘汰：容量满后，低熵淘汰策略丢弃样本以接纳置信度更高的样本，选择偏差使保留的记忆只覆盖特征空间的窄区域，信息量大的困难样本被系统性丢弃，记忆表达能力受限于一个狭窄子集。</p>
+<p>支撑证据（见图 1，论文 Fig. 1，ImageNet、ViT-B&#x2F;16，§3.1）：把测试流按 10% 与 100% 进度对比，早期类记忆中伪标签正确率显著更低，污染集中在早期；按进度截断评估精度时，记忆方法在适配早期甚至低于零样本 CLIP，说明被污染的记忆提供的是负向引导而非有效引导；熵筛选取样的散点显示被保留样本向类簇核心收缩、覆盖不了整个测试分布；按熵阈值把样本分成简单&#x2F;困难两组后，熵选择主要提升简单样本，对困难样本帮助有限。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/ICML2026_A2Memory_fig1_motivation.png"
+                      alt="图 1：记忆污染与淘汰偏差分析"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1）：这组分析把记忆式 TTA 的两个失败机制拆开呈现。以类记忆中伪标签正确的样本占比作为”记忆质量”的度量并按测试流进度分段后可以看到，记忆质量在早期明显偏低——因为容量未满时几乎不过滤，错误伪标签被保留下来；随即在同样的进度口径下评估精度，记忆方法在适配开始阶段反而低于零样本 CLIP，说明此时检索信号对预测是负向的。另一半证据针对容量淘汰：低熵筛选使被保留的样本在特征空间中收缩成靠近簇核的窄团，覆盖不到测试分布的全貌，并且这种选择偏差的后果是对困难样本几乎没有帮助。读懂这张图就理解了论文要修复的两个对象——不是”记忆不够大”，而是”样本被硬塞进单一类”和”淘汰只看置信度”。</p>
+<p>作者归因（作者主张）：问题根源不在容量或个别超参，而在”样本级存储”这一范式本身——离散槽位 + 硬标签 + 启发式替换三者绑定；要把记忆质量从伪标签可靠性和样本选择策略中解耦出来。论文最终要验证的核心假设是：把记忆参数化为类级键值（key–value）联想记忆，用属性级软对齐代替硬分配、用梯度压缩代替淘汰，可以在不训练骨干、不反传编码器的前提下得到更可靠的检索原语，从而在单样本在线流式设置下提升分类精度（§1、§3）。</p>
+<p>需要区分的是：伪标签噪声本身是 TTA 领域的已知问题，本文的新观察是把它的后果具体化为”记忆污染”，并用分阶段统计给出经验刻画；”淘汰偏差导致覆盖收缩”则被论文作为独立于污染之外的第二个问题提出。论文实际解决的具体子问题是：在固定容量、无标签、单样本流的约束下，如何让记忆内容既不被早期错误伪标签带偏，也不因淘汰而丢失信息。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>总括：本文的技术增量是把记忆式 TTA 的”存样本”改写为”学类-属性关联”。它承认伪标签噪声与容量淘汰是既有问题，但主张更换整个存储范式：记忆不再是离散槽位，而是每类一个可微的键值映射矩阵；键由 LLM 属性先验引导的软分配生成，值是可泛化的文本属性表征，更新规则取自联想记忆一系的 delta 规则，并配一个由预测置信度驱动、数据依赖的保留系数。三个组件中，”联想记忆迁移到 VLM 测试时自适应”是机制层面的新迁移，”属性中心软分配”是把 LLM 属性先验接入记忆键构造的新组合，诊断部分则是新的经验观察。</p>
+<ol>
+<li>对两个失败模式的经验诊断：论文用记忆质量的分阶段分布、按进度截断的精度曲线、熵筛选取样散点与难易样本曲线，把”硬分配导致污染”和”淘汰导致覆盖收缩”独立量化（论文 Fig. 1，§3.1；对应 §1 概述的问题判断）。相对已有记忆 TTA 工作只报告总体精度，这是对失败机制的补充刻画；但该刻画是相关性证据，因果解释仍需看 §4.3 的机制分析。</li>
+<li>属性中心表征构建（Attribute-centric Representation Construction）：用 LLM 生成一组跨类共享的视觉属性，实例化为每类描述并经 CLIP 文本编码后，以”代表性 + 多样性”的边际增益（marginal gain）贪心选出紧凑属性子集构成先验文本表征；再用文本引导门控做属性级软分配，为每个”类-属性”槽生成代理视觉表征。与最接近的记忆方法（TDA 的原始特征槽位、DPE 的双模态类原型）相比，差别在于样本不再落到单一类，而是对所有类-属性槽同时产生加权响应，直接针对问题 ❶；其隔离证据见 §4.3 的 Table 3 与论文 Fig. 4。</li>
+<li>类级联想记忆（Class-wise Associative Memory）：把每类记忆从样本集合换成固定尺寸的参数矩阵，以代理视觉表征为键、先验文本表征为值，用 delta 规则按重建误差梯度在线更新，并以基于归一化预测熵的滑动保留系数调节塑性-稳定性（plasticity–stability）权衡；推理时用样本特征查询记忆得到样本自适应类原型，与属性平均的零样本分支置信度加权融合。与 Behrouz 等把联想记忆用于序列建模不同，这里把它迁到 VLM 测试时自适应，用参数压缩代替淘汰机制，直接针对问题 ❷；证据见 §4.3 的 Table 3、Table 4、Table 6。</li>
+</ol>
+<p>原创边界说明：作者在 §4 声称”首次把这些进展桥接到视觉-语言 TTA”；根据本文的 related work 与实验对比，只能确认作者声称的差异，是否构成首次提出还需要更完整的文献检索。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>核心直觉：与其让每个样本”记住自己属于哪一类”，不如让每个类”记住自己在多个可观察属性维度上长什么样”。A2Memory 为每个类维护一个可微的记忆矩阵，它学习的目标是把”样本在该类属性视角下的样子”（键）映射回”该类各属性的文本描述”（值）。这样即使某个样本的伪标签错了，它也只会以很小的权重稀释所有类的记忆，而不会污染某一个类；历史信息由矩阵参数压缩保存，不存在”淘汰”动作，也就不存在覆盖收窄。整个框架不训练 CLIP、不反传编码器，唯一被在线”学习”的是这些每类固定尺寸的记忆矩阵。</p>
+<p><strong>离线阶段：构造先验文本表征 T。</strong> 输入是目标数据集的 C 个类名。论文用 GPT-4o 做两阶段提示（Appendix C.1）：先让 LLM 给出 N 个跨类共享、可从图像观察、对光照&#x2F;背景不敏感的视觉属性（例如毛色纹理、耳形、体型），再为每个类逐属性实例化成一句自然语言描述（Appendix C.2 给了 Oxford-Pets 的完整示例）。每条描述经 CLIP 文本编码器编码并归一化，得到候选属性张量 T^can，形状为类数 × 候选数 × 特征维。由于 N 个属性之间冗余，用贪心选择压缩到 L 个：代表性（Rep）衡量候选属性与其余候选的平均相似度，即它覆盖跨类共性主题的程度；多样性（Div）衡量它与已选集合相似度之补，即带来的新语义；先选代表性最大的一个，之后每步在未选集合中最大化 λ·Rep + (1−λ)·Div 的边际增益，直到选满 L 个（Eq. 5–Eq. 8）。得到的先验文本表征 T（每类 L 条属性向量）在整个测试流中固定复用。这样设计的理由：全量属性既冗余又增加后续每一步的矩阵计算量；代表性与多样性兼顾可避免选出一组语义重复的属性。默认 N&#x3D;15、L&#x3D;5、λ&#x3D;0.3（§5.1）。</p>
+<p><strong>在线阶段：逐样本走完”软分配 → 记忆更新 → 检索融合”。</strong> 流式到达的每张测试图像先经 CLIP 图像编码器得到归一化特征，随后按四步处理（Algorithm 1）。</p>
+<p>（一）属性级软分配，生成代理视觉表征（由 Attribute-centric Representation Construction 执行）。对每个类 c 与每个选中属性 l，计算</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msubsup><mi>I</mi><mrow><mi>c</mi><mo separator="true">,</mo><mi>l</mi></mrow><mi>t</mi></msubsup><mo>=</mo><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">m</mi></mrow><mo fence="false" stretchy="true" minsize="1.8em" maxsize="1.8em">(</mo><msub><mi>f</mi><mi>t</mi></msub><mo>+</mo><mrow><mi mathvariant="normal">n</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">m</mi></mrow><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">(</mo><msub><mi>f</mi><mi>t</mi></msub><mo>⊙</mo><mi>σ</mi><mo stretchy="false">(</mo><msub><mi>f</mi><mi>t</mi></msub><mo>⊙</mo><msub><mi>T</mi><mrow><mi>c</mi><mo separator="true">,</mo><mi>l</mi></mrow></msub><mo stretchy="false">)</mo><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">)</mo><mo fence="false" stretchy="true" minsize="1.8em" maxsize="1.8em">)</mo></mrow><annotation encoding="application/x-tex">I^{t}_{c,l}=\mathrm{norm}\Big(f_t+\mathrm{norm}\big(f_t\odot\sigma(f_t\odot T_{c,l})\big)\Big)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.2267em;vertical-align:-0.3831em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8436em;"><span style="top:-2.453em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">c</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0197em;">l</span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3831em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.8em;vertical-align:-0.65em;"></span><span class="mord"><span class="mord mathrm">norm</span></span><span class="mord"><span class="delimsizing size2">(</span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2em;vertical-align:-0.35em;"></span><span class="mord"><span class="mord mathrm">norm</span></span><span class="mord"><span class="delimsizing size1">(</span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⊙</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">σ</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">⊙</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.8em;vertical-align:-0.65em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">c</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0197em;">l</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mord"><span class="delimsizing size1">)</span></span><span class="mord"><span class="delimsizing size2">)</span></span></span></span></span></span>
+<p>其中 f_t ⊙ T_{c,l} 是逐维的视觉-属性匹配分数，σ 是 sigmoid 门控：与文本属性一致的维度被放大、冲突维度被压低，最外层的残差连接保留原始视觉信息（Eq. 9）。由此一个样本被”软分配”到全部 C×L 个”类-属性”槽，得到代理表征 I^t：置信样本的响应会集中在少数相关属性上，模糊样本的响应分布更均匀。这是针对问题 ❶ 的设计——样本不再隶属于单一类，错误伪标签只影响一部分槽的权重，而不会整块污染某个类记忆。</p>
+<p>（二）记忆更新（由 Class-wise Associative Memory 执行）。每个类维护一个固定尺寸的记忆矩阵 M^t_c，学习目标是把该类的 L 个代理表征映射回对应的文本属性：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">ℓ</mi><mo stretchy="false">(</mo><msubsup><mi>M</mi><mi>c</mi><mi>t</mi></msubsup><mo separator="true">;</mo><mtext> </mtext><msup><mi>I</mi><mi>t</mi></msup><mo separator="true">,</mo><mi>T</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mi>L</mi></mfrac><munderover><mo>∑</mo><mrow><mi>l</mi><mo>=</mo><mn>1</mn></mrow><mi>L</mi></munderover><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">∥</mo><msubsup><mi>M</mi><mi>c</mi><mi>t</mi></msubsup><mtext> </mtext><mi>ϕ</mi><mo stretchy="false">(</mo><msubsup><mi>I</mi><mrow><mi>c</mi><mo separator="true">,</mo><mi>l</mi></mrow><mi>t</mi></msubsup><mo stretchy="false">)</mo><mo>−</mo><msub><mi>T</mi><mrow><mi>c</mi><mo separator="true">,</mo><mi>l</mi></mrow></msub><msubsup><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">∥</mo><mn>2</mn><mn>2</mn></msubsup></mrow><annotation encoding="application/x-tex">\ell(M^{t}_c;\ I^{t}, T)=\frac{1}{L}\sum_{l=1}^{L}\big\lVert M^{t}_c\,\phi(I^{t}_{c,l})-T_{c,l}\big\rVert_2^2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0936em;vertical-align:-0.25em;"></span><span class="mord">ℓ</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8436em;"><span style="top:-2.453em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mpunct">;</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8436em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:3.1304em;vertical-align:-1.3021em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal">L</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8283em;"><span style="top:-1.8479em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0197em;">l</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">L</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.3021em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.85em;"><span style="top:-2.85em;"><span class="pstrut" style="height:3.2em;"></span><span style="width:0.556em;height:1.2em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.556em" height="1.2em" viewBox="0 0 556 1200"><path d="M145 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z
+M367 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8436em;"><span style="top:-2.453em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">c</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">ϕ</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8436em;"><span style="top:-2.453em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">c</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0197em;">l</span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3831em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.4537em;vertical-align:-0.3997em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.1389em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">c</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0197em;">l</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.85em;"><span style="top:-2.85em;"><span class="pstrut" style="height:3.2em;"></span><span style="width:0.556em;height:1.2em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.556em" height="1.2em" viewBox="0 0 556 1200"><path d="M145 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v0 v585 h43z
+M367 15 v585 v0 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v0 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v0 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.35em;"><span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.054em;"><span style="top:-2.3003em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span><span style="top:-3.3029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3997em;"><span></span></span></span></span></span></span></span></span></span></span>
+<p>其中 φ 是 SiLU 加 L2 归一化，SiLU(x) &#x3D; x ⊙ σ(x)（Eq. 10）。对损失求梯度得到外积形式的梯度（Eq. 11），再按 delta 规则叠加衰减项更新（Eq. 12）。需要说明一处原文不一致：Algorithm 1 第 24 行把该步写成 M &#x3D; αM + η∇，与 Eq. 12 的 M &#x3D; αM − η∇ 符号相反；Appendix A 的推导（对 ℓ 加权重衰减项后做梯度下降，整理即得 αM − η∇）以减号为准，建议按 Eq. 12 理解。该更新有两个性质：对违反当前记忆预期的样本更新幅度更大（更”意外”的样本被记得更牢）；对 L 个属性求平均聚合了多个属性视角的更新信号，起到隐式正则作用，减弱单个噪声属性的影响。保留系数 α 按上一个样本最终预测的归一化熵在线滑动更新（Eq. 13）：预测越自信，α 越接近 1（保留更多历史、更稳定），越不自信则越低（接纳新信息、更有塑性）——这就是用来替代启发式淘汰的”数据依赖保留”。</p>
+<p>（三）推理检索（同一组件）。以 q_t &#x3D; φ(f_t) 查询每个类的记忆，得到该记忆对当前样本重建出的类原型 o^t_c &#x3D; q_t^⊤ M^t_c，再与原始视觉特征做内积得到记忆分支 logits p^mem_c &#x3D; ⟨o^t_c, f_t⟩（Eq. 14）。与固定原型（如类名文本嵌入）相比，o^t_c 是随查询变化的样本自适应类原型：每个类为当前样本临时重建了一个”分类标准”，比固定原型的刚性比较携带更多判别信息。</p>
+<p>（四）双分支融合。另一条支路把 L 个属性文本向量取平均后与视觉特征做内积，得到零样本 logits（§3.4），属性平均比单模板嵌入更鲁棒；两个 logits 向量分别按各自的归一化熵转换为置信度 λ_clip 与 λ_mem，加权求和为最终 logits（Eq. 15）并取 argmax 输出预测。记忆分支承载目标域统计，零样本分支承载预训练知识，哪边更确信哪边的权重更大，使适配从第一个样本起就有可用的融合信号；整条通路的组件与数据流见 图 2。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/ICML2026_A2Memory_fig2_framework.png"
+                      alt="图 2：A2Memory 框架总览"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 2）：框架图把 A2Memory 串成一条从离线构造到在线循环的数据通路。离线侧，类名列表交给 LLM 推理生成类共享的可观察属性，逐类实例化后经 CLIP 文本编码得到候选属性特征，再按代表性与多样性的权衡筛选出紧凑属性集，形成固定复用的先验文本表征。在线侧是一个随样本滚动执行的闭环：来样经图像编码后先做门控与软分配，把视觉特征与每个类-属性文本对齐成代理特征；代理特征作为键、先验文本作为值送入各类的联想记忆，用 delta 规则以梯度步骤压缩更新记忆矩阵；同一步里用当前样本特征查询记忆、检索出类原型并与零样本分支融合得到预测，融合预测的置信度再回写进保留系数，决定下一步记忆保留多少历史。读者应抓住两条主线：属性先验离线固定、记忆随流演化；样本从不被写入某个槽位，信息通过梯度摊入所有类的参数矩阵之中。</p>
+<p>训练与开销边界：CLIP 图像&#x2F;文本编码器全程冻结，没有骨干训练或反传；离线只需一次 LLM 生成、一次文本编码与一次贪心选择。在线每个样本要对全部 C 个类、每类 L 个属性做固定尺寸矩阵量级的计算（一次更新 + 一次检索），计算量随类别数、属性数与特征维的平方增长——这是相对样本槽位记忆的主要代价（论文只在 Table 5 报告总时间，见 §4.4）。</p>
+<p>收敛性（Appendix A）：在一步之内键与值固定时，损失对记忆矩阵是凸二次函数且梯度 Lipschitz 连续，取步长不超过 1&#x2F;L̃ 时记忆优化以 O(1&#x2F;K) 的速率收敛到最优，说明逐样本的梯度更新是数值稳定的。</p>
+<p>与已有组件的界线：CLIP 双编码器、GPT-4o 提示流程、SiLU、delta 规则（gated delta networks 一系）、联想记忆与保留正则（Behrouz 等）都是被直接使用或迁移的已有组件；论文自己的设计是共享属性词汇表的边际增益选择、文本门控软分配与代理键的构造、把”类”作为记忆单元且键&#x2F;值分别取代理视觉表征与先验文本的对应方式、以及保留系数与双分支融合的耦合。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h4 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h4><p>任务与数据集：图像分类的在线测试时自适应，沿用记忆 TTA 的两套标准基准、共 15 个数据集（§5.1、Appendix C.2、Table 10）。跨数据集泛化（Cross-Dataset, CD）10 个：Aircraft（FGVCAircraft）、Caltech101、Cars（StanfordCars）、DTD（纹理）、EuroSAT（卫星图）、Flowers102、Food101、Pets（OxfordPets）、SUN397（场景）、UCF101（动作）；类别数从 10（EuroSAT）到 397（SUN397），测试集规模从约 1,692（DTD）到 30,300（Food101）不等。分布外鲁棒性（OOD）5 个：ImageNet（50,000 张）与四个变体 ImageNet-V2、ImageNet-R、ImageNet-Sketch、ImageNet-A（Table 10）。附录另加 ImageNet-C（15 种腐蚀，Table 9）。</p>
+<p>基础模型：CLIP ViT-B&#x2F;16 与 CLIP RN50，全部冻结、不做任何微调（§5.1）。</p>
+<p>协议与基线：完全在线、单样本流（batch size 1），按 TDA 协议报告 top-1 精度（§5.1）。基线为零样本 CLIP 与近期 TTA 方法，分两类：需要反传的优化型——TPT、DPE、DynaPrompt；免反传的记忆&#x2F;统计型——Dota、BCA、TDA、TCA、ADAPT（§5.1 Baselines；CD 的 RN50 表少 DynaPrompt 与 TCA，Table 1）。</p>
+<p>指标：top-1 精度；Table 2 中的 OOD 平均为四个 OOD 变体的平均，总平均再并入 ImageNet（共 5 个）。</p>
+<p>预算对齐：论文声明沿用 TDA 评估协议，但未说明基线数字是作者在相同协议下重跑，还是引用各自原论文；也未报告任何基线的运行时间之外的预算细节（论文未报告）。本文的超参为 N&#x3D;15、L&#x3D;5、λ&#x3D;0.3、η&#x3D;0.01，全部实验在单张 NVIDIA A100 上完成（§5.1）。</p>
+<p>各实验分工：Table 1&#x2F;2 回答主结果（跨数据集与 OOD）；Table 3 回答三个组件的消融；Table 4 回答数据依赖保留系数的作用；Table 5 回答效率；Table 6 回答记忆分支单独使用时的表现；论文 Fig. 3 回答超参与属性容量的敏感性；论文 Fig. 4&#x2F;5 回答两个挑战是否被针对性解决；Appendix A 讨论记忆更新的收敛；Appendix B.1 回答属性来源（LLM 生成 vs 手写模板）的影响；Appendix B.2 补充 ImageNet-C。</p>
+<h4 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h4><p>跨数据集泛化（Table 1，§5.2）：CLIP-ViT-B&#x2F;16 下平均 71.41%，高于零样本 CLIP 的 64.59 与最强基线 ADAPT 的 70.76（正文写作”超过零样本 6.83%”，按表内两位小数相减为 6.82，属舍入表述）；CLIP-RN50 下 63.56% vs ADAPT 62.82%。论文点名的两个明显增益：DTD 57.28（比 ADAPT +2.08）、Food101 86.19（比 ADAPT +2.38）。</p>
+<p>自然分布偏移（Table 2，§5.2）：ViT-B&#x2F;16 总平均 67.23% vs ADAPT 66.53、DPE 65.93；其中 ImageNet 72.21 vs DPE 71.91，ImageNet-A 64.38 vs ADAPT 63.32（+1.06）。RN50 总平均 51.70%、OOD 四变体平均 48.63% vs ADAPT 47.99%。</p>
+<p>提升小或不提升的项（同两张表）：ViT-B&#x2F;16 的 CD 上，EuroSAT（68.19）与 UCF101（70.66）和 ADAPT 完全持平，SUN397（70.43）比 ADAPT（70.57）低 0.14——即平均提升掩盖了逐数据集差异；RN50 的 ImageNet-Sketch 为 40.16 vs ADAPT 40.21（低 0.05），ImageNet-V2 55.99 vs 55.97（+0.02）。</p>
+<p>附录 ImageNet-C（Table 9，Appendix B.2）：ViT-B&#x2F;16 平均 29.70 vs ADAPT 28.56、零样本 25.50（+4.20）；但 RN50 平均仅 12.86 vs ADAPT 12.72（+0.14），且多个腐蚀类型低于 ADAPT（Motion Blur 12.67 vs 13.85、Gaussian Noise 1.91 vs 2.91、Shot Noise 3.76 vs 3.77、Impulse Noise 2.88 vs 2.92）。</p>
+<p>效率（Table 5，ImageNet 50,000 张、ViT-B&#x2F;16、单卡）：总耗时 69.24 分钟，论文称相对 TPT（586.43）有 8.4 倍加速、比 DPE（114.23）快 1.6 倍；精度 72.21 vs TDA 69.51（但 TDA 只需 52.50 分钟，比本文快约 1.32 倍）、ADAPT 78.55 分钟。相对零样本 CLIP 的 10.01 分钟仍有约 6.9 倍时耗。</p>
+<p>记忆分支单独使用（Table 6，ViT-B&#x2F;16）：只用记忆分支、不做 CLIP 融合时 ImageNet 71.34、OOD 平均 65.83、CD 平均 71.26，三项都已超过 ADAPT（70.91 &#x2F; 65.44 &#x2F; 70.76），论文据此主张增益主要来自记忆机制本身而非融合策略；融合后升至 72.21 &#x2F; 65.99 &#x2F; 71.41。</p>
+<p>方差与显著性：主表（Table 1、2、5、6、9）均无方差、置信区间或显著性检验；唯一报告不确定性的是 Appendix 表 7&#x2F;8，对 20 次随机流顺序给出 ±std（如本文 100% CD 71.53±0.19 对 TDA 67.41±0.98），说明方法对流序的稳定性好于 TDA，但这不能替代主对比的方差——本文与 ADAPT 之间 +0.65~+0.70 个百分点（ViT-B&#x2F;16 的 CD 与 OOD 总平均）没有显著性证据。</p>
+<h4 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h4><p>（一）对 §2 方法侧创新逐项核对消融。Table 3 给出三个组件（先验文本表征 T、代理视觉表征 I^t、类级联想记忆 {M_c}）的两两移除组合。ViT-B&#x2F;16 上：全组件 OOD 65.99 &#x2F; CD 71.41；去掉 T 降到 63.80 &#x2F; 68.50（−2.19 &#x2F; −2.91）；去掉软分配代理表征 I^t 降到 64.12 &#x2F; 69.45（−1.87 &#x2F; −1.96）；去掉联想记忆降到 63.45 &#x2F; 68.95（−2.54 &#x2F; −2.46）；RN50 趋势类似（48.63 &#x2F; 63.56 分别降到 46.20 &#x2F; 60.80、47.50 &#x2F; 61.95、46.88 &#x2F; 61.05）。三个组件都不可缺，但强度排序在两骨干间不一致（ViT 上去记忆最伤，RN50 上去 T 最伤）。Table 4 核对保留系数：自适应 α 在 ViT-B&#x2F;16 OOD 65.99，优于固定 α&#x3D;0.9 的 64.23（表内差 1.76，正文写作 +1.86%，存在 0.1 的算术不一致）、固定 0.5 的 62.50、固定 0.1 的 62.80，随机更新 41.55、累计平均 59.90 则接近崩溃——保留系数的”数据依赖”形式有直接对照支持。Table 6 进一步显示记忆分支单独使用已超过 ADAPT，说明主结论不依赖融合这一便利设计。</p>
+<p>（二）属性先验的口径问题。Appendix B.1（Table 7&#x2F;8）把 GPT-4o 属性替换为手写模板”a photo of a {class}”，在两种骨干、10% 与 100% 两个进度上仍全面优于 TDA 与 ADAPT（如 ViT 100% CD 71.09 vs ADAPT 70.31），GPT-4o 属性额外带来约 0.3–0.8%（ViT 100% OOD 65.74→66.09 即 +0.35；RN50 100% DTD 只有 +0.17，略低于该区间）。作者由此下结论”联想记忆是主要增益来源，属性是补充”。注意这与 Table 3 的 T 消融存在口径差：去掉整个 T 会掉 2.19（OOD），而仅降低属性质量只掉 0.35——说明 T 的作用不只在于”属性描述的多寡”，还包括它同时充当记忆的值端与零样本分支的属性平均判别器；两个口径的差距论文没有对齐解释。</p>
+<p>（三）超参与容量的行为（见图 3，论文 Fig. 3，§5.3）。属性选择规模上，精度随候选数 N 与选中数 L 缓慢上升并在 N≈20 附近饱和（图内为 65.42–67.23 区间的热力图），说明紧凑属性集足以覆盖视觉-语义空间，继续加属性只增开销；λ 在 0 到 1 之间对精度的影响仅 1–2 个百分点量级，最优点在 0.3（代表性与多样性都需要），说明选择机制不需要精调；而记忆学习率 η 明显更敏感，0.01 附近最优，偏大导致记忆不稳定、偏小阻碍适配，RN50 上偏离一个量级即有可见下降。综合看，该机制对属性选择超参稳健、对记忆学习率有依赖，这一敏感性信息为复现者划出了关键超参。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/ICML2026_A2Memory_fig3_hyperparameter_sensitivity.png"
+                      alt="图 3：属性规模与超参敏感性"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 3）：这组实验刻画 A2Memory 对自身超参与容量的依赖轮廓。属性规模维度上，精度从最少配置缓慢爬升并在候选数约 20 处饱和，意味着机制只需要一个覆盖到一定语义宽度的属性子空间，继续扩充候选不会转化为收益而是纯开销；选择权重维度上，代表性与多样性的平衡因子在很宽的取值范围内只造成一到两个百分点的波动，说明”选哪些属性”不是决定成败的变量；真正的敏感轴是记忆更新步长——它过大会让参数记忆在流上失稳、过小则来不及吸收分布信息，且在更小的 RN50 特征空间上数值扰动更明显。读者可以由此判断：这套方法不是靠精细调参成立的，但复现时学习率需要按骨干核对。</p>
+<p>（四）早期阶段与难易样本的行为（见图 4，论文 Fig. 4，§5.3 In-Depth Analysis）。作者把 论文 Fig. 1 中的两组分析在本方法上重做：按进度截断评估时，本方法在流刚推进约 10% 的阶段精度就已高于零样本 CLIP，而其他记忆方法在该阶段低于 CLIP；按预测熵划分难易样本后，本方法在全部阈值上使两类样本的精度大体持平，而熵筛选只改善简单样本。这两条曲线分别对应挑战 ❶ 与 ❷ 的解决声明，其读法与证据强度见随后的图下说明。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/ICML2026_A2Memory_fig4_in_depth_analysis.png"
+                      alt="图 4：早期阶段与难易样本分析"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 4）：这张图的价值在于把”早期就有效”与”难易均衡”两种行为在同一方法上同时呈现：其他记忆方法在早期低于 CLIP、且选择机制只惠及简单样本，而这里两条曲线分别反转，说明软分配与参数记忆的组合从第一个样本起就绕开了污染，压缩式记忆也没有把困难样本丢掉。它支撑的因果解释是机制的两面——污染没发生（早期检索不再提供负向引导）、信息没被淘汰丢弃（困难样本精度没有被简单样本甩开）。需要注意其度量口径：”记忆准确率”在参数化记忆下如何计算论文未说明，难易样本的分界熵阈值也只是作者选定的可视化截断值，因此这组证据是半定量的。</p>
+<p>（五）特征覆盖对比（见图 5，论文 Fig. 5，§5.3 Feature Coverage Visualization）。论文在 ImageNet（ViT-B&#x2F;16）上用 t-SNE 对比 TDA 的熵淘汰保留样本与本方法检索原型的空间分布，检验”无淘汰压缩保留全分布信息、从而改善欠代表样本”这一解释是否成立。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-16/ICML2026_A2Memory_fig5_tsne_coverage.png"
+                      alt="图 5：保留与检索特征的覆盖对比"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 5）：t-SNE 对比给出两种记忆范式在特征空间中的行为差异。熵淘汰只保留高置信样本，它们在每个类簇内收缩成靠近簇核的一小团，覆盖不到分布外围；A2Memory 没有淘汰动作，梯度压缩把整个流的信息折叠进参数矩阵，因而其检索出的原型点在各簇上铺得更开。它与 Table 1&#x2F;2 中困难数据集上的增益方向一致，是该因果解释的主要可视化证据；但它是纯定性证据——论文没有给出覆盖率之类的量化指标，两个面板展示的量（保留样本 vs 检索原型）也不是严格的同类对象，因此只能视为一致性的支持，不能视为机制被证明。</p>
+<p>综合判断：论文对”有效”的证据较完整——两个骨干、15 个基准、组件&#x2F;保留系数&#x2F;属性来源三类消融齐备，且记忆分支单独已超最强基线；对”为什么有效”的证据以消融和定性可视化为主，缺失的关键对照是同一流程内的”硬分配 vs 软分配”，且主对比没有统计检验，替代解释（例如提升主要来自属性平均判别器而非软分配本身）没有被完全排除。</p>
+<h4 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h4><p>已报告的成本：推理总时间（Table 5，ImageNet、ViT-B&#x2F;16、单 A100）：零样本 CLIP 10.01 分钟、TDA 52.50、本文 69.24、ADAPT 78.55、DPE 114.23、TPT 586.43；论文自述对 TPT 有 8.4 倍、对 DPE 有 1.6 倍加速，相对 TDA 慢约 1.32 倍但精度高 2.70 个百分点。训练成本为零（骨干冻结），离线的 LLM 生成与文本编码只做一次。</p>
+<p>未报告的成本（论文未报告）：记忆矩阵的参数量与显存占用——按 §3.3 的定义每类一个特征维平方大小的矩阵，总规模为类别数 × 特征维²；以 Table 10 的类别数代入，ImageNet 的 1000 类在 512 维（ViT-B&#x2F;16）下约为 2.6 亿个浮点参数（fp32 约 1 GB），在 1024 维（RN50 标准特征维）下约 4 GB——此处为分析者按原文公式与公开 CLIP 配置的推算，论文没有披露实际占用，实现可能用惰性分配等方式降低；GPT-4o 的调用次数与费用也未报告（两阶段提示需要为每个数据集生成”每类 × 每属性”的描述，如 ImageNet 规模约 1.5 万条，具体数以论文未报告为准），LLM 的版本快照、温度等参数同样未报告；逐样本计算量没有 FLOPs 分解。人工标注：无（属性由 LLM 生成）。外部依赖：CLIP 模型与 GPT-4o API（后者只用于离线准备）。</p>
+<p>“无训练&#x2F;免反传”的边界：Table 5 把本文标为 BP-free 的 ✓，其含义是不反传 CLIP 编码器、不更新骨干权重；但记忆矩阵本身在每个测试步都做一次梯度计算与更新（Eq. 10–12），因此它不是”完全无梯度”的方法，更准确的定位是”骨干冻结、仅在测试时对记忆参数做在线梯度优化”（作者自己在 §1 也把它描述为 learning to memorize）。</p>
+<p>改善与未解决：被改善的是早期适配的可靠性（论文 Fig. 4）、难易样本的均衡、困难&#x2F;欠代表样本的覆盖（论文 Fig. 5）以及两个骨干上的一致可用性；未解决或存疑的是与最强免反传基线 ADAPT 的差距很小（ViT-B&#x2F;16 上 CD 与 OOD 总平均分别 +0.65、+0.70），附录 ImageNet-C 的 RN50 结果多个腐蚀类型反而低于 ADAPT，t-SNE 覆盖是定性证据，且论文没有失败案例分析、没有 Limitations 小节。</p>
+<p>适用范围：论文验证的边界是 CLIP ViT-B&#x2F;16 与 RN50 的图像分类任务、单样本在线流式协议、15 个标准分类基准加附录的 ImageNet-C；对更大&#x2F;更新的 VLM（SigLIP、DINOv3 仅在 related work 提及）、检测&#x2F;分割等其他任务、批次推理或需要跨域重置的场景均未验证。方法要求能提供目标任务的类名列表，并假定 LLM 能为这些类生成可观察的共享属性——对类别语义高度专业或视觉差异极细的领域，属性先验的质量会直接进入记忆的值端。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：主对比缺少方差与显著性检验，且与最强基线的差距很小，部分逐项结果持平或回退，”consistent-improvements”-的表述被夸大"><a href="#质疑：主对比缺少方差与显著性检验，且与最强基线的差距很小，部分逐项结果持平或回退，”consistent-improvements”-的表述被夸大" class="headerlink" title="质疑：主对比缺少方差与显著性检验，且与最强基线的差距很小，部分逐项结果持平或回退，”consistent improvements” 的表述被夸大"></a>质疑：主对比缺少方差与显著性检验，且与最强基线的差距很小，部分逐项结果持平或回退，”consistent improvements” 的表述被夸大</h4><ul>
+<li><strong>原文依据</strong>：Table 1（ViT-B&#x2F;16 的 CD 平均 71.41 vs ADAPT 70.76；RN50 63.56 vs 62.82）、Table 2（67.23 vs 66.53；51.70 vs 50.82）、Table 9（RN50 ImageNet-C 12.86 vs 12.72）均无 ±std 或置信区间；唯一的不确定性报告在 Appendix 表 7&#x2F;8（20 次流序 ±0.17~0.47）。逐项持平&#x2F;回退：Table 1 的 EuroSAT、UCF101 与 ADAPT 持平、SUN397 低 0.14；Table 2 的 RN50 ImageNet-Sketch 低 0.05；Table 9 的 RN50 四个腐蚀类型低于 ADAPT。</li>
+<li><strong>为什么重要</strong>：影响主结论的可靠性——若增益与流序&#x2F;随机性噪声同量级（附录已显示本文自身流序标准差可达 0.47），”+0.14 到 +0.88”的提升无法与噪声区分；审稿人对 SOTA 声明的第一反应就是检验这一点。</li>
+<li><strong>当前能够得出的判断</strong>：证据不足。方向性一致（多数数据集占优）且附录显示流序稳定性好于 TDA，但主表没有统计检验，”一致提升”在细粒度上不成立。</li>
+<li><strong>如何验证或补强</strong>：主表报告多次流序&#x2F;多种子的均值±标准差与配对显著性检验；公开逐数据集的差值分布；对回退项给出解释。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：挑战-❶-的关键对照缺失——没有”同一流程内的硬分配”实验，”记忆污染”度量口径也未披露"><a href="#质疑：挑战-❶-的关键对照缺失——没有”同一流程内的硬分配”实验，”记忆污染”度量口径也未披露" class="headerlink" title="质疑：挑战 ❶ 的关键对照缺失——没有”同一流程内的硬分配”实验，”记忆污染”度量口径也未披露"></a>质疑：挑战 ❶ 的关键对照缺失——没有”同一流程内的硬分配”实验，”记忆污染”度量口径也未披露</h4><ul>
+<li><strong>原文依据</strong>：Table 3 只提供”移除整个代理表征 I^t”的消融（ViT-B&#x2F;16 65.99→64.12、71.41→69.45），而非把软分配替换为 argmax 硬分配的对照；§3.1 给出的类记忆准确率定义（类记忆中被正确伪标的样本占比）只适用于样本槽位记忆，但论文 Fig. 4 用它对比参数化联想记忆的”早期记忆质量”，其计算方式论文未报告；论文 Fig. 4&#x2F;5 均为曲线与 t-SNE 等定性证据，没有量化覆盖率指标。</li>
+<li><strong>为什么重要</strong>：这是两个挑战之一（也是标题中 “Attributive” 对应的核心机制）的直接检验。若”软分配优于硬分配”没有隔离证据，§2 第 2 项创新点（属性中心表征构建）的必要性就依赖间接证据，机制解释停留在相关性层面。</li>
+<li><strong>当前能够得出的判断</strong>：当前证据不足，且度量口径不可复现；”移除 I^t”与”软 vs 硬”不是同一个变量。</li>
+<li><strong>如何验证或补强</strong>：在本方法内增加硬分配变体（同一键&#x2F;值只投喂 argmax 类的槽），与软分配直接对比；补充参数化记忆下记忆质量的明确定义，或改用可量化的覆盖率&#x2F;校准指标替代 t-SNE。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：记忆的存储开销未报告，”轻量”定位与规模扩展性未受检验"><a href="#质疑：记忆的存储开销未报告，”轻量”定位与规模扩展性未受检验" class="headerlink" title="质疑：记忆的存储开销未报告，”轻量”定位与规模扩展性未受检验"></a>质疑：记忆的存储开销未报告，”轻量”定位与规模扩展性未受检验</h4><ul>
+<li><strong>原文依据</strong>：Table 5 只报告时间；全篇未报告参数量、显存或峰值内存。按 §3.3 的定义（每类一个固定尺寸方阵，共 C 个），总存储与类别数成正比；ImageNet 的 1000 类在 ViT-B&#x2F;16 特征维下约为 512²×1000 个参数（分析者按原文公式的推算，论文未报告实际值）。在线每步还要对 C 个类做逐类梯度更新与检索，成本随类别数线性增长。</li>
+<li><strong>为什么重要</strong>：记忆方法的卖点是在线轻量；未披露的存储项和随类别数增长的每步成本，直接影响它在真实部署（尤其是类别很多的任务）中的适用性判断，也影响可复现性——审稿人无法估算复现所需资源。</li>
+<li><strong>当前能够得出的判断</strong>：论文未报告（时间已报告且与优化型基线对比公平，但存储层面缺失）；”BP-free”仅指不反传编码器，记忆仍在做梯度更新，与”训练自由”的通常印象存在张力，需要读者自行厘清。</li>
+<li><strong>如何验证或补强</strong>：报告峰值显存与逐样本 FLOPs；在类别数跨度更大的数据集（如 ImageNet 1000 类 vs EuroSAT 10 类）上给出显存&#x2F;延迟随 C 的变化曲线。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：属性先验依赖外部-LLM，版本与成本未披露；且论文自己的降级实验削弱了-“Attributive”-的贡献陈述"><a href="#质疑：属性先验依赖外部-LLM，版本与成本未披露；且论文自己的降级实验削弱了-“Attributive”-的贡献陈述" class="headerlink" title="质疑：属性先验依赖外部 LLM，版本与成本未披露；且论文自己的降级实验削弱了 “Attributive” 的贡献陈述"></a>质疑：属性先验依赖外部 LLM，版本与成本未披露；且论文自己的降级实验削弱了 “Attributive” 的贡献陈述</h4><ul>
+<li><strong>原文依据</strong>：Appendix C.1&#x2F;C.2 展示两阶段 GPT-4o 提示流程，未报告模型快照、temperature、调用次数与费用；Appendix B.1（Table 7&#x2F;8）显示把手写模板”a photo of a {class}”替换 GPT-4o 属性后仍全面超过 TDA&#x2F;ADAPT，GPT-4o 属性只额外贡献约 0.3–0.8%（RN50 100% DTD 仅 +0.17）；作者自述”联想记忆是主要增益来源，属性是补充”，这与摘要中”属性中心记忆构建”作为并行创新点的叙述存在张力；同时 Appendix B.1 的幅度（+0.35 OOD）与 Table 3 去掉 T 的幅度（−2.19 OOD）口径不一致，论文未解释。</li>
+<li><strong>为什么重要</strong>：若属性质量只贡献个位数千分点，标题与贡献列表对 “Attributive” 的强调可能名不副实；LLM 依赖还引入复现门槛（API 非确定性、版本漂移）与未披露的经济成本。</li>
+<li><strong>当前能够得出的判断</strong>：作者的自我理解（记忆为主、属性为辅）有实验支持，但这部分地解构了其 framing；LLM 依赖的稳定性与成本当前材料无法确认。</li>
+<li><strong>如何验证或补强</strong>：报告提示词参数与调用成本；更换 LLM&#x2F;版本做属性质量敏感性；把”无属性”（单模板 + 记忆）纳入主消融并与 Table 3 口径对齐。</li>
+<li><strong>严重程度</strong>：次要问题（影响创新性表述而非方法正确性）。</li>
+</ul>
+<h4 id="质疑：正文与表格存在算术-符号不一致，基线数字来源与预算对齐未说明"><a href="#质疑：正文与表格存在算术-符号不一致，基线数字来源与预算对齐未说明" class="headerlink" title="质疑：正文与表格存在算术&#x2F;符号不一致，基线数字来源与预算对齐未说明"></a>质疑：正文与表格存在算术&#x2F;符号不一致，基线数字来源与预算对齐未说明</h4><ul>
+<li><strong>原文依据</strong>：§5.3 写 “+1.86% on ViT-B&#x2F;16 OOD by α &#x3D; 0.9”，而 Table 4 中自适应 65.99 与固定 α&#x3D;0.9 的 64.23 相差 1.76；§5.2 写超零样本 CLIP “6.83%”，Table 1 中 71.41 与 64.59 相差 6.82；Algorithm 1 第 24 行的记忆更新符号（+η∇）与 Eq. 12（−η∇）相反（Appendix A 推导支持 Eq. 12）；基线（TPT、DPE、TDA、ADAPT 等）是否在相同在线单样本协议下重跑、还是引用原论文数字，论文未说明。</li>
+<li><strong>为什么重要</strong>：影响方法描述的准确性与可复现性；若基线协议与本文不完全一致（如 TPT 的批量设置），对比公平性无法确认。</li>
+<li><strong>当前能够得出的判断</strong>：算术与符号不一致是可核查的描述瑕疵（幅度小，不改变结论方向）；基线的复现来源属”当前材料无法确认”。</li>
+<li><strong>如何验证或补强</strong>：作者勘误或在代码中确认更新符号；附上基线数字来源表（引用页或复现脚本）与统一的评测脚本。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现记忆式 VLM 测试时自适应的两个结构性缺陷——按硬伪标签写入单一类记忆会把错误样本永久留在该类的检索集里，固定容量下按低熵淘汰又会把记忆覆盖收缩到容易样本上——因此提出把”样本级存储”整体改写为”类级联想记忆”：用 LLM 属性先验锚定语义、用文本门控软分配生成代理键、用 delta 规则与置信度驱动的保留系数在固定容量内压缩整条测试流，并以样本自适应原型的检索和零样本分支的置信度融合输出预测。实验在 15 个分类基准、CLIP ViT-B&#x2F;16 与 RN50 两个骨干上表明平均精度稳定超过全部对比基线；其中组件消融、保留系数对照、记忆分支单独评测与两个骨干的一致性证据较强，无淘汰覆盖的特性也有可视化支持，但与最强基线 ADAPT 的差距小且无显著性检验、软 vs 硬分配缺关键对照、记忆存储与 LLM 成本未披露等仍使主要结论缺少充分支持。本文最有价值的部分是把联想记忆&#x2F;测试时记忆化这一机制干净地迁移到 VLM 在线适配，并给出可复制的属性先验构造流程；最大的审稿风险是性能增益的幅度与统计证据不足以支撑”一致超越 SOTA”的表述。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强（两个失败模式有分阶段统计与可视化支撑，论文 Fig. 1 与 §3.1 的对应关系明确）</li>
+<li><strong>创新性证据</strong>：中（联想记忆迁移到 VLM TTA 的机制是实质增量，但属性侧的贡献被作者自己的 Appendix B.1 压缩到 0.3–0.8%）</li>
+<li><strong>方法可信度</strong>：中（更新规则有收敛性论证、超参行为清楚；但软分配相对硬分配的必要性无直接对照，记忆的存储代价未披露）</li>
+<li><strong>实验支持力度</strong>：中（15 基准 + 两骨干 + 附录方差与腐蚀鲁棒性，覆盖面好；但主对比缺显著性、逐项存在持平与回退）</li>
+<li><strong>可复现性</strong>：弱（无公开代码仓库；GPT-4o 版本&#x2F;参数与调用成本未报告；基线数字来源未说明；Algorithm 1 与 Eq. 12 符号不一致）</li>
+<li><strong>综合阅读价值</strong>：中（对记忆式 TTA 与联想记忆迁移方向有清晰的机制讲解与工程细节，适合作为该方向的精读样本；结论强度需按 §5 的质疑打折理解）</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Learning to Memorize with Attributive and Associative Memory for Online Test-Time Adaptation of Vision-Language Models</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-16 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-16 11:40:49
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/16/ICML2026_A2Memory_Learning_to_Memorize_with_Attributive_and_Associative_Memory_for_Online_Test-Time_Adaptation_of_Vision-Language_Models/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/VLMs/">#VLMs</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Test-Time-Adaptation/">#Test-Time Adaptation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Test-Time-Training/">#Test-Time Training</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Associative-Memory/">#Associative Memory</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/16/2610.07946v1_Adapting_Vision-Language-Action_Models_to_Unknown_Visual_Disruptions_During_Execution/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Adapting Vision-Language-Action Models to Unknown Visual Disruptions During Execution</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/16/NeurIPS2025_SSG_Training-Free_Test-Time_Adaptation_via_Shape_and_Style_Guidance_for_Vision-Language_Models/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Training-Free Test-Time Adaptation via Shape and Style Guidance for Vision-Language Models</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Learning to Memorize with Attributive and Associative Memory for Online Test-Time Adaptation of Vision-Language Models</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 148 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
