@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/20/2601.20802v2_sdpo_reinforcement_learning_via_self-distillation/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Reinforcement Learning via Self-Distillation">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/20/2601.20802v2_SDPO_Reinforcement_Learning_via_Self-Distillation/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-20T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-20T11:32:08.923Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="GRPO">
+<meta property="article:tag" content="LLM Reasoning">
+<meta property="article:tag" content="On-Policy Distillation">
+<meta property="article:tag" content="Reinforcement Learning">
+<meta property="article:tag" content="Self-Distillation">
+<meta property="article:tag" content="Test-Time Training">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Reinforcement Learning via Self-Distillation | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">207</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">157</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Reinforcement Learning via Self-Distillation</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-20 12:00</span>
+        <span class="mobile">2026-10-20 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-20 19:32:08</span>
+            <span class="mobile">2026-10-20 19:32:08</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Reinforcement-Learning/">Reinforcement Learning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Self-Distillation/">Self-Distillation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/On-Policy-Distillation/">On-Policy Distillation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/GRPO/">GRPO</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-Reasoning/">LLM Reasoning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Test-Time-Training/">Test-Time Training</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Jonas Hübotter、Frederike Lübeck、Lejs Behric、Anton Baumann、Marco Bagatella、Daniel Marta、Ido Hakimi、Idan Shenfeld、Thomas Kleine Buening、Carlos Guestrin、Andreas Krause</p>
+<p>论文版本：ICML 2026（PMLR v306, pp. 48677–48721）；arXiv:2601.20802v2（v1 2026-01-28；v2 2026-02-16）</p>
+<p>论文：ICML 2026 (PMLR v306, pp. 48677–48721)；arXiv:2601.20802v2；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-20</p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://proceedings.mlr.press/v306/hubotter26a.html" >PMLR<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>｜<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2601.20802v2" >arXiv HTML<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>｜<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2601.20802v2" >arXiv PDF<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>代码与页面：<a class="link"   target="_blank" rel="noopener" href="https://github.com/lasgroup/SDPO" >GitHub: lasgroup&#x2F;SDPO<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a>｜<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2601.20802" >Hugging Face Papers<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>标签：Reinforcement Learning、Self-Distillation、On-Policy Distillation、GRPO、LLM Reasoning、Test-Time Training。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>SDPO（Self-Distillation Policy Optimization，自蒸馏策略优化）把“当前策略在反馈条件下的版本”当作教师，将反馈条件下的下一 token 分布蒸馏回无条件策略，从而在没有外部教师和显式奖励模型的情况下，把 tokenized feedback（词元化反馈）转成逐 token 的密集优势。论文在科学问答、工具调用和 LiveCodeBench v6 上给出的证据显示，SDPO 平均而言比调优后 GRPO 收敛更快、在多数任务上最终准确率更高，但“3× 更少尝试”只在特定发现概率和筛选过的难题上成立，且方法在训练与测试时都依赖可获得的反馈。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>领域层面的老问题：稀疏结果奖励下的信用分配。</strong> 当前 LLM 后训练的主流做法是 RLVR（Reinforcement Learning with Verifiable Rewards，可验证奖励的强化学习）：模型对问题 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span> 采样回答 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi></mrow><annotation encoding="application/x-tex">y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span></span></span>，环境只返回一个标量奖励 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi></mrow><annotation encoding="application/x-tex">r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span>，通常还是二值的“测试通过&#x2F;不通过”。GRPO（Group Relative Policy Optimization，组相对策略优化）用同一问题的一组 rollout（回合采样）的相对奖励估计优势（advantage）。问题在于，这个优势在整个回答的所有 token 上是同一个常数：无论哪一步推理出错，整段回答一起被奖励或惩罚；当一组 rollout 的奖励全相同，尤其是全为零时，组内优势全部消失，训练不再有梯度（§1，PMLR p. 1）。</p>
+<p><strong>已有做法的局限。</strong> 一条路是训练 PRM（Process Reward Model，过程奖励模型）给中间步骤打分，但这需要步骤级标注或额外奖励模型，成本和偏差都高；另一条路是 on-policy distillation（在线策略蒸馏），用一个更强的外部教师提供密集监督，但前提是存在更强教师。此前的 self-distillation（自蒸馏）工作多用离线的成功轨迹做模仿，难以在在线 RL 中边探索边纠错（Table 1，§6）。论文还把 SFT（监督微调）、离线蒸馏、在线蒸馏和 RLVR 放在一张表里对比：SDPO 的定位是“在线采样、密集信号、反馈来自环境、教师来自自身”。</p>
+<p><strong>本文抓住的新观察：丰富反馈被丢掉了。</strong> 代码环境会返回运行时错误、失败测试用例、期望输出；工具环境会返回错误信息；有些任务还能从同组成功轨迹中得到样例解。这些反馈在 RLVR 里通常被压成一个 0&#x2F;1 奖励。作者的关键观察是：同一个模型在上下文中看到反馈后，往往能“事后识别”自己哪一步错了；把反馈放进上下文会改变它的下一 token 分布，而这个分布与无反馈分布的逐 token 对数比，正好可以作为密集的信用分配信号（§1–§2，论文 Fig. 2、论文 Fig. 3）。论文把这种设定形式化为 RLRF（Reinforcement Learning with Rich Feedback，丰富反馈强化学习），并把“反馈条件下、参数相同的当前策略”称为 self-teacher（自教师）。</p>
+<p><strong>作者对原因的解释与本文要验证的假设。</strong> 作者把瓶颈归因于信息通道而非模型容量：标量奖励只告诉模型“错了”，没有告诉它“哪里错、往哪改”；反馈条件下的自教师则能提供 token 级的“同意&#x2F;不同意”。由此要验证的核心假设是：把自教师的下一 token 分布蒸馏回学生，可以在不引入外部教师的前提下获得比 GRPO 更密集、更稳定的学习信号；并且这种信号在只有标量奖励时，也能通过“同组成功轨迹作为失败轨迹的样例解”部分构造出来（§2–§3）。需要注意，这是作者的解释；论文用消融支持了“密集信号有用”，但没有完全证明所有增益都来自这一因果机制（详见 §4.3）。</p>
+<p><strong>需要区分的三件事。</strong> 一般问题是“稀疏奖励下的信用分配”，这在 RL 中早已存在；本文的新观察是“环境反馈里其实有大量可用的 token 级信息，且同一模型能利用它”；本文实际解决的子问题是“如何把这种反馈变成可在线优化的密集优势，并把它用于训练时和测试时的策略改进”。论文并没有解决“完全没有任何反馈、且一组 rollout 全失败”时的探索问题——这一点在 §4.3 和 §5 中会展开。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的技术增量不是“使用反馈”，而是把反馈条件下的同一模型变成教师，并用 logit 级（logit-level）KL 把教师与学生的逐 token 差异转成可替换 GRPO advantage 的密集优势。具体包括：</p>
+<ol>
+<li><p><strong>RLRF 的问题形式化。</strong> 把 RLVR 的标量（常为二值）奖励扩展为任意 token 序列构成的反馈 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi></mrow><annotation encoding="application/x-tex">f</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span></span></span></span>，训练循环仍是“采样—评估—更新”，但环境返回的是错误信息、失败测试或样例解。相对 RLVR，变化的是信息通道而非任务定义（Table 1，论文 Fig. 2）；证据见 §4.2 的代码实验与 §4.3 的反馈类型消融。</p>
+</li>
+<li><p><strong>反馈条件自教师。</strong> 教师 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>π</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><mi>f</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\pi_\theta(\cdot\mid x,f)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mclose">)</span></span></span></span> 与学生 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>π</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\pi_\theta(\cdot\mid x)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mclose">)</span></span></span></span> 共享全部参数，区别只是上下文里多了反馈；因此不需要外部强教师、PRM 或人工步骤标注。与 on-policy distillation 的差别是教师并不更强，只是“多看了反馈”；与既有 self-distillation 的差别是在线采样、用反馈而非只模仿成功轨迹（§2，Table 1）。证据见 §4.3 的反馈消融与教师自举实验。</p>
+</li>
+<li><p><strong>logit 级密集优势。</strong> 每个 token 的优势是教师与学生在该 token 上的对数概率比，替代 GRPO 在整条回答上恒定的序列优势；梯度可写成逐 token 的策略梯度，因此可以直接替换标准 RLVR 实现的 advantage。证据见 §4.3 的 logit&#x2F;token&#x2F;sequence 三级消融（论文 Fig. 8 左）。</p>
+</li>
+<li><p><strong>稳定化训练配方。</strong> 用 stopgrad（停止梯度）阻断教师梯度，配合 EMA（指数滑动平均）或 trust-region（信任域）教师、对称 Jensen–Shannon 散度和 top-K logits 近似，使同参数教师不会塌缩、显存可控。相对标准 logit 蒸馏，它额外处理的是“教师由学生自己扮演”带来的漂移风险，以及同时保存两份完整 logits 的显存开销。证据见 §4.3 的教师正则化对比（Table 6）与附录 C.2。</p>
+</li>
+<li><p><strong>测试时自蒸馏。</strong> 在单个难题上反复“尝试—拿反馈—更新权重”，把多轮交互历史压缩进参数而不是堆在上下文里，并用 discovery@k 衡量发现解的概率。相对 multi-turn 重提示，差别是历史进入权重而非上下文，针对的是上下文窗口随尝试次数增长、难以持续压缩反馈的问题。证据见 §4.2 的测试时结果（论文 Fig. 10、Table 10）与 §3 的流程说明（论文 Fig. 9）。</p>
+</li>
+</ol>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>先给直觉：SDPO 不训练第二个教师模型，也不要求教师参数更强。它把同一个模型放在两个上下文里——学生只看到问题，教师还看到“这次尝试为什么错”的反馈。教师对原回答的每个 token 重新打分；凡是教师比学生更认可的词，就提高概率，反之降低。因为教师与学生的参数完全相同，这个“教师”并不是知识更多，而是<strong>在同一时刻多了一份关于这次尝试的外部信息</strong>；蒸馏的作用是把这份信息从上下文搬进参数。作者认为这正好补上了 RLVR 丢掉的那部分信用分配信号（§2）。</p>
+<p><strong>一次训练迭代的完整流程。</strong> 输入是一个问题 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span> 和当前策略 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>π</mi><mi>θ</mi></msub></mrow><annotation encoding="application/x-tex">\pi_\theta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>。第一步，从学生策略采样 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>G</mi></mrow><annotation encoding="application/x-tex">G</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">G</span></span></span></span> 条回答 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">{</mo><msub><mi>y</mi><mi>i</mi></msub><msubsup><mo stretchy="false">}</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>G</mi></msubsup></mrow><annotation encoding="application/x-tex">\{y_i\}_{i=1}^G</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.1em;vertical-align:-0.2587em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose"><span class="mclose">}</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-2.4413em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">G</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2587em;"><span></span></span></span></span></span></span></span></span></span>，每条回答交给环境评估，得到反馈 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>f</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">f_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>。反馈可以有两种来源：一是环境输出，例如运行时错误、失败测试的输入输出、工具报错；二是同组中某条成功回答，作为失败回答的“样例解”。教师模板把学生的原始尝试 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">y_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 作为待重新打分的回答，而不是让教师重新生成一条新回答；反馈部分则放入环境输出和&#x2F;或样例解。论文发现，如果把原始尝试再次放进反馈上下文，教师会被锚定在原来的错误上，反而降低探索（Table 3、Table 5，Algorithm 1）。这一点很关键：SDPO 不增加采样次数，只增加一次对已有 token 的前向计算。</p>
+<p><strong>图 1</strong> 对比了 RLVR 与 RLRF 的信息通道，说明为什么“反馈是否被 token 化”会改变可用的信用分配信号。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/sdpo_fig2_rlvr_vs_rlrf.png"
+                      alt="图 1：RLVR 与 RLRF 的信息通道"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：RLVR 把环境的评估结果压缩成一个标量奖励，整条回答的所有 token 共享同一个优势，反馈里“哪一步错了”的信息在进入优化器前就丢失了；RLRF 则把环境输出作为一段 token 序列放进同一模型的教师上下文，教师据此对原回答逐 token 重新打分，学生从教师与学生的逐 token 概率差中学习。图中的两条路径对应两种训练管线，而不是两个不同的模型：SDPO 的教师和学生始终是同一组参数，差别只在上下文是否包含反馈。</p>
+<p><strong>自教师的目标函数。</strong> 对每个 token 位置 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span>，学生分布是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>π</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\pi_\theta(\cdot\mid x,y_{&lt;t})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，教师分布是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>π</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><mi>f</mi><mo separator="true">,</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\pi_\theta(\cdot\mid x,f,y_{&lt;t})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>。SDPO 最小化两者的 KL 散度，并对教师做 stopgrad：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi><mi mathvariant="normal">P</mi><mi mathvariant="normal">O</mi></mrow></msub><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo><mo>=</mo><munderover><mo>∑</mo><mrow><mi>t</mi><mo>=</mo><mn>1</mn></mrow><mrow><mi mathvariant="normal">∣</mi><mi>y</mi><mi mathvariant="normal">∣</mi></mrow></munderover><mrow><mi mathvariant="normal">K</mi><mi mathvariant="normal">L</mi></mrow><mo fence="false" stretchy="true" minsize="1.8em" maxsize="1.8em">(</mo><msub><mi>π</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo><mtext> </mtext><mo fence="false" stretchy="true" minsize="1.8em" maxsize="1.8em">∥</mo><mtext> </mtext><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">g</mi></mrow><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">[</mo><msub><mi>π</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><mi>f</mi><mo separator="true">,</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">]</mo><mo fence="false" stretchy="true" minsize="1.8em" maxsize="1.8em">)</mo><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">
+\mathcal{L}_{\mathrm{SDPO}}(\theta)=\sum_{t=1}^{|y|}\mathrm{KL}\Big(\pi_\theta(\cdot\mid x,y_{&lt;t})\,\Big\|\,\mathrm{sg}\big[\pi_\theta(\cdot\mid x,f,y_{&lt;t})\big]\Big).
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">SDPO</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:3.2281em;vertical-align:-1.2671em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.961em;"><span style="top:-1.8829em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.386em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∣</span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">y</span><span class="mord mtight">∣</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.2671em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm">KL</span></span><span class="mord"><span class="delimsizing size2">(</span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.8em;vertical-align:-0.65em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.15em;"><span style="top:-3.15em;"><span class="pstrut" style="height:3.8em;"></span><span style="width:0.556em;height:1.8em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.556em" height="1.8em" viewBox="0 0 556 1800"><path d="M145 15 v585 v600 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v-600 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M188 15 H145 v585 v600 v585 h43z
+M367 15 v585 v600 v585 c2.667,10,9.667,15,21,15
+c10,0,16.667,-5,20,-15 v-585 v-600 v-585 c-2.667,-10,-9.667,-15,-21,-15
+c-10,0,-16.667,5,-20,15z M410 15 H367 v585 v600 v585 h43z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.65em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm" style="margin-right:0.0139em;">sg</span></span><span class="mord"><span class="delimsizing size1">[</span></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.8em;vertical-align:-0.65em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mord"><span class="delimsizing size1">]</span></span><span class="mord"><span class="delimsizing size2">)</span></span><span class="mord">.</span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">g</mi></mrow><mo stretchy="false">[</mo><mo>⋅</mo><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">\mathrm{sg}[\cdot]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm" style="margin-right:0.0139em;">sg</span></span><span class="mopen">[</span><span class="mord">⋅</span><span class="mclose">]</span></span></span></span> 表示停止梯度。若不停梯度，教师分布也会被同一个损失推动，目标会追着学生跑，反馈条件的作用被逐渐抹平；stopgrad 把教师固定为“本步的回归目标”，让学生单方面靠近它（§2）。这也是为什么同一个模型可以同时扮演两个角色而不塌缩。</p>
+<p><strong>它为什么是一个策略梯度算法。</strong> 把上述 KL 的梯度展开，可以得到一个逐 token 的策略梯度；第 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span> 个 token 上的系数（优势）是教师与学生对同一个 token 的对数概率比：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msubsup><mi>A</mi><mi>t</mi><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi><mi mathvariant="normal">P</mi><mi mathvariant="normal">O</mi></mrow></msubsup><mo>=</mo><mi>log</mi><mo>⁡</mo><mfrac><mrow><msub><mi>π</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>t</mi></msub><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><mi>f</mi><mo separator="true">,</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo></mrow><mrow><msub><mi>π</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>t</mi></msub><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo></mrow></mfrac><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">
+A_t^{\mathrm{SDPO}}=\log\frac{\pi_\theta(\hat y_t\mid x,f,y_{&lt;t})}{\pi_\theta(\hat y_t\mid x,y_{&lt;t})}.
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.1383em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8913em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">SDPO</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.363em;vertical-align:-0.936em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mord">.</span></span></span></span></span>
+<p>教师更认可某个 token 时 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>A</mi><mi>t</mi></msub><mo>&gt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">A_t&gt;0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>，更反对时 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>A</mi><mi>t</mi></msub><mo>&lt;</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">A_t&lt;0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&lt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>，两者完全一致时为零。与 GRPO 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>r</mi><mi>i</mi></msub><mo>−</mo><mrow><mi mathvariant="normal">m</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">n</mi></mrow><mo stretchy="false">(</mo><mi>r</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">r_i-\mathrm{mean}(r)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathrm">mean</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mclose">)</span></span></span></span> 相比，GRPO 的优势在一条回答内是常数，且只对采样到的整条序列给一个值；SDPO 的优势对每个 token 都不同，且只要求教师与学生“在这一个位置上是否同意”，不要求教师能独立做对整道题。因此 SDPO 可以直接复用 RLVR 的实现，只需把 advantage 换掉（§2.1）。这也是论文最重要的机制主张：<strong>密集性来自“逐 token 重新打分”，而不是来自一个更强的模型</strong>。</p>
+<p><strong>图 2</strong> 用一个具体例子展示这种逐 token 打分：反馈只说“不要包含 n”，教师就能在相关 token 上给出明显的正负差异。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/sdpo_fig3_self_teaching.png"
+                      alt="图 2：自教师的逐 token 对数比"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 3）：模型先在没有反馈的情况下生成回答，随后把反馈放进上下文，对原回答的每个 token 重新计算概率。图中真正承载信号的是少数 token 上的对数比偏离零，而不是整段回答被统一加分或减分；这说明自教师可以把“哪里错了”定位到具体位置。对 SDPO 而言，这些偏离就是后续策略梯度的逐 token 优势，因此一次前向就能把一条失败轨迹变成多个局部学习信号，而不需要额外采样或人工步骤标注。</p>
+<p><strong>训练循环与稳定化。</strong> 算法层面，SDPO 是严格 on-policy 的：每采样一批回答，只做一次梯度更新，然后丢弃这批数据（§3，Algorithm 1）。作者明确说没有做“同一批数据多步更新”的 off-policy（离策略）版本，把这留作未来工作。为了在同参数教师下稳定训练，论文加了四个工程性设计。其一是正则化教师：用学生参数的 EMA 作为教师，或在当前教师与初始教师之间做信任域插值，防止教师漂移过快（Appendix E.2）。其二是对称 Jensen–Shannon 散度，替代单向 KL；作者引用 on-policy distillation 的经验称其能提升稳定性（Appendix C.2）。其三是 top-K 蒸馏：只计算学生 top-K token 的 logits 及教师对应 logits，再加一个尾概率项；§3 用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mo>=</mo><mn>100</mn></mrow><annotation encoding="application/x-tex">K=100</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">100</span></span></span></span>，§4&#x2F;§5 用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi><mo>=</mo><mn>20</mn></mrow><annotation encoding="application/x-tex">K=20</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">20</span></span></span></span>，以此避免同时保存两个完整 logits 张量（Appendix C.1、E.3）。其四是 stopgrad，前面已经说明。消融显示，不加正则化时学生最好&#x2F;平均准确率为 36.1%&#x2F;29.8%，训练最终发散；冻结初始教师、trust-region 和 EMA 都能稳定，其中 trust-region 的学生最好&#x2F;平均准确率最高（Table 6）。</p>
+<p><strong>丰富反馈与“无丰富反馈”并不是一回事。</strong> 在代码任务中，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi></mrow><annotation encoding="application/x-tex">f</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span></span></span></span> 是环境输出（运行时错误、失败测试）加上同组成功轨迹；在科学问答和工具调用中，环境只给标量对错，作者把同组中成功的回答当作失败回答的样例解，因此仍能构造出“教师比学生多看到一条正确解法”的条件（§3）。这也解释了为什么 SDPO 在标准 RLVR 设置下仍可能优于 GRPO：它并不是从标量奖励里榨出更多信息，而是把同组成功轨迹重新组织成了失败轨迹的密集监督。反过来说，若一个 group 内没有任何成功轨迹，SDPO 也拿不到样例解；论文没有报告这种全失败 group 下的行为，但从算法与模板看，此时教师与学生的上下文差异很小，SDPO 不会比 GRPO 多出反馈信号。这是理解其适用边界的关键。</p>
+<p><strong>与 GRPO 的结合。</strong> 论文还给出一个混合优势：把 GRPO 的 Monte Carlo 优势与 SDPO 优势按 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>λ</mi></mrow><annotation encoding="application/x-tex">\lambda</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">λ</span></span></span></span> 加权，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>λ</mi><mo>=</mo><mn>0.9</mn></mrow><annotation encoding="application/x-tex">\lambda=0.9</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">λ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.9</span></span></span></span> 时在弱模型（Qwen3-0.6B）上更稳，但在强模型（Qwen3-8B）上略逊于纯 SDPO（Appendix D.2，Eq. 4）。作者的解释是：弱模型的自教师不可靠，加入 GRPO 的无偏标量奖励有助于稳定训练；强模型的自教师已经足够好，标量奖励反而可能引入噪声。这个解释与“能力越强，自教师越有用”的 scaling 叙事一致，但论文没有给出逐 token 的可靠性度量来直接验证。</p>
+<p><strong>测试时自蒸馏。</strong> 训练时的 SDPO 仍然需要一个数据集和多次梯度更新；测试时自蒸馏（Test-Time Self-Distillation，TTT）把这一套搬到单个问题上。对一道难题 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span>，模型先采样一批回答（批量 16），环境给出反馈，然后用 SDPO 更新权重；下一批回答从更新后的策略采样，问题上下文重新开始，不携带此前的对话历史。这样，反复的“尝试—反馈”历史被压缩进参数，而不是像 multi-turn 那样不断追加到上下文窗口，直到 40k token 上限（§5，论文 Fig. 9）。评价指标 discovery@k 定义为“在 k 次总生成内至少找到一次解”的概率，它把 pass@k 从固定模型推广到会随尝试而更新的策略（§5，Eq. 3）。</p>
+<p><strong>图 3</strong> 展示了这种“把上下文压进权重”的测试时流程，以及它与多轮对话的区别。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/sdpo_fig9_context_compression.png"
+                      alt="图 3：测试时把反馈历史压缩进权重"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 9）：模型对同一个问题反复生成答案并接收反馈，但每一轮之后不是把“问题—答案—反馈”继续拼进上下文，而是用 SDPO 把当前反馈条件下的分布蒸馏进参数，使下一轮从“已经吸收过这条反馈”的策略出发。这样做的直接后果是上下文长度不再随尝试次数线性增长，历史信息被转成权重中的偏好；代价是每轮都要做一次参数更新，测试时不再只是采样。与 multi-turn 的对比因此不是“有没有反馈”，而是“反馈放在上下文里还是放进参数里”。</p>
+<p>测试时的预算与选择也需要交代清楚：难题和极难题分别定义为 Qwen3-8B 的 pass@64 &lt; 0.5 和 &lt; 0.03；最终保留的问题是“best-of-k、multi-turn、SDPO 三者中任意一个能在 5 个随机种子、512 步内找到至少一个解”的问题，极难题 9 道、难题 19 道；最大生成预算为 2750 次，SDPO 批量 16，multi-turn 使用 FIFO 滑动窗口并限制在 40k 上下文、32k 最大 prompt 内（§5，Appendix H）。这些条件决定了后文“3× 更少尝试”的适用范围，§4.2 会具体拆开。</p>
+<p><strong>输出与推理阶段的变化。</strong> 训练阶段的输出是一个更新后的策略；推理阶段若只做普通部署，SDPO 不改变推理流程，模型仍是无反馈条件下的一次生成。只有启用 TTT 时，推理才变成“采样—反馈—更新”的循环，且必须能拿到环境反馈。论文没有把 TTT 描述成通用的推理时 scaling 方法，而是明确限定在“有二分奖励、可反复尝试”的难题发现场景（§5，§7）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p><strong>任务与数据。</strong> 论文分三组实验。第一组是“无环境丰富反馈”的标准 RLVR 设置：SciKnowEval 的本科级科学问答，覆盖 Chemistry、Physics、Biology、Materials 四个学科，外加 ToolAlpaca 的 API 调用选择；模型需要在未见过的测试集上泛化（§3）。第二组是“有丰富反馈”的代码生成：LiveCodeBench v6 的 131 道题，发布时间为 2025 年 2 月至 5 月；训练时只给公开测试（私有测试的 50% 随机子集）和运行时错误，验证用私有测试，模拟 LeetCode 式“公开样例 + 隐藏评测”的设定（§4）。第三组是测试时发现：从 LCBv6 中挑出 Qwen3-8B 的 pass@64 &lt; 0.5 的难题和 pass@64 &lt; 0.03 的极难题，共 19 + 9 道（§5）。此外，附录用 IFEval、ArenaHard-v2、MMLU-Pro 检查遗忘（Table 4）。</p>
+<p><strong>模型与基线。</strong> 主实验用 Qwen3-8B 和 Olmo3-7B-Instruct；scaling 实验用 Qwen3-0.6B&#x2F;1.7B&#x2F;4B&#x2F;8B，并补充 Qwen2.5-Instruct-1.5B&#x2F;3B&#x2F;7B（论文 Fig. 6、论文 Fig. 17）。基线包括：作者调优过的 GRPO（含近期改进）、与 SDPO 同超参的 on-policy GRPO、GSPO、CISPO、只在 high-entropy token 上更新的 GRPO 变体，以及“对自教师成功轨迹做 SFT”的离线蒸馏基线（Table 9、Table 4）。测试时基线是 best-of-k 独立采样和 multi-turn 反馈重提示。<strong>论文没有把“外部强教师 + on-policy distillation”或“PRM + RL”作为主实验基线</strong>，这是一个需要在 §4.3 和 §5 中记住的缺口。</p>
+<p><strong>指标与预算。</strong> 科学问答和工具调用报告 avg@16，按 1 小时&#x2F;5 小时的 wall-clock 训练时间取最高值；LCB 报告 pass@1 和平均准确率，训练到第 80 步，3 个种子；TTT 报告 discovery@k，5 个种子并给出 bootstrap 90% 置信区间。SDPO 与 GRPO 每个 generation batch 的采样量相同，但 SDPO 每步多一次教师前向；作者报告每步时间增加 5.8%（无代码环境）和 17.1%（有代码环境）（Appendix C.1）。所有训练跑在 4 张 NVIDIA GH200、合计 378GB 显存的节点上，单次约 6 小时（Table 2 脚注；Appendix I）。主实验回答“是否优于强 RLVR 基线”，消融回答“密集信号、反馈类型、教师正则化各自是否必要”，附录回答“遗忘、混合目标、scaling、超参敏感性”。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p><strong>代码生成：最终准确率与样本效率都更好。</strong> 在 LCBv6 上，SDPO 最终准确率 48.8%±0.6，GRPO 41.2%±0.8；平均准确率（训练全程）43.8% 对 38.2%。同表的 GSPO 为 40.1%±2.3、CISPO 为 41.2%±1.8、只在 high-entropy token 上更新的 GRPO 为 37.8%±2.2，均低于 SDPO（Table 9，3 seeds，第 80 步）。SDPO 达到 GRPO 最终准确率所需的生成次数约为后者的 1&#x2F;4（§4，论文 Fig. 1）。论文还报告 SDPO 超过公开 LCBv6 排行榜上的 Claude Sonnet 4（40.5%）和 Claude Opus 4（39.7%）；这不是受控对比，因为推理配置、提示和评测时间不同，只能作为参考。</p>
+<p><strong>图 4</strong> 给出 LCBv6 上准确率随累计生成次数的变化，说明 SDPO 的优势同时体现在“更快”和“更高”两个维度。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/sdpo_fig1_lcb_curves.png"
+                      alt="图 4：LCBv6 上准确率随生成次数的变化"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 1）：横轴是累计生成次数，纵轴是 LCBv6 准确率；SDPO 在更少的生成预算内达到 GRPO 的最终水平，并在之后继续上升，而 GRPO 的曲线更早进入平台。两条曲线的差距来自每次尝试后如何利用环境反馈：GRPO 只把一次尝试压成一个标量奖励，SDPO 则把失败测试和运行时错误变成教师对原回答的逐 token 重新打分。因此这张图支持的是“同样采样预算下，反馈被更充分地利用”，而不是“SDPO 的推理本身更强”；图上的横轴不是 wall-clock，SDPO 每步额外前向的成本没有直接计入。</p>
+<p><strong>无丰富反馈：平均更好，但并非每个任务、每个时间段都更好。</strong> 在 Science Q&amp;A 和 ToolAlpaca 上，PMLR 引言报告 SDPO 的 5 小时聚合准确率为 68.8%，GRPO 为 64.1%（§1；实验见 §3）。但按 Table 2 的 5 小时数值对 5 个任务 × 2 个模型共 10 个 run 直接取平均，SDPO 约为 70.0%，GRPO 约为 66.8%，与 68.8&#x2F;64.1 对不上；论文没有说明聚合口径（是否排除某个任务、是否按样本数加权、是否取不同 checkpoint），因此这个头条数字目前无法从表中复现。分任务看，Qwen3-8B 的 Chemistry 从 74.5 升到 80.9、Physics 从 72.7 升到 75.6，Olmo3-7B 的 Chemistry 从 56.7 升到 80.0；但 Qwen3-8B 的 Biology 5 小时为 56.8 对 59.9，Olmo3-7B 的 Tool use 5 小时为 62.1 对 65.0，Qwen3-8B 的 Materials 1 小时为 72.1 对 74.3，SDPO 反而更低。平均提升掩盖了这些任务间差异（Table 2）。</p>
+<p><strong>收敛速度与回答长度。</strong> 在 Olmo3-7B 的 Chemistry 上，SDPO 用 50 分钟达到 GRPO 5 小时的准确率，约 6× 加速；SDPO 的 5 小时准确率比 GRPO 高 10 个百分点以上（§3，论文 Fig. 4）。响应长度方面，Table 8 报告 SDPO 平均长度为 GRPO 的约 1&#x2F;3.2（Qwen3-8B：820.8→255.8；Olmo3-7B：1095.4→343.9），正文说“最多 7× 更短”，并称 Chemistry 上达到 7× 缩减（§3）。然而同一页 Figure 4 的图内标注写的是“11× reduction”，arXiv v2 的正文也写 11×；这三个口径（平均值 3.2×、正文 7×、图内 11×）不一致。读者可以确认的只有“显著变短”这一方向，具体倍数需要作者澄清。</p>
+<p><strong>图 5</strong> 把 Chemistry 上的训练曲线和响应长度放在一起，展示 SDPO 在变准的同时变短，而 GRPO 的长度继续增长。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/sdpo_fig4_training_and_length.png"
+                      alt="图 5：Chemistry 训练准确率与响应长度"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 4）：随着训练推进，SDPO 的准确率更快接近饱和，响应长度则明显下降；GRPO 的准确率上升更慢，长度却持续增加到 4000 token 量级。作者把这一差异解释为密集信用分配让模型不必靠“反复检查、绕圈”来碰答案：当每个 token 都能得到正负反馈时，模型更容易学会直接给出必要步骤，而不是生成大量填充性推理。这个解释与定性例子（论文 Fig. 5）一致，但“更短”本身也可能来自训练分布、提示模板或早停效应，论文没有做长度匹配的对照。</p>
+<p><strong>测试时发现：在筛选过的难题上更快，但“3×”有明确条件。</strong> 在 9 道极难题上，SDPO 的 discovery@2750 为 53.2%，best-of-k 为 41.5%，multi-turn 为 35.6%；在 19 道难题上，SDPO 达到 67% 发现概率所需生成次数约为两个基线的 1&#x2F;2.4（§5，论文 Fig. 10）。SDPO 还唯一解出 Q3：第 321 次尝试首次成功，相当于批量 16 下的 20 个自蒸馏步；两个基线在 2750 次内都没有解出（§5）。但 Table 10 的“平均首次成功生成次数”（截断在 2750）显示，极难题 SDPO 为 1739 次、best-of-k 为 2180 次、multi-turn 为 2121 次，平均加速只有约 1.2×；难题为 894 对 1145&#x2F;1141，约 1.3×；单题最高 13.6×。摘要中的“3× 更少尝试”对应的是极难题上达到 22% 发现概率这一个工作点，不是全预算的平均加速，也不是所有题目的普遍结果。</p>
+<p><strong>遗忘、scaling 与混合目标。</strong> 在 LCBv6 上训练后，SDPO 的 IFEval 从 83.9 降到 83.2、ArenaHard-v2 hard 从 14.0 降到 12.3、creative 从 13.7 降到 11.1、MMLU-Pro 从 62.5 升到 62.9，holdout 平均从 43.5 降到 42.4；GRPO 的 holdout 平均为 41.8，SFT 自教师为 41.4。作者据此说“on-policy 方法没有灾难性遗忘”，更准确的说法是“相对 GRPO 遗忘更少，但仍有小幅下降”（Table 4）。scaling 上，SDPO 相对 GRPO 的优势随 Qwen3 规模增大而扩大，小模型上只是略好；在更弱的 Qwen2.5-1.5B 上 SDPO 反而低于 GRPO（论文 Fig. 6、论文 Fig. 17）。混合目标在 Qwen3-0.6B 上比纯 SDPO 更稳，在 Qwen3-8B 上略差（Appendix D.2）。这些结果共同界定了适用范围：<strong>模型要有一定的上下文学习能力，反馈要有信息量</strong>。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>这一节只回答一个问题：论文的实验是否能说明“为什么有效”，而不只是“有效”。按 §2 的五项创新逐项核对，结论并不完全一样。</p>
+<p><strong>RLRF 与丰富反馈：有较强的隔离证据，但不是全部增益的来源。</strong> 最干净的一组对照是 sequence-level SDPO：它仍然使用丰富反馈，但把整条回答的所有逐 token 优势平均成一个标量，因而没有比 GRPO 更密的信用分配。论文 Fig. 8 左显示，logit-level SDPO &gt; token-level SDPO &gt; sequence-level SDPO &gt; GRPO；即便最弱的 sequence-level SDPO 也高于 GRPO，说明“利用丰富反馈”本身就能带来一部分增益，而不全是“密集优势”的功劳（§4.2，论文 Fig. 8 左，3 seeds）。反馈类型消融进一步显示反馈内容确实重要：只用环境输出时训练前教师准确率 32.5%、学生准确率 39.9%；只用同组样例解时训练前教师 42.4%、学生 42.6%；两者都给时训练前教师 42.5%、学生 48.3%；若把学生原始失败尝试也塞进教师上下文，训练前教师准确率降到 39.3%、学生 44.5%、熵降到 0.23，说明上下文不是越多越好，失败尝试会把教师锚定在原来的错误上（Table 5，训练到第 70 步，3 seeds）。值得注意的是，只用环境输出时训练前教师准确率（32.5%）反而低于训练后的学生（39.9%），再次说明“教师整题更强”不是机制成立的前提。这些结果支持“反馈的信息量和类型影响学习”，但没有把“反馈提供了额外答案信息”与“反馈改善了信用分配”完全分开。</p>
+<p><strong>自教师的条件化：教师确实在变强，但“必须在线变强”的证据没有想象中强。</strong> 论文 Fig. 8 右显示，训练过程中教师自身的生成准确率上升，学生最终超过初始教师；这支持“自举”而不是“固定弱教师”。但 Table 6 的教师正则化对比给出了更细的图景：不加正则化时学生最好&#x2F;平均准确率为 36.1%&#x2F;29.8%，训练最终发散；冻结初始教师（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>q</mi><msub><mi>θ</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">f</mi></mrow></msub></msub></mrow><annotation encoding="application/x-tex">q_{\theta_{\mathrm{ref}}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6864em;vertical-align:-0.2559em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3488em;margin-left:-0.0278em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0778em;">ref</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1512em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2559em;"><span></span></span></span></span></span></span></span></span></span>）为 48.8%&#x2F;44.4%；trust-region 为 50.6%&#x2F;45.6%；EMA 为 49.3%&#x2F;45.3%（均为学生最好&#x2F;平均准确率；3 seeds，训练到第 90 步）。也就是说，<strong>在冻结教师下，学生已经能拿到接近最好的结果，在线更新只多出约 1.8&#x2F;1.2 个百分点</strong>；“教师随训练变强”的机制存在，但它对最终性能的边际贡献有限。更关键的是，§5 明确报告初始自教师在几乎所有难题上的准确率低于 1%，在 78% 的题上直接是 0%；这削弱了“教师比学生更准所以能教学生”的直觉。作者的解释是：即使教师整题做不对，逐 token 的对数比仍能指出局部该往哪改；这个解释与论文 Fig. 3 的例子一致，但论文没有直接测量“优势的符号是否正确”，也没有证明增益不能由一般的 logit 正则化解释。</p>
+<p><strong>logit 级密集优势：消融支持“越密越好”，但没有拆开实现细节。</strong> 三级消融（logit-level &#x2F; token-level &#x2F; sequence-level）是本文最直接的机制证据：在相同反馈、相同训练流程下，优势越细，LCBv6 准确率越高（论文 Fig. 8 左）。不过，logit-level 同时改变了三件事：每个位置覆盖 top-100 个候选、每个候选一个优势、以及梯度的方差；token-level 只覆盖最可能的 token，sequence-level 再聚合成一个标量。因此这条消融能说明“更细的粒度有用”，但不能单独说明“top-K 的 K 必须大”“必须用 log-ratio 而不是别的密集信号”。论文没有报告 stopgrad、top-K、Jensen–Shannon 各自的移除实验；这些设计在 Appendix C.2 有稳定性论证，但没有对应的性能消融。对于“移除该设计会怎样”，目前能确认的是：不加教师正则化会发散（Table 6），其余组件的必要性主要是工程论证而非对照实验。</p>
+<p><strong>测试时自蒸馏：预算对齐较好，但题目选择带来了明显偏差。</strong> TTT 的比较使用相同的最大生成预算 2750 次，best-of-k 用 2944 条独立 rollout 估计 pass@k，multi-turn 也使用同样的反馈预算；5 个种子并报告 bootstrap 90% 置信区间（§5，论文 Fig. 10）。这比“只报最好结果”要扎实。但题目是这样筛的：保留“best-of-k、multi-turn、SDPO 三者中任意一个能在 5 个种子、512 步内找到至少一个解”的题（§5）。这意味着：第一，完全无解的题被排除，TTT 的绝对成功率被抬高；第二，筛选使用了三种方法的结果，等于用测试方法本身定义了测试集，存在选择偏差；第三，“512 步”与主实验的“2750 次生成”口径不同，论文没有说明一步对应多少次生成（若按批量 16 换算，512 步约等于 8192 次生成，反而超过 2750 的预算）。因此，TTT 的结果更适合读作“在这些被筛过的、至少有一种方法能解的题上，SDPO 的发现曲线更好”，而不是“对任意难题都能 3× 加速”。</p>
+<p><strong>图 6</strong> 把密集信用分配与教师自举两组机制实验放在一起，便于判断“是反馈有用、是粒度有用，还是教师变强有用”。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/sdpo_fig8_dense_credit_bootstrap.png"
+                      alt="图 6：密集信用分配与教师自举"
+                ></p>
+<p><strong>图 6</strong>（论文 Fig. 8）：一组实验比较 logit-level、token-level、sequence-level SDPO 与 GRPO 的学习曲线，另一组跟踪教师和学生在训练中的生成准确率。前者回答“把反馈变成多细的优势才有用”：粒度越细，曲线越高，但最粗的 sequence-level 也已高于 GRPO，说明丰富反馈和密集优势是两个可分离的增益来源；后者回答“教师会不会随训练变强”：教师曲线上升，学生最终超过初始教师，说明 SDPO 不是从一个固定弱教师那里模仿，而是在自举。两组实验都带 3 个种子的误差条，但都没有把“教师准确率”与“学生最终准确率”做逐题配对分析，因此“教师变强导致学生变强”仍是相关证据而非因果证据。</p>
+<p><strong>替代解释与证据边界。</strong> 第一，计算量：SDPO 每步多一次教师前向，作者报告 +5.8%&#x2F;+17.1% 的步时开销；科学问答用 wall-clock 对齐，已经部分计入，但 LCB 实验对应的论文 Fig. 1 横轴是生成次数，没有把每步成本画进去。第二，反馈信息量：代码环境的反馈可能包含失败测试的期望输出，模型可能从中直接读到答案；论文用私有测试做验证、公开测试只给 50% 子集来缓解，但没有做“去掉期望输出、只留错误类型”的对照。第三，超参与数据：Table 2 的全局超参按 5 小时验证准确率选，Table 7 又给出逐任务最优超参，但按表格数值两者并不一致（例如 Qwen3-8B Chemistry 的 SDPO 5 小时准确率在 Table 2 为 80.9、在 Table 7 为 70.1；逐任务选参反而更低），论文没有解释这一差异；论文也没有报告 Table 2 的方差或显著性检验。第四，基准污染：LCBv6 是 2025 年 2–5 月的新题，但论文没有报告 Qwen3 的训练数据截止时间，也没有做污染检测。第五，外部教师&#x2F;PRM 基线缺失：因此无法判断 SDPO 相对“最强已有密集监督方案”的位置，只能确认它相对 GRPO&#x2F;GSPO&#x2F;CISPO 更好。综合来看，<strong>“密集 logit 优势 + 丰富反馈”有较强的消融支持，“自教师一定比学生强”只有部分支持，“TTT 普遍 3× 加速”证据最弱</strong>。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p><strong>训练成本。</strong> 每次训练跑在 4 张 NVIDIA GH200（合计 378GB 显存）上，包含初始化与验证约 6 小时（Table 2 脚注）。相对 GRPO，SDPO 不增加采样次数，但每步要多算一次教师前向；作者报告步时增加 5.8%（无代码环境）和 17.1%（有代码环境），并称用 top-K 蒸馏后显存开销几乎可以忽略（Appendix C.1，论文 Fig. 12）。这套成本对 7B–8B 模型是可接受的，但论文没有给出更大模型或更长上下文的扩展成本。</p>
+<p><strong>测试时成本。</strong> TTT 的代价明显更高：每道题最多 2750 次生成、批量 16、5 个种子，且每次批量后都要做一次参数更新；这相当于把“训练”搬到测试时，按题付费。论文报告了生成预算和种子数，但没有报告每道题的总 GPU 小时、wall-clock 或能量消耗，也没有与 best-of-k 的推理成本做统一货币化比较。对于需要低延迟的线上服务，这种逐题微调并不现实；它更适合离线难题攻关、竞赛题搜索或数据合成。</p>
+<p><strong>依赖与适用范围。</strong> 方法本身不需要外部教师、PRM、人工步骤标注或闭源模型；代码已开源（lasgroup&#x2F;SDPO），训练细节和超参在 Appendix I。但它依赖两个前提：训练时环境能返回比标量奖励更丰富的反馈，测试时（若用 TTT）还能对同一道题反复调用环境。论文的实验覆盖 7B–8B 的科学问答、工具调用和竞赛编程，结论不能直接外推到开放域对话、长程 Agent、需要人类偏好的任务或没有可验证反馈的部署。作者在 Limitations 中也承认：SDPO 依赖模型的上下文学习能力，弱模型可能不如 GRPO；反馈质量差时方法会失效；额外前向对短生成、小模型的开销占比更高（§7）。仍未解决的问题包括：全失败 group 且无丰富反馈时如何探索、反馈中答案泄漏如何量化、测试时逐题训练的稳定性与成本、以及更大规模下的方差与显著性。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：所谓“丰富反馈”可能同时提供了答案，方法收益有多少来自信用分配、多少来自信息泄漏，论文没有拆开"><a href="#质疑：所谓“丰富反馈”可能同时提供了答案，方法收益有多少来自信用分配、多少来自信息泄漏，论文没有拆开" class="headerlink" title="质疑：所谓“丰富反馈”可能同时提供了答案，方法收益有多少来自信用分配、多少来自信息泄漏，论文没有拆开"></a>质疑：所谓“丰富反馈”可能同时提供了答案，方法收益有多少来自信用分配、多少来自信息泄漏，论文没有拆开</h4><ul>
+<li><strong>原文依据</strong>：§2 的教师上下文包含环境输出与同组样例解；论文 Fig. 11 与 Listings 5–7 展示的代码反馈包含失败测试的期望输出；§4 只用私有测试做验证、公开测试取 50% 子集；§5 的 TTT 在测试时反复调用环境反馈。作者在 §7 承认性能依赖反馈质量，但没有报告反馈中答案信息的泄漏率，也没有做“去掉期望输出、只保留错误类型”的消融。另一个边界是标准 RLVR 下的全失败 group：§3 说 SDPO 把“当前 batch 中成功的尝试”当作失败尝试的反馈，Table 3 的模板也只有在存在样例解或环境输出时才填入反馈；若整个 group 没有任何成功，SDPO 同样拿不到额外信号。论文没有报告这种情形下的梯度&#x2F;优势，这是分析者从算法与模板作出的推断，不是作者结论。</li>
+<li><strong>为什么重要</strong>：如果反馈里直接含有正确答案或隐藏测试的期望输出，模型可能通过复制或匹配来提高分数，而不一定学会了更好的信用分配；这会改变对方法创新性和结论范围的判断。更实际的是，很多部署环境只返回“对&#x2F;错”或粗粒度错误码，SDPO 的优势会缩小甚至消失；全失败组则决定了它是否真的缓解了 RLVR 的探索瓶颈。</li>
+<li><strong>当前能够得出的判断</strong>：主要问题，但不足以否定方法。私有测试和 50% 公开子集降低了直接泄漏的风险，Table 5 的反馈类型消融也说明不同反馈内容会改变结果；但论文没有把“信息量”与“监督信号”分离，无法量化泄漏贡献。全失败组下 SDPO 很可能与 GRPO 一样没有信号，因此它改善的是“有成功样本时的信用分配”，而不是“无成功样本时的探索”。</li>
+<li><strong>如何验证或补强</strong>：加入三类对照：只给错误类型&#x2F;行号、不给期望输出；给经过脱敏的反馈；把同样的反馈作为上下文交给 GRPO 或 SFT，看收益是否仍归因于 SDPO 的蒸馏目标。同时报告模型输出与期望输出的逐字重叠率，在无反馈部署上测试性能回落；单独统计全失败组的比例与梯度，并比较“全失败但环境有错误信息”和“全失败且只有标量奖励”两种条件。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：“3×-更少尝试”是筛选后难题、特定发现概率下的结果，摘要把它写成了普遍结论"><a href="#质疑：“3×-更少尝试”是筛选后难题、特定发现概率下的结果，摘要把它写成了普遍结论" class="headerlink" title="质疑：“3× 更少尝试”是筛选后难题、特定发现概率下的结果，摘要把它写成了普遍结论"></a>质疑：“3× 更少尝试”是筛选后难题、特定发现概率下的结果，摘要把它写成了普遍结论</h4><ul>
+<li><strong>原文依据</strong>：摘要与 §1 称 TTT 以“3× fewer attempts”达到与 best-of-k&#x2F;multi-turn 相同的发现概率；§5 的题目筛选条件是“any of best-of-k, multi-turn, or SDPO 在 5 个种子、512 步内找到至少一个解”，最终只有 9 道极难题和 19 道难题；3× 对应的是极难题上 22% 发现概率这一个工作点；Table 10 的平均首次成功生成次数为极难题 1739 vs 2180&#x2F;2121（约 1.2×）、难题 894 vs 1145&#x2F;1141（约 1.3×），只有个别题达到 13.6×。此外，“512 步”与“2750 次生成”的口径没有解释。</li>
+<li><strong>为什么重要</strong>：这直接决定结论能推广多远。筛选使用了被比较方法自身的求解结果，等于用测试集定义测试集；被排除的题可能正是 TTT 无法处理的题。读者若只读摘要，会误以为 TTT 对所有难题都平均快 3×。</li>
+<li><strong>当前能够得出的判断</strong>：结论被夸大，存在选择偏差；方法在“至少一种方法能解”的难题上有真实优势，但不能外推为普遍加速。3× 不是平均加速，而是特定 discovery 水平上的横切比较。</li>
+<li><strong>如何验证或补强</strong>：在一个独立的、预先注册的难题集上评测，不按任何方法的成功与否筛题；报告所有题目的 discovery 曲线、失败率和删题原因；同时给出平均、分位数和 wall-clock 加速，而不只给一个工作点；明确“一步”对应多少次生成。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：比较预算不完全对齐，且缺少最接近的强基线（外部教师蒸馏、PRM）"><a href="#质疑：比较预算不完全对齐，且缺少最接近的强基线（外部教师蒸馏、PRM）" class="headerlink" title="质疑：比较预算不完全对齐，且缺少最接近的强基线（外部教师蒸馏、PRM）"></a>质疑：比较预算不完全对齐，且缺少最接近的强基线（外部教师蒸馏、PRM）</h4><ul>
+<li><strong>原文依据</strong>：SDPO 每步多一次教师前向，步时增加 5.8%–17.1%（Appendix C.1）；Table 2 用 wall-clock 对齐，但 LCB 实验对应的论文 Fig. 1 横轴是生成次数，没有把每步成本计入；GRPO 每批做 4 个 off-policy mini-batch 更新，SDPO 只做 1 个 on-policy 更新（Table 2 脚注）；主实验没有外部教师 + on-policy distillation，也没有 PRM + RL；SFT-on-self-teacher 需要 2× 生成且只模仿成功轨迹（Table 4，Appendix D.1）。</li>
+<li><strong>为什么重要</strong>：论文的核心卖点是“更高样本效率&#x2F;更快收敛”。如果按 wall-clock 或 FLOPs 对齐，优势可能缩小；如果存在一个强外部教师，SDPO 的“无需教师”是工程优势，但不一定是性能优势。缺少这两类基线，无法判断它在密集监督方法中的位置。</li>
+<li><strong>当前能够得出的判断</strong>：存在混杂因素，证据不足以支持“全面优于现有密集监督方案”。可以确认的是它优于调优后的 GRPO&#x2F;GSPO&#x2F;CISPO，以及在相同 wall-clock 下优于 GRPO；不能确认它优于外部教师蒸馏或 PRM。</li>
+<li><strong>如何验证或补强</strong>：报告 wall-clock、FLOPs、生成 token 数三条轴的对齐曲线；加入同规模外部教师蒸馏、PRM 重排序&#x2F;过程监督、以及“把同样反馈给 GRPO”的对照；公开每种方法的超参搜索预算和验证集选择过程。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：机制解释的核心——“教师因为看到反馈而更准”——与“教师初始准确率-0-”并存，论文没有给出因果链"><a href="#质疑：机制解释的核心——“教师因为看到反馈而更准”——与“教师初始准确率-0-”并存，论文没有给出因果链" class="headerlink" title="质疑：机制解释的核心——“教师因为看到反馈而更准”——与“教师初始准确率 0%”并存，论文没有给出因果链"></a>质疑：机制解释的核心——“教师因为看到反馈而更准”——与“教师初始准确率 0%”并存，论文没有给出因果链</h4><ul>
+<li><strong>原文依据</strong>：§5 报告初始自教师在几乎所有难题上准确率 &lt;1%，在 78% 的题上为 0%；Table 6 中冻结教师下学生最好&#x2F;平均准确率已达 48.8%&#x2F;44.4%，trust-region 仅提高到 50.6%&#x2F;45.6%，EMA 为 49.3%&#x2F;45.3%；论文 Fig. 8 右显示教师随训练变强、学生超过初始教师；论文没有做 stopgrad、top-K、Jensen–Shannon 的移除消融，也没有测量逐 token 优势的符号正确率。</li>
+<li><strong>为什么重要</strong>：如果教师整题都做不对，它凭什么给出正确的 token 级指导？一种可能是逐 token 对数比确实能定位局部错误；另一种可能是它只提供了一个与反馈相关的正则化&#x2F;课程信号，真正的提升来自优化动力学。两种解释对“自蒸馏”的创新叙事影响不同。冻结教师接近最优也说明“在线教师自举”不是唯一关键。</li>
+<li><strong>当前能够得出的判断</strong>：机制部分成立。密集 vs 粗粒度优势的消融较强，反馈类型消融也支持“内容重要”；但“教师更准所以更好”没有得到直接证明，且初始教师 0% 与这一直觉冲突。论文承认自教师可能不准确，但没有量化它对最终收益的贡献。</li>
+<li><strong>如何验证或补强</strong>：逐 token 测量优势符号与真实“该 token 是否应被提高”的一致性；把反馈随机化&#x2F;置换，看收益是否消失；分别移除 stopgrad、top-K、JS、EMA，报告性能与稳定性；比较冻结教师、在线教师和外部教师三者的 scaling。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：版本间与正文内的关键数字不一致，头条结果无法从表格复现"><a href="#质疑：版本间与正文内的关键数字不一致，头条结果无法从表格复现" class="headerlink" title="质疑：版本间与正文内的关键数字不一致，头条结果无法从表格复现"></a>质疑：版本间与正文内的关键数字不一致，头条结果无法从表格复现</h4><ul>
+<li><strong>原文依据</strong>：PMLR 正文说响应长度“最多 7× 更短”、Chemistry 7×，同页论文 Fig. 4 图内标注写“11× reduction”，arXiv v2 正文也写 11×，而 Table 8 的平均缩减是 3.2×（820.8→255.8；1095.4→343.9）；PMLR 引言说无丰富反馈聚合 68.8% vs 64.1%，但按 Table 2 的 10 个 5 小时 run 直接平均约为 70.0% vs 66.8%；PMLR Table 2 与 Table 7 的同一设置数值不同（Qwen3-8B Chemistry 的 SDPO 5 小时准确率：80.9 vs 70.1，逐任务选参反而更低）；PMLR Table 5 写“until step 70”，arXiv Table 6 写“until step 60”。</li>
+<li><strong>为什么重要</strong>：这些不是排版细节，而是读者用来判断“方法有多好”的头条数字，直接影响头条数字的可信度。聚合口径不明、长度倍数三套说法、同一设置在不同表格中数值不同，都会影响可复现性和可信度；审稿人很难判断应该相信哪一个数。</li>
+<li><strong>当前能够得出的判断</strong>：存在实质不一致，至少需要作者澄清；不影响“SDPO 在 LCB 上更强、响应更短”的方向性结论，但影响具体倍数的引用。PMLR 是 camera-ready，按规范应优先，但 PMLR 自身也没有完全统一。</li>
+<li><strong>如何验证或补强</strong>：公开聚合脚本与逐 run 日志，说明 68.8&#x2F;64.1 的加权方式；统一长度指标的定义（平均、按任务、按题、按 token），并在正文、图注、表格中使用同一口径；报告 Table 2 的置信区间；在版本更新说明中列出所有改动数字。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现 RLVR 把环境反馈压成一个标量奖励、导致长回答的信用分配稀疏，因此提出 SDPO：用反馈条件下的同一模型作为自教师，把它的逐 token 分布蒸馏回无条件策略，通过 logit 级对数比实现密集优势。实验在科学问答、工具调用和 LiveCodeBench v6 上表明，SDPO 平均而言比调优后的 GRPO 收敛更快、在多数任务上最终准确率更高；在科学问答和工具调用上，它的平均响应也更短；在 LCBv6 上它还优于 GSPO 和 CISPO。其中 LCB 的 48.8% vs 41.2% 与密集&#x2F;粗粒度消融证据较强，但“3× 更少尝试”依赖筛选后的难题和特定发现概率，反馈泄漏、全失败组、外部教师&#x2F;PRM 基线以及头条数字的口径仍缺少充分支持。本文最有价值的部分是把“反馈条件自教师”变成一个可直接替换 GRPO advantage 的简洁算法，最大的审稿风险是夸大了测试时加速的普适性，以及没有完全排除反馈中答案信息的贡献。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度：强。</strong> RLVR 的零优势塌缩、标量奖励的信息损失、RLRF 的反馈类型在 §1–§2 和 Table 1 中被清楚区分；读者能准确知道论文要解决的是“有反馈时的信用分配”，而不是泛泛的“RL 不好”。</li>
+<li><strong>创新性证据：中。</strong> 自蒸馏、on-policy distillation、KL 蒸馏和 GRPO advantage 替换都是已有组件；真正的新增是“同参数、仅反馈条件不同的教师”与“logit 级优势”的组合，以及把它用于测试时上下文压缩。§6 的 related work 比较了最接近的工作，但没有做完整文献检索，无法确认“首次提出”；按规范只能确认作者声称的差异。</li>
+<li><strong>方法可信度：中。</strong> 目标函数简单、可直接复用 RLVR 实现、代码开源，Table 6 也说明正则化后训练稳定；但教师初始准确率可低到 0%，stopgrad&#x2F;top-K&#x2F;JS 没有性能消融，全失败 group 未报告，机制的因果链不完整（§4.3、§5）。</li>
+<li><strong>实验支持力度：中。</strong> LCB 有 3 seeds、标准差和多个强基线，Table 6&#x2F;论文 Fig. 8 也有误差条；但 Table 2 没有方差或显著性检验，68.8&#x2F;64.1 聚合无法从表中复现，TTT 题目按方法成功率筛选，且缺少外部教师&#x2F;PRM 基线（§4.2、§5）。</li>
+<li><strong>可复现性：中。</strong> 代码、超参、模板和计算配置在 Appendix I 中较完整，4×GH200 的设置也可复现；但训练成本高，聚合脚本与长度口径未公开，PMLR&#x2F;arXiv 的 Table 7 与 step 数存在差异，TTT 的 GPU 小时未报告（§4.4、§5）。</li>
+<li><strong>综合阅读价值：高。</strong> 它给出了一个很容易理解的机制——让同一个模型“看着反馈回看自己”，并把这种回看变成逐 token 优势；RLRF 的框架、密集优势的消融和 LCB 的结果都值得 Computer Science 学生精读。引用具体加速倍数时应保留限定条件，不宜把摘要中的 3× 当作普遍结论。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Reinforcement Learning via Self-Distillation</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-20 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-20 19:32:08
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/20/2601.20802v2_SDPO_Reinforcement_Learning_via_Self-Distillation/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Reinforcement-Learning/">#Reinforcement Learning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Self-Distillation/">#Self-Distillation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/On-Policy-Distillation/">#On-Policy Distillation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/GRPO/">#GRPO</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Reasoning/">#LLM Reasoning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Test-Time-Training/">#Test-Time Training</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/20/2601.18734v3_OPSD_Self-Distilled_Reasoner_On-Policy_Self-Distillation_for_Large_Language_Models/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Self-Distilled Reasoner: On-Policy Self-Distillation for Large Language Models</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Reinforcement Learning via Self-Distillation</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 157 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

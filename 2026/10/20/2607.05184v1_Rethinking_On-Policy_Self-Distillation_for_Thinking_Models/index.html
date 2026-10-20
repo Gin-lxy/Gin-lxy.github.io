@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/20/2607.05184v1_rethinking_on-policy_self-distillation_for_thinking_models/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Rethinking On-Policy Self-Distillation for Thinking Models">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/20/2607.05184v1_Rethinking_On-Policy_Self-Distillation_for_Thinking_Models/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-20T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-20T11:32:08.924Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Failure Analysis">
+<meta property="article:tag" content="LLM Reasoning">
+<meta property="article:tag" content="Mathematical Reasoning">
+<meta property="article:tag" content="On-Policy Distillation">
+<meta property="article:tag" content="Post-Training">
+<meta property="article:tag" content="Self-Distillation">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Rethinking On-Policy Self-Distillation for Thinking Models | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">207</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">157</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Rethinking On-Policy Self-Distillation for Thinking Models</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-20 12:00</span>
+        <span class="mobile">2026-10-20 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-20 19:32:08</span>
+            <span class="mobile">2026-10-20 19:32:08</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Self-Distillation/">Self-Distillation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/On-Policy-Distillation/">On-Policy Distillation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-Reasoning/">LLM Reasoning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Mathematical-Reasoning/">Mathematical Reasoning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Post-Training/">Post-Training</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Failure-Analysis/">Failure Analysis</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>作者：Simran Kaur、Narutatsu Ri、Yinghui He、Liam Fowl、Sanjeev Arora（Princeton Language and Intelligence, Princeton University）</p>
+<p>论文版本：arXiv:2607.05184v1（2026-07-06，仅 v1）；PDF 页脚标注 Preprint；作者主页标注 NeurIPS 2026（arXiv 元数据未标注会议信息）</p>
+<p>论文：arXiv:2607.05184v1；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-20</p>
+<p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2607.05184v1" >https://arxiv.org/html/2607.05184v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2607.05184v1" >https://arxiv.org/pdf/2607.05184v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2607.05184" >https://huggingface.co/papers/2607.05184<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>标签：Self-Distillation、On-Policy Distillation、LLM Reasoning、Mathematical Reasoning、Post-Training、Failure Analysis。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文系统检验了带特权上下文（privileged context）的在线策略自蒸馏（on-policy self-distillation, OPSD）在思考模型（thinking models）上的效果，发现它在长预算评估中会让多个 Qwen3&#x2F;OLMo 思考模型的 avg@16（每题 16 次采样的平均正确率）下降，并把原因指向教师侧特权信息压低了高熵分叉位置上的探索信号。证据足以支持“在这些模型、数据和评测条件下，特权 OPSD 的长预算收益不稳定且可能为负”这一负面结论，但尚不足以证明分叉抑制（fork suppression）是唯一因果机制，也不足以把结论推广到所有思考模型或所有 OPSD 变体。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>在线策略蒸馏（on-policy distillation, OPD）让学生模型自己生成 rollout（采样轨迹），再让教师在这些轨迹的每个 token 上提供密集的下一词分布监督；相比离线蒸馏，它缓解了训练与推理分布不一致的问题。OPSD 进一步把教师和学生设为同一个模型：教师额外看到学生拿不到的特权信息（privileged information），例如标准答案、参考解答或环境反馈，因而无需一个独立的大教师。近期工作报告了 OPSD 在指令微调模型（instruction-tuned models）、持续学习（continual learning）和推理压缩上的收益，这让它看起来很适合“自我提升”的思考模型——后者本就能在测试时展开长链推理、验证中间步骤、回溯和纠错。</p>
+<p>问题在于，已有 OPSD 证据大多来自指令微调模型、较短的生成预算，或在训练时关闭思考模式（§1）。这些设置没有回答一个关键问题：当被监督的轨迹本身就是思考模型在测试时依赖的长推理链时，特权上下文的自蒸馏是否仍然有益？作者把这一点作为核心研究问题，并明确把它与“短预算训练&#x2F;长预算评估不匹配”这一更一般的工程问题区分开（§1、§3.3）。</p>
+<p>论文报告的新观察是一个负面结果：在 OpenThoughts 数学数据上训练的五个 Qwen3&#x2F;OLMo 思考模型，经过“完整参考解”作为教师特权上下文的 OPSD 后，在 AIME24、AIME25、HMMT25 的 38,912-token 长预算评估中，avg@16 平均准确率的点估计全部下降；其中 Qwen3-1.7B 从 0.372 降到 0.308，相对下降约 17%（Table 1、§3.1）。下降并非在所有预算上都出现：在 4k–8k token 的短预算下，OPSD 往往与基座相当甚至更好；到 32k–38k 才转为劣势，同时回答长度明显缩短（论文 Fig. 1、§3.3）。作者还观察到三个相关现象：教师侧特权信息越多，长预算损害越大（完整解答比只给最终答案更严重，论文 Fig. 3、§3.5）；带同样特权上下文的 OPD 会逆转普通 OPD 的收益（Table 4、§3.2）；被训练的学生继承了教师的“短回答”倾向，却没有继承教师在看到答案时的高 pass@k（多次采样至少一次正确的概率；论文 Fig. 2、§3.4）。</p>
+<p>作者对这些现象的解释是分叉抑制：思考模型的推理轨迹里存在许多高熵、多个续写仍然合理的分叉位置（forking positions），这些位置常由 “wait”“hmm”“but”“maybe” 等词标记。无特权教师会给这些自我纠错&#x2F;犹豫 token 正优势；一旦教师看到答案，它更偏好局部流畅的续写，于是这些 token 的优势翻负，学生学到的轨迹分支更少、验证&#x2F;回溯&#x2F;对冲标记更少（§4、论文 Fig. 5、Table 5、Table 6）。作者用“特权上下文改变了 token 级教学信号，进而压缩测试时搜索”作为核心假设，但在 §4.3 末尾和 §7 明确承认，这些诊断只建立了相关模式，尚未证明因果，也没有提出修复方法。</p>
+<p>需要区分三层问题：一般层面的问题是“自蒸馏在分布偏移和长预算下是否可靠”；本文的新观察是“特权上下文在思考模型上会造成随上下文密度和预算增长的长预算退化”；本文实际解决的子问题是“在数学竞赛基准上刻画这一退化，并给出 token 级分叉诊断”，而不是发明一个新的蒸馏算法或给出解决方案。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>本文没有提出新的训练算法，技术增量主要在实证与诊断层面：它把“特权上下文 OPSD”放进思考模型的长预算场景，系统测量其失败边界，并用 token 级分叉分析给出一个可检验的解释。相对已有 OPSD 工作，这更像是一篇带控制实验的负面结果论文，而不是方法论文。</p>
+<ol>
+<li><p><strong>长预算失败面的系统刻画。</strong> 作者在五个 Qwen3&#x2F;OLMo 思考模型、三个数学竞赛基准和从 4k 到 38,912 token 的多个评估预算上，报告了 OPSD 相对基座的完整预算曲线，指出“短预算可能更好、长预算转负”的交叉现象（§3.3、论文 Fig. 1）。已有 OPSD 论文主要报告指令模型上的平均收益，本文新增的是对思考模型长轨迹的边界测量；这属于新的实证问题，而不是新模块。</p>
+</li>
+<li><p><strong>隔离“特权上下文”的控制链。</strong> 作者把普通 OPD（教师是更大的 Qwen3-8B，但只看题目）与特权 OPD（同一大教师额外看标准答案&#x2F;示范）并置，又把“训练时是否启用思考”和“特权上下文是最终答案还是完整解答”作为单独变量（Table 4、Table 3、论文 Fig. 3）。这套对照的价值在于把“在线蒸馏本身”与“教师看到的额外信息”拆开；它对应 §1 中“到底是 OPSD 还是特权信息导致退化”的问题。</p>
+</li>
+<li><p><strong>分叉位置诊断工具链。</strong> 作者借用论文所称的 SSD 式诊断（来自 Zhang et al., 2026 的 fork&#x2F;lock 分析框架），把教师分布下的 token 位置分为 fork（高熵、多个合理续写）和 lock（局部确定），再沿固定学生轨迹比较“无特权教师”和“特权教师”的逐 token log-ratio，并统计训练后学生的审慎标记（deliberation markers）密度（§4.1–§4.3、论文 Fig. 4、论文 Fig. 5、Table 6）。与仅报告准确率的工作相比，这套分析把失败从“分数下降”推进到“哪些 token 位置的教学信号被改写”；但它是诊断工具的组合与迁移，不是全新的理论。</p>
+</li>
+</ol>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>作者的思路不是“设计一个更强的蒸馏目标”，而是把 OPSD 当成一个可控制的自变量：固定训练数据、模型、优化器和预算，只改变教师看到的额外信息，然后在多个评估预算上观察学生行为如何变化；如果分数下降，再回到 token 级分布，检查教师到底在哪些位置给出了不同的教学信号。这样做的直觉是：OPSD 的全部信息都来自教师对同一段学生轨迹的逐 token 评分，若特权上下文改变了教师的偏好，变化应当能在 token 级被定位，而不是只能从最终准确率猜测。</p>
+<h3 id="3-1-输入、教师上下文与训练目标"><a href="#3-1-输入、教师上下文与训练目标" class="headerlink" title="3.1 输入、教师上下文与训练目标"></a>3.1 输入、教师上下文与训练目标</h3><p>每次训练从一个数学题 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span> 开始。学生策略 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>π</mi><mi>S</mi></msub></mrow><annotation encoding="application/x-tex">\pi_S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 只看到题目，采样一条在线轨迹 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>y</mi><mo>∼</mo><msub><mi>π</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">y\sim\pi_S(\cdot\mid x)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∼</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mclose">)</span></span></span></span>；教师策略 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>π</mi><mi>T</mi></msub></mrow><annotation encoding="application/x-tex">\pi_T</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 是学生初始 checkpoint 的一个副本，额外接收特权上下文 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span>，并在同一段前缀 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub></mrow><annotation encoding="application/x-tex">y_{&lt;t}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span></span></span></span> 上给出下一词分布。训练目标是在学生自己采样的 token 上最小化教师与学生的逐 token 散度：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">O</mi><mi mathvariant="normal">P</mi><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi></mrow></msub><mo>=</mo><munder><mo>∑</mo><mi>t</mi></munder><mi>D</mi><mrow><mo fence="true">(</mo><msub><mi>π</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><mi>c</mi><mo separator="true">,</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo><mo separator="true">,</mo><mtext> </mtext><msub><mi>π</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tex">
+\mathcal{L}_{\mathrm{OPSD}}=\sum_t D\left(\pi_T(\cdot\mid x,c,y_{&lt;t}),\ \pi_S(\cdot\mid x,y_{&lt;t})\right)
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">OPSD</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.3em;vertical-align:-1.25em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.9em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.25em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">D</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">c</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mclose delimcenter" style="top:0em;">)</span></span></span></span></span></span>
+<p>论文使用 JSD（Jensen–Shannon divergence）作为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi></mrow><annotation encoding="application/x-tex">D</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">D</span></span></span></span>，混合系数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>α</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">\alpha=0.5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0037em;">α</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.5</span></span></span></span>，只对采样到的 completion token 计算损失（§2、Table 9）。教师不随学生同步更新：Table 9 明确写着 “Teacher synchronization: Disabled for reported regular runs”，所以实际起作用的是一个固定的初始副本；训练只更新学生。这个细节很重要，因为它把“教师看到特权信息”与“教师本身在训练中变强”分开了。</p>
+<p>特权上下文有两种密度。<strong>稠密（dense）</strong>条件是完整参考解：学生只看到题目，教师看到题目、一段“This is an example for a response to the question:”包装的完整解答，再被要求“Now answer with a response of your own, including the thinking process”（Appendix B.3）。<strong>稀疏（sparse）</strong>条件只把最终答案放进同一个 <code>{Answer}</code> 槽位，其余包装不变。Countdown 实验则把“post-thinking solution suffix”作为教师上下文（§2、Appendix B.1）。训练数据是 OpenThoughts 数学清洗集的 15k 子集，以及 Countdown-CoT-20k 的 15k 子集；训练 completion 上限为 4,096 token，而评估可以到 38,912 token（§2、Table 9–10）。</p>
+<p>训练配置为：一个 epoch、有效 batch size 64、每个 prompt 一条 completion、学习率 5e-6（Qwen3-8B 为 2e-6）、bf16、FSDP、8 张 H100 80GB（Table 9–10）。换句话说，方法本身没有额外的推理模块、工具调用或搜索过程；它只是把教师分布在学生 rollout 上的逐 token 信号写进权重。推理阶段教师和特权上下文都不出现，学生单独作答，因此论文观察到的任何退化都已经固化在模型参数里，而不是运行时的临时干预。</p>
+<h3 id="3-2-对照设计：把“特权信息”从“在线蒸馏”里拆出来"><a href="#3-2-对照设计：把“特权信息”从“在线蒸馏”里拆出来" class="headerlink" title="3.2 对照设计：把“特权信息”从“在线蒸馏”里拆出来"></a>3.2 对照设计：把“特权信息”从“在线蒸馏”里拆出来</h3><p>论文的核心因果问题是：退化究竟来自在线蒸馏、来自短训练预算，还是来自教师看到的特权信息？为此作者搭了一条逐层收窄的对照链。</p>
+<p>第一层是<strong>同模型、同数据、只改教师上下文密度</strong>。在 OpenThoughts 上，五个思考模型分别做基座、完整解答 OPSD、仅最终答案 OPSD；三者的训练配方和 4,096-token completion 上限相同（Table 1、论文 Fig. 3）。稠密与稀疏的唯一差别是 <code>{Answer}</code> 槽位里放完整解答还是 boxed 最终答案（Appendix B.3），因此这一对照最接近“只改变特权信息量”。</p>
+<p>第二层是<strong>普通 OPD 与特权 OPD</strong>。作者以 Qwen3-1.7B 思考模型为学生，用更大的 Qwen3-8B 思考模型做教师：普通 OPD 的教师只看题目；特权 OPD 的教师在同样题目外再看一份 gold demonstration（Table 4）。这组对照试图说明：如果在线蒸馏本身有问题，普通 OPD 也应下降；如果只有特权上下文有问题，普通 OPD 应保持或提升，而加入 gold 后转负。Table 4 确实呈现了这个方向，但教师规模与特权信息并未完全正交——OPSD 的教师是 1.7B 自身副本，而 OPD 的教师是 8B，这一点后文会作为质疑展开。</p>
+<p>第三层是<strong>训练时是否启用思考</strong>。同一个 Qwen3-4B，在 OpenThoughts 30k 上分别用“思考模式 rollout”和“非思考模式 rollout”做 OPSD，评估时统一开启思考（Table 3）。如果退化只来自特权上下文，两种训练都应受影响；如果退化需要“被监督的轨迹本身是长思考”，则只有思考 rollout 会出问题。结果显示，非思考训练基本保持基座水平（0.591→0.590），思考训练降到 0.532，这把“长思考轨迹被监督”单独拎了出来。</p>
+<p>第四层是<strong>模型类型与数据域</strong>。Countdown 上作者成对训练 Qwen3-4B-Instruct-2507 &#x2F; Qwen3-4B-Think-2507 和 OLMo-7B-Instruct &#x2F; OLMo-7B-Think，使用同一份 Countdown 数据和同一套 OPSD 配方，再在 Countdown 留出集与 AIME&#x2F;HMMT 上评估（Table 2）。这是主文唯一一组“指令模型 vs 思考模型、同数据同配方”的直接对照；OpenThoughts 主实验只包含思考模型。也正因如此，Table 2 的结果对“指令模型受益、思考模型受损”这一二分法非常关键，后文会看到它并不完全支持过度概括。</p>
+<p>第五层是<strong>拆解已有流水线</strong>。Appendix F 把 SD-Zero 的“自我修订训练（self-revision training, SRT）”与后续 OPSD 阶段分开：SRT 单独训练，再比较 SRT+OPSD。这样可以把“自我修订本身”与“其后的特权自蒸馏”分开。Appendix E 还做了 token-mask 对照：只对认知标记（epistemic markers）token 施加 OPD 损失、对随机等比例 token 施加损失、以及给教师加 gold demo；前两者平均仍高于基座，后者下降，用来排除“只要损失稀疏就会坏”的解释。</p>
+<h3 id="3-3-评估协议：长预算、avg-16-与预算曲线"><a href="#3-3-评估协议：长预算、avg-16-与预算曲线" class="headerlink" title="3.3 评估协议：长预算、avg@16 与预算曲线"></a>3.3 评估协议：长预算、avg@16 与预算曲线</h3><p>主评估使用 AIME24、AIME25、HMMT25，每个基准 30 题；每题生成 16 个样本，主设置最大生成长度 38,912 token（§2、Appendix B.5）。报告的核心指标是 avg@16：先对每题 16 个样本的正确性取平均，再对题平均；它等价于评估采样分布下的经验单样本正确率，但不是“16 个里至少一个正确”的 pass@16。后者用无偏估计器单独报告（Appendix B.5、Table 18）。论文同时给出 4,096、8,192、16,384、32,768、38,912 五个生成长度下的 pass@1&#x2F;pass@16 与平均&#x2F;中位回答长度，形成预算曲线（论文 Fig. 1、论文 Fig. 6–7）。</p>
+<p>统计上，主表的 avg@16 差值配有配对自助法（bootstrap）95% 置信区间：在每个基准内对题目有放回重采样，保留两种方法的配对测量，再做 10,000 次重复（Appendix C.1）。区间只反映评估题目不确定性，不包含训练随机种子差异；论文使用固定 seed 42，每个配置只训练一次（Table 9）。这一点直接限制了结论的统计强度，后文会作为质疑之一。</p>
+<p>Countdown 训练出的模型在 500 条留出 Countdown 上做域内评估，同时迁移到 AIME&#x2F;HMMT；主表 Table 2 的 Average 是四个基准的等权平均。评估解码参数按模型族区分：Qwen3 思考模型温度 0.6、top-p 0.95；Qwen3-4B-Instruct-2507 温度 0.7、top-p 0.8；OLMo 温度 0.6、top-p 0.95（Table 11–12）。</p>
+<h3 id="3-4-机制诊断：fork-lock、固定轨迹打分与标记统计"><a href="#3-4-机制诊断：fork-lock、固定轨迹打分与标记统计" class="headerlink" title="3.4 机制诊断：fork&#x2F;lock、固定轨迹打分与标记统计"></a>3.4 机制诊断：fork&#x2F;lock、固定轨迹打分与标记统计</h3><p>准确率之外，论文用三类诊断来回答“为什么”。第一类是 <strong>fork&#x2F;lock 位置统计</strong>。作者沿固定的学生轨迹，用教师在该前缀上的下一词分布判断每个位置的性质：如果教师分布的 top candidate 概率低于 0.25，就视为 fork（多个续写仍然合理，可能把推理引向不同分支）；高于 0.65 则视为 lock（续写基本确定）（§4.1）。Appendix D 还描述了两种替代实现：对保留的 top-<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>K</mi></mrow><annotation encoding="application/x-tex">K</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span></span></span></span> 分布做归一化熵阈值（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≤</mo><mn>0.20</mn></mrow><annotation encoding="application/x-tex">\le 0.20</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7719em;vertical-align:-0.136em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.20</span></span></span></span> 为 lock、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>≥</mo><mn>0.60</mn></mrow><annotation encoding="application/x-tex">\ge 0.60</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7719em;vertical-align:-0.136em;"></span><span class="mrel">≥</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.60</span></span></span></span> 为 fork），以及基于 top-p 支撑集几何的 SSD 近似。诊断使用 60 条 OpenMathReasoning 题目、每个模型一条基座学生轨迹；分别用 base（只看题）、sparse（加最终答案）、dense（加截断参考解）三种教师条件给同一批轨迹打分，统计每条轨迹的 fork&#x2F;lock 比例（Appendix D）。</p>
+<p>第二类是<strong>固定轨迹的逐 token log-ratio</strong>。作者保持学生轨迹完全不变，只替换教师：一个教师只看题目，另一个教师额外看答案信息；然后在每个 token 上计算 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>log</mi><mo>⁡</mo><msub><mi>π</mi><mi>T</mi></msub><mo stretchy="false">(</mo><msub><mi>y</mi><mi>t</mi></msub><mo>∣</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo separator="true">,</mo><mi>x</mi><mo stretchy="false">)</mo><mo>−</mo><mi>log</mi><mo>⁡</mo><msub><mi>π</mi><mi>S</mi></msub><mo stretchy="false">(</mo><msub><mi>y</mi><mi>t</mi></msub><mo>∣</mo><msub><mi>y</mi><mrow><mo>&lt;</mo><mi>t</mi></mrow></msub><mo separator="true">,</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\log\pi_T(y_t\mid y_{&lt;t},x)-\log\pi_S(y_t\mid y_{&lt;t},x)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">x</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">x</span><span class="mclose">)</span></span></span></span>。正值表示教师比学生更支持采样到的 token，负值表示教师更不支持。论文 Fig. 5 选了三条窗口展示“But wait”“Maybe”“but”等自我纠错线索在两种教师下的符号变化（§4.2）。这不是训练动力学测量，而是对教师偏好的静态切片。</p>
+<p>第三类是<strong>审慎标记统计</strong>。作者定义一个固定词表，把验证类（check、verify、double check、make sure）、回溯类（wait、actually、mistake、wrong、another way）和对冲类（maybe、probably、might、seems）标记分别计数；在五个思考模型的 AIME&#x2F;HMMT 评估中，把基座与 OPSD 的 rollout 按模型、基准、题目、样本序号配对，共 7,200 条配对轨迹；同时报告原始计数和每 1,000 个生成 token 的密度，并用按 model–benchmark–problem 聚类的 bootstrap 给区间（§4.3、Appendix B.6、Table 6）。长度归一化是为了区分“回答变短所以标记变少”与“在同样长度内标记密度也下降”。</p>
+<p>这三类诊断共享一个限制：它们都是观察性的。作者没有在训练中针对 fork 位置加损失、加探索奖励或屏蔽特权上下文，也没有做一个“恢复 fork 率后准确率回升”的干预实验；因此它们能说明“哪些行为与退化同时出现”，不能单独证明“分叉抑制导致了退化”。作者在 §4.3 末尾明确写了这一点。</p>
+<h3 id="3-5-训练后的推理与输出"><a href="#3-5-训练后的推理与输出" class="headerlink" title="3.5 训练后的推理与输出"></a>3.5 训练后的推理与输出</h3><p>训练完成后，推理阶段只加载学生权重：没有教师、没有标准答案、没有额外的工具或搜索控制器。学生按模型原有的 chat template 生成回答；对思考模型，这意味着它仍然可以在测试时展开长链、验证和回溯。论文要检验的正是：这种本应由测试时计算带来的长预算收益，是否因为训练时的特权监督而变弱。因此评估不改变推理协议，只改变评估预算（4k–38k）和是否给学生看 gold demonstration（论文 Fig. 2 的教师条件）。最终输出是一个普通的数学答案；论文用正确率和回答长度衡量它，而不是用某个新的推理接口。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p><strong>任务与数据。</strong> 主实验是数学竞赛题：训练用 OpenThoughts 数学清洗集的 15k 子集（源池清洗后 29,439 条），评估用 AIME24、AIME25、HMMT25，各 30 题；另有一组 Countdown 实验，用 15k 训练样本并在 500 条留出样本上做域内评估（§2、Appendix B.1、Table 7）。OpenThoughts 的教师特权上下文是 <code>solution</code> 列的完整参考解；稀疏条件只保留 boxed 最终答案；Countdown 的特权上下文是 post-thinking solution suffix（Appendix B.3）。</p>
+<p><strong>模型与基线。</strong> 主实验的五个思考模型是 Qwen3-1.7B、Qwen3-4B、Qwen3-8B、Qwen3-4B-Think-2507 和 OLMo-7B-Think（Table 1）。Countdown 的配对模型是 Qwen3-4B-Instruct-2507 &#x2F; Qwen3-4B-Think-2507 和 OLMo-7B-Instruct &#x2F; OLMo-7B-Think（Table 2）。对照包括：同一 checkpoint 的基座；完整解答特权 OPSD；仅最终答案 OPSD；普通 OPD（Qwen3-1.7B 学生 + Qwen3-8B 教师）；带 gold demonstration 的 OPD（同 8B 教师）；训练时关闭思考的 OPSD；SD-Zero 的 SRT 与 SRT+OPSD；以及 Appendix E 的 token-masked OPD 和 Appendix G 的 conciseness 对照。论文没有报告 SFT、GRPO&#x2F;RLVR 基线；“同规模教师 + 其他提示”只有 Appendix G 一个 Qwen3-8B 的 conciseness 对照，没有在 1.7B&#x2F;4B 或完整解答主实验上系统展开，因此“特权信息”与“一般性的教师分布偏移”仍不能完全分开。</p>
+<p><strong>指标与评估。</strong> 主指标是 38,912-token 生成长度下的 avg@16；同时报告 pass@16、pass@1 和平均&#x2F;中位回答长度，并在 4,096 到 38,912 的五个预算上画曲线（§2、Appendix B.5）。机制指标包括 fork&#x2F;lock 比例、固定轨迹逐 token log-ratio，以及验证&#x2F;回溯&#x2F;对冲标记的原始计数与每千 token 密度（§4.1–§4.3、Appendix B.6、Appendix D）。统计区间是题目级配对 bootstrap，不含训练 seed 方差（Appendix C.1）。</p>
+<p><strong>预算与公平性。</strong> OPSD、普通 OPD、特权 OPD 共享 4,096-token 训练 completion 上限、一个 epoch、有效 batch 64 和 JSD 目标（§2、Table 9）；Countdown 的指令&#x2F;思考配对也共享数据与配方。但普通 OPD 的教师是更大的 8B 模型，OPSD 的教师是 1.7B 自身副本，因此“教师规模”和“是否有特权信息”并非完全正交；这是设置层面最重要的不完全对照。主实验回答“OPSD 在思考模型上是否退化、在哪个预算退化”；附录回答“置信区间与 pass@k 全貌、OPD 的 token-mask 消融、SD-Zero 拆解、conciseness 对照”；两者分工清楚。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p><strong>主结果：长预算下五个模型点估计全部下降，但显著性和幅度差异很大。</strong> 在 38,912-token、avg@16、OpenThoughts 15k 训练条件下，Qwen3-1.7B 从 0.372 降到 0.308（绝对 −0.064，相对 −17.2%，95% CI [−0.095, −0.037]）；Qwen3-4B 从 0.591 降到 0.534（−0.057，CI [−0.088, −0.027]）；Qwen3-8B 从 0.635 降到 0.578（−0.057，CI [−0.090, −0.028]）；Qwen3-4B-Think-2507 从 0.720 降到 0.683（−0.037，CI [−0.065, −0.010]）；OLMo-7B-Think 从 0.612 降到 0.604（−0.008，CI [−0.028, 0.011]）（Table 1、Table 15）。因此“五个模型全部下降”是点估计事实，但只有四个模型（全部 Qwen）的平均差值置信区间排除零；OLMo 的下降在统计上不能与零区分。摘要中的“up to 17%”对应 Qwen3-1.7B 的三基准平均相对下降（0.064&#x2F;0.372≈17.2%），不是五个模型的典型幅度：其余 Qwen 模型约 5%–10%，OLMo 约 1.3%，按五个模型平均的相对下降约 8.4%。</p>
+<p><strong>预算曲线：短预算受益、长预算转负。</strong> 图 1 展示了这一交叉。作者用同一批训练好的 checkpoint，在 4,096 到 38,912 的五个生成长度上重新生成 16 个样本，分别计算 pass@1&#x2F;pass@16 和回答长度；训练时的 completion 上限始终是 4,096，因此曲线衡量的是“训练短、评估长”的泛化，而不是训练时见过长轨迹。Qwen3-4B 和 Qwen3-8B 在 4k–8k 预算下 OPSD 高于基座，到 32k–38k 基座反超；OLMo-7B-Think 在长预算基本持平但 OPSD 略低。回答长度曲线同向：长预算下 OPSD 的回答明显短于基座，说明它没有把“更长思考”转化为准确率。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/reopsd_fig1_budget_curves.png"
+                      alt="图 1：OPSD 与基座的长预算交叉"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1）：实验把“训练预算”和“评估预算”分开——所有模型只在 4,096-token completion 上训练，然后在五个更大的生成长度上评估，因而每条曲线描述的是同一个 checkpoint 在不同测试时计算量下的表现。准确率视图里，OPSD 的曲线在短预算处高于基座，随后被基座的上升曲线追上或反超；长度视图里，基座会随预算继续变长，而 OPSD 的增长更早饱和。两组曲线并置说明：OPSD 学到的是更短、更“早收”的作答策略，这种策略在短预算下像压缩收益，在长预算下则丢掉了基座本来可以利用的额外测试时计算。</p>
+<p><strong>教师与学生的错位：继承了短回答，没有继承高 pass@k。</strong> 图 2 比较三种条件：基座；同一个基座在评估时把 gold demonstration 放进上下文（即 OPSD 教师条件）；OPSD 训练后的学生，在评估时不放 gold。教师条件在三个 Qwen3 规模上都表现出“回答更短但 pass@k 仍高、甚至更高”的模式；学生也确实变短，但它的 pass@k 增益更小，长预算下消失或转负（§3.4、论文 Fig. 2）。这个结果说明学生更容易模仿教师的长度&#x2F;风格，而不容易获得教师“看着答案作答”的能力；不过教师的高 pass@k 本身依赖学生拿不到的特权信息，所以“学生没有继承教师收益”并不单独构成异常，真正的问题是学生相对基座也下降了。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/reopsd_fig2_teacher_student.png"
+                      alt="图 2：教师看答案时短而准，学生只继承短"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 2）：这里把 OPSD 的教师条件显式地拿来当推理条件，而不是只看训练后的学生。灰色曲线是“基座 + 评估时 gold demonstration”，它模拟教师在看到答案后的短回答行为；蓝色是原始基座；橙色是 OPSD 学生，评估时不看 gold。三者的差异把“特权信息带来的短而准”与“学生真正学到的策略”分开：教师在短轨迹上仍保持高 pass@k，学生的轨迹也变短，却没有对应的准确率提升。读者应从中理解 OPSD 的监督是沿学生轨迹匹配教师分布，而不是把教师看到答案后的推理能力直接转移给学生。</p>
+<p><strong>上下文密度：完整解答比只给答案更伤长预算。</strong> 图 3 把 OPSD 相对各自基座的变化按预算画出来，并对 Table 1 的思考模型取平均；稠密条件给完整 gold demonstration，稀疏条件只给最终答案。稠密条件在 4k–8k 有更大的短预算增益（pass@1 约 +6 到 +7 个百分点），但到 38k 转为约 −4.5 个百分点，回答长度约缩到基座的 79%；稀疏条件在 38k 的 pass@1 约 −0.3 个百分点，长度约缩短 7.6%，更接近基座（论文 Fig. 3、§3.5）。因为两者共享训练配方与 4,096-token 上限，这一差异不能只由短训练预算解释，至少说明“教师看到的特权信息越多，长预算行为越容易被压缩”。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/reopsd_fig3_dense_sparse.png"
+                      alt="图 3：稠密与稀疏特权上下文的预算效应"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 3）：这是一张差分图，纵轴是“OPSD 减去该模型自己的基座”，横轴是评估预算，因此它去掉了模型间基础能力的差异，专门看训练带来的增量如何随测试时计算量变化。稠密 gold demonstration 的曲线在短预算处为正、在长预算处转负，回答长度曲线则持续向下；稀疏 final-answer-only 的准确率曲线几乎贴着零线，长度压缩也小得多。它支持的机制直觉是：教师侧特权信息越完整，学生越倾向于提前收敛到一条短轨迹；只给最终答案时，这种收敛压力较弱。</p>
+<p><strong>Countdown 的边界：指令模型的收益主要来自域内，思考模型并非一律受损。</strong> Table 2 是主文唯一一组同数据、同配方的指令&#x2F;思考配对。Qwen3-4B-Instruct-2507 的四基准平均从 0.527 升到 0.559（+0.032，CI [0.017, 0.048]），OLMo-7B-Instruct 从 0.474 升到 0.494（+0.020，CI [0.005, 0.034]）；但拆开看，增益几乎全部来自 Countdown 域内（Qwen +0.129、OLMo +0.095），AIME&#x2F;HMMT 上的差值多为负或接近零（Table 14、Table 2）。思考模型一侧，Qwen3-4B-Think-2507 从 0.776 降到 0.765（−0.011，CI [−0.026, 0.002]），OLMo-7B-Think 反而从 0.679 升到 0.695（+0.016，CI [0.004, 0.031]）。因此“指令模型受益、思考模型受损”在 Countdown 上并不成立为一条干净规律：指令模型的优势主要是域内提升空间，思考模型则是一降一升。这也说明 Table 1 的“五个思考模型全降”不能直接外推成“所有思考模型都会被 OPSD 伤害”。</p>
+<p><strong>训练时是否思考，是关键开关。</strong> Table 3 固定 Qwen3-4B 与 OpenThoughts 30k，只改训练 rollout 是否启用思考，评估统一开启思考。思考训练把平均从 0.591 降到 0.532；非思考训练保持在 0.590（Table 3、§3.1）。这把“长思考轨迹被 token 级特权监督”单独暴露出来：不是模型类型本身，而是“被监督的轨迹是思考轨迹”这一点与退化强相关。该实验也是全文最接近因果操纵的一组，但它仍没有回答“更长的训练 completion 上限是否会消除退化”。</p>
+<p><strong>普通 OPD 与特权 OPD：方向对，但显著性有限。</strong> Table 4 中，Qwen3-1.7B 基座 0.372，普通 OPD（8B 教师）0.392，加 gold demonstration 的 OPD 0.350，OPSD 0.308。普通 OPD 的 +0.020 的 95% CI 是 [−0.001, 0.042]，刚好跨零；而“gold OPD 减普通 OPD”的 −0.042 CI 为 [−0.065, −0.019]，是显著的（Table 16）。所以“特权上下文让 OPD 从正转负”这一对比在方向上成立，但“普通 OPD 本身显著提升”这一半句证据偏弱；更稳妥的表述是“普通 OPD 至少不降，而加特权后显著更差”。此外，OPSD 的 0.308 比 gold OPD 的 0.350 更低，但两者教师规模不同（1.7B vs 8B），不能把差距全归给“自蒸馏”。</p>
+<p><strong>pass@16 的下降远小于 avg@16。</strong> 主表用的是 avg@16；若看无偏 pass@16，Qwen3-1.7B 从 0.644 降到 0.611，Qwen3-4B 从 0.800 降到 0.756，Qwen3-8B 从 0.800 降到 0.789，Qwen3-4B-Think-2507 从 0.867 降到 0.856，OLMo 从 0.844 降到 0.822（Table 18）。也就是说，16 次采样里“至少一次做对”的概率下降通常只有 1–5 个百分点，而单样本平均正确率下降更大。这与“长预算下探索变少、但偶尔仍能碰到正确答案”的解释一致，也提醒读者：摘要的 17% 是 avg@16&#x2F;经验 pass@1 的相对下降，不是 pass@16 的相对下降。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>论文把机制证据分成三层：特权上下文是否改变教师在高熵位置的分布（§4.1）、固定轨迹上这些位置的逐 token 信号是否翻转（§4.2）、训练后的学生是否真的少产生审慎标记（§4.3）。三层都指向“分叉抑制”这一解释，但三层都是观察性的；作者在 §4.3 末尾明确写道，这些诊断“do not establish a causal explanation for the accuracy drop”，只识别出一致的 behavioral pattern。</p>
+<p><strong>第一层：教师分布变得更“锁定”。</strong> 图 4 在 60 条固定的 OpenMathReasoning 学生轨迹上，用三种教师条件（只看题、加最终答案、加截断参考解）给每个 token 位置打分，再按 top candidate 概率（fork &lt;0.25、lock &gt;0.65）统计每条轨迹的 fork&#x2F;lock 比例。指令模型 Qwen3-4B-Instruct-2507 的 fork 率在三种条件下都接近 6%，lock 率接近 78%，基本不动；思考模型 Qwen3-4B 的 fork 率中位数从基座的约 8.3% 降到稠密条件的约 3.5%，lock 率从约 69% 升到约 77%（§4.1、论文 Fig. 4）。作者据此认为，特权上下文把教师推向了“局部更确定”的续写，而思考模型的高熵分支点对这种推移更敏感。</p>
+<p><img src="/images/dailypaper/2026-10-20/reopsd_fig4_fork_lock.png" alt="图 4：特权上下文下的 fork/lock 比例"></p>
+<p><strong>图 4</strong>（论文 Fig. 4）：诊断的对象不是学生最终写了什么，而是“教师如何给同一批学生轨迹打分”。作者先让基座学生生成 60 条轨迹，再固定这些轨迹，只改变教师看到的上下文（只看题、加最终答案、加参考解），在每个 token 前缀上取教师的下一词分布，按 top candidate 概率把位置分成 fork 和 lock，最后统计每条轨迹中两类位置的比例。箱线图展示的是 60 条轨迹之间的分布，而不是单个 prompt 的曲线。读者应从中理解：随着教师看到更多答案信息，思考模型的教师分布中“多个续写都合理”的位置变少、“几乎唯一续写”的位置变多；指令模型则没有同样的移动。这个测量支持“教师信号被压缩”的假设，但它测的是教师分布，不是学生自己生成时的分支率。</p>
+<p><strong>第二层：固定轨迹上的符号翻转。</strong> 图 5 保持学生轨迹不变，只比较“无特权教师”和“有特权教师”在同一 token 上的 log-ratio。作者选了三条窗口：一条最终答错的轨迹里，特权教师把 “But wait” 从正&#x2F;中性压到 −1.96 和 −4.97，同时把正向信用移给 “how can” 这种局部流畅的续写；一条最终答对的轨迹里，特权教师仍把 “but” 压到 −12.70、把 “Maybe” 压到 −1.64，尽管这条轨迹最后做对了（§4.2、论文 Fig. 5）。这说明特权教师并不是只在错误轨迹上“纠正错误”，它在正确轨迹上也会压低自我纠错&#x2F;犹豫线索。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/reopsd_fig5_token_flip.png"
+                      alt="图 5：特权教师改写自我纠错 token 的信用"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 5）：实验设计是“同一段学生轨迹、两个教师”，因此 token 位置和前缀完全一致，差异只能来自教师是否看到答案信息。每个格子给出该 token 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>log</mi><mo>⁡</mo><msub><mi>π</mi><mi>T</mi></msub><mo>−</mo><mi>log</mi><mo>⁡</mo><msub><mi>π</mi><mi>S</mi></msub></mrow><annotation encoding="application/x-tex">\log\pi_T-\log\pi_S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>：绿色表示教师比学生更支持采样到的 token，红色表示更不支持，颜色深浅表示幅度。作者想展示的是，特权教师会把正信用从 “wait &#x2F; but &#x2F; Maybe &#x2F; Hmm” 这类表示“我可能错了、要换一条路”的 token 上移走，转向局部更顺的续写；即使轨迹最终正确，这种改写仍然发生。需要注意，这只是三个选定窗口的示例，不是全量 token 的统计分布；它的价值在于给出机制的方向性证据，而不是估计平均效应。</p>
+<p><strong>第三层：学生确实少说“等一等&#x2F;再检查”。</strong> 在五个思考模型的 AIME&#x2F;HMMT 评估中，作者把基座与 OPSD 的 7,200 条配对 rollout 按模型、基准、题目、样本序号对齐，统计三类标记。验证类从每千 token 1.63 降到 1.35（Δ&#x3D;−0.28，95% CI [−0.32, −0.25]）；回溯类从 6.45 降到 6.29（Δ&#x3D;−0.16，CI [−0.32, −0.02]）；对冲类从 3.79 降到 3.62（Δ&#x3D;−0.17，CI [−0.25, −0.10]）（Table 6、Appendix B.6）。原始计数下降更多（−8.8、−23.5、−17.0），但长度归一化后仍为负，说明不只是“回答变短所以标记变少”；不过回溯与对冲的归一化效应已经很小，真正稳健的主要是验证类标记。平均回答长度从 19,395 降到 15,391 token（Appendix B.6）。</p>
+<p><strong>补充：OPD 设置内的标记与概率证据。</strong> Table 5 在 Qwen3-1.7B 的 OPD 实验（8B 教师，不是 OPSD）里报告实际生成的标记密度：总体 epistemic-token 密度从基座 1.080% 到普通 OPD 1.074% 基本不变，gold-demonstration OPD 则降到 0.850%；“wait”从 3.85 降到 2.54 次&#x2F;千 token，“hmm”从 1.45 降到 1.11（Table 5、§4.2）。Appendix E 的 Table 21 表明这种偏移在采样前就存在：epistemic 集合的总概率质量从 0.00928 到普通 OPD 的 0.00929 几乎不动，gold 条件降到 0.00853，若干修订类 token 的 log-probability 同时下降。Appendix E 的 Table 20 token-mask 消融进一步显示，只对 epistemic token 施加损失（pass@1 0.385）或对随机等比例 token 施加损失（0.386）都仍高于基座 0.372，而 gold OPD 降到 0.350；这支持“损失稀疏本身不是退化原因”。但要注意两点：这些结果是 OPD（8B 教师），不能直接当作 OPSD 的机制证据；并且 gold OPD 的 pass@16 为 0.689，反而高于基座 0.644，说明损害主要体现在单样本平均而非“至少一次做对”。</p>
+<p><strong>对 §2 三个创新的逐一核对。</strong> 第一，长预算失败面的刻画有直接证据：Table 1、Table 4、论文 Fig. 1 在黑盒层面相互支持，且论文 Fig. 3 给出了上下文密度的剂量反应；但论文没有做“训练 completion 上限”的消融，无法排除“4,096 训练 &#x2F; 38,912 评估”的交互。第二，控制链的方向是对的：普通 OPD 不降、加 gold 后降（Table 4），思考训练降、非思考训练不降（Table 3），稠密比稀疏更伤（论文 Fig. 3）；但指令&#x2F;思考的对比主要建立在 Countdown 上，而 Table 1 的主实验没有指令模型，教师规模也没有与特权信息完全正交。第三，fork&#x2F;lock 诊断确实提供了 token 级定位，但它没有做干预实验；Table 6 的标记统计也只是词表代理，不能直接证明学生内部的搜索树变窄。</p>
+<p><strong>替代解释一：长度压缩本身。</strong> 论文自己报告了两个不利线索。其一，Table 3 的非思考训练不降，说明“只要训练就会压缩”不成立；但非思考训练根本没有监督长思考轨迹，不能排除“长轨迹上的压缩”本身有害。其二，Appendix G 的 conciseness 对照（图 6）给 Qwen3-8B 的教师一个“简洁作答”提示、但不给任何 gold 信息，结果回答在 32k–38k 明显缩短，准确率也低于基座与 gold-solution-only 条件（论文 Fig. 9、Appendix G）。这相当于一个“无特权信息的教师风格偏移”也能造成部分长预算退化；论文认为这正说明“单纯让学生简洁不够”，但它同时提示：退化可能来自任何把教师推向短、确定续写的上下文变化，而不一定非要是“答案特权”。作者没有在这个 conciseness 条件下测 fork&#x2F;lock，因此无法判断两条路径是否同一机制。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/reopsd_fig9_conciseness.png"
+                      alt="图 6：无 gold 的简洁提示也压缩长预算回答"
+                ></p>
+<p><strong>图 6</strong>（论文 Fig. 9）：这是一个针对“压缩解释”的补充对照。作者保持 Qwen3-8B 不变，比较基座、完整 gold demonstration、仅最终答案，以及一个只给“Solve concisely…”提示、完全不给 gold 的教师条件；后者模拟 CRISP 式的简洁蒸馏，但没有答案特权。结果显示简洁提示确实把长回答压短，长预算准确率也没有恢复到基座水平。它说明“回答变短”与“长预算退化”可以相伴出现，但并不能单独证明特权信息是唯一原因；要把它和分叉抑制区分开，还需要在简洁条件下重复 fork 率与标记测量。</p>
+<p><strong>替代解释二：训练&#x2F;评估预算错配。</strong> 论文用普通 OPD 在同样 4,096 训练上限下不降来反驳“单纯错配”解释（§3.3、Table 4）。这个对照有价值，但它只覆盖“无特权教师 + 更大教师”这一种情况；它不能排除“特权上下文 × 短训练上限”的交互。比如，教师看到完整解答后可能更倾向于在 4k 内结束，而学生恰好在 4k 处被截断，于是学习信号集中在“提前收尾”上。论文没有报告训练 rollout 的截断率，也没有用 8k&#x2F;16k&#x2F;32k 训练上限重跑 OPSD；这是目前最需要补的对照。</p>
+<p><strong>替代解释三：教师规模与实现细节。</strong> Table 4 中 OPSD 的教师是 1.7B 自身，普通 OPD 与 gold OPD 的教师是 8B；OPSD 比 gold OPD 更低，不能全归因于“自蒸馏”。另外，Appendix A 提到近期 OPSD 更新会“disable per-token divergence feedback on deliberation tokens, which is necessary to stabilize training”，但 Table 9 只写“Generalized KL&#x2F;JSD distillation on sampled completion tokens”，没有说明是否实现了这一屏蔽；如果本文跑的是未屏蔽版本，失败可能部分来自已知的训练稳定性问题，而不是特权信息本身。论文没有提供代码，无法从材料确认这一点。</p>
+<p><strong>替代解释四：统计与样本。</strong> 所有主结果来自单次训练（seed 42）；置信区间只对 30 道题做题目级 bootstrap，不包含训练种子方差（Appendix C.1）。在这个样本量下，Table 1 的 OLMo 平均差值 CI 跨零，Table 2 的 Qwen3-4B-Think-2507 也跨零；因此“模型类型”层面的结论比“这些具体 checkpoint 在具体条件下”的结论要弱。作者对显著性做了诚实披露，但摘要的“five thinking models”与“up to 17%”仍容易被读成五个模型都稳健受损。</p>
+<p>综合来看，机制证据最强的是“行为一致性”：特权教师在高熵位置的分布更锁定、固定轨迹上的纠错线索被压低、训练后的学生少说验证&#x2F;回溯词；这三件事方向一致，且与长预算退化同时出现。最弱的是因果链：没有干预、没有学生侧 fork 率、没有训练上限消融，且论文 Fig. 4 的测量本身还有实现细节上的不一致（见 §5）。因此较准确的判断是“fork suppression 是一个有数据支持、但尚未被因果识别的失败模式假设”，而不是已经证明的机制。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p><strong>训练成本。</strong> 论文报告每个 OPSD 运行使用 8 张 H100 80GB、一个 epoch、15k 训练样本、有效 batch 64、4,096-token completion（Table 10）；但没有报告 wall-clock、GPU-hours、总 token 数或不同模型规模的实际能耗。教师上下文会把 prompt 拉长（完整解答可能远长于学生题目），从而增加训练时的显存和前向开销；论文没有量化这部分。也没有人工标注：数据来自 OpenThoughts 与 Countdown 的现成解答，评测是自动判分。教师是同一 checkpoint 的副本，不需要额外的大模型服务；这是 OPSD 相对于“独立大教师”的成本优势。</p>
+<p><strong>推理成本。</strong> 推理阶段没有教师、没有特权上下文，也没有额外的工具或搜索控制器，因此不会增加单次推理的模型调用次数。相反，OPSD 学生的回答更短，理论上会降低平均解码 token 数和时延；但论文没有报告推理时延，只报告了回答长度。也就是说，“更短”在这里不是被当作效率收益，而是被当作长预算能力受损的症状。</p>
+<p><strong>评估成本。</strong> 每个模型在每个基准上生成 30×16&#x3D;480 条样本，三个基准共 1,440 条；五个模型、多个预算、多个条件叠加后，评估规模不小，但论文没有报告总生成 token 或成本。机制诊断使用 60 条 OpenMathReasoning 轨迹、每模型六种条件（OPSD&#x2F;OPD × base&#x2F;sparse&#x2F;dense），规模相对可控；不过 Appendix D 为了避开 prompt-logprob 显存问题，把 dense 条件的学生轨迹截到 1,536 token、参考解截到 2,048 token，而 base&#x2F;sparse 的学生轨迹可到 3,072 token（Appendix D）。这意味着 dense 条件的 fork&#x2F;lock 统计是在更短的轨迹上做的，和另外两个条件并非完全同分布；这是成本约束带来的测量偏差，论文没有讨论。</p>
+<p><strong>适用范围与未解决问题。</strong> 结论适用于：数学竞赛题（AIME24&#x2F;25、HMMT25）、Qwen3 与 OLMo 的 1.7B–8B 思考模型、英文提示、4,096-token 训练上限、38,912-token 评估上限、完整解答或最终答案作为教师上下文。作者在 §7 明确列出限制：失败分析没有被完美隔离、没有证明因果、没有提出解决方案、只做可验证的数学而没有做持续学习等任务。论文没有测试更大的模型（如 30B+）、其他模型族（Llama、DeepSeek、GPT 系列）、代码&#x2F;Agent&#x2F;多语言任务、其他 OPSD 变体（SDFT、SDPO、SD-Zero 之外的）或更长训练 completion；也没有报告训练失败率、显存峰值、数据污染检查。已被改善或澄清的是“何时该警惕”：长预算、思考轨迹、稠密特权上下文三者叠加时风险最高，稀疏最终答案相对安全；仍未解决的是“如何在使用特权信息的同时保留分叉探索”，作者没有给出方法。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：分叉抑制只有相关证据，没有因果干预"><a href="#质疑：分叉抑制只有相关证据，没有因果干预" class="headerlink" title="质疑：分叉抑制只有相关证据，没有因果干预"></a>质疑：分叉抑制只有相关证据，没有因果干预</h4><ul>
+<li><strong>原文依据</strong>：§4.1 的 fork&#x2F;lock 统计是在固定学生轨迹上测“教师分布”，不是测学生自己的分支率；§4.2 的符号翻转来自论文 Fig. 5 的三个选定窗口；§4.3 的标记统计是词表代理。作者在 §4.3 末尾明确写“These diagnostics do not establish a causal explanation for the accuracy drop”，§7 也承认失败分析“not perfectly isolated or proved to be causal”。此外，Appendix D 的 dense 条件把学生轨迹截到 1,536 token、base&#x2F;sparse 可到 3,072 token，三组测量并非完全同分布；诊断用的还是 60 条 OpenMathReasoning 轨迹，而非主实验的 AIME&#x2F;HMMT。更重要的是，§4.1 正文用 top candidate 概率（fork &lt;0.25、lock &gt;0.65）定义位置，Appendix D 又给出归一化熵阈值（≤0.20&#x2F;≥0.60）和 SSD 支撑集两种替代实现，却没有说明论文 Fig. 4 实际采用哪一种；不同阈值会直接改变 fork&#x2F;lock 比例，使图 4 的具体数值难以复现核对。</li>
+<li><strong>为什么重要</strong>：论文的标题与摘要把失败模式与“high-entropy forking positions”绑定；如果只有相关证据，贡献就退化为“负面结果 + 一个合理假设”，而不是“已识别的机制”。这会直接影响创新性与结论强度。</li>
+<li><strong>当前能够得出的判断</strong>：证据足以说明“特权教师在高熵位置更锁定、固定轨迹上的纠错线索被压低、学生少说验证&#x2F;回溯词”这三件事同时发生；不足以说明分叉抑制是准确率下降的原因。作者自己的措辞是克制的，但摘要与图注仍容易被读成因果结论。</li>
+<li><strong>如何验证或补强</strong>：需要干预实验，例如只在 fork 位置改变教师信号、在训练中对 fork token 加权重&#x2F;加探索奖励、或屏蔽教师特权上下文在 fork 位置的梯度，然后看准确率与 fork 率是否同步恢复；同时报告学生侧 fork 率、统一 dense&#x2F;base 的轨迹长度，并在 AIME&#x2F;HMMT 上重复诊断。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：4-096-训练上限与-38-912-评估上限的交互没有被隔离"><a href="#质疑：4-096-训练上限与-38-912-评估上限的交互没有被隔离" class="headerlink" title="质疑：4,096 训练上限与 38,912 评估上限的交互没有被隔离"></a>质疑：4,096 训练上限与 38,912 评估上限的交互没有被隔离</h4><ul>
+<li><strong>原文依据</strong>：§2 与 Table 9 规定训练 completion 上限 4,096，评估到 38,912；§3.3 用普通 OPD 在同样 4,096 上限下不降来反驳“单纯预算错配”（Table 4）。但论文没有报告训练 rollout 的截断率，也没有用 8k&#x2F;16k&#x2F;32k 训练上限重跑 OPSD；论文 Fig. 1 的所有 OPSD checkpoint 都只见过 4,096 以内的轨迹。</li>
+<li><strong>为什么重要</strong>：如果思考模型在 OpenThoughts 上的自然回答经常超过 4k，训练信号就集中在前 4k 个 token，教师又看到完整解答，学生可能被教成“在 4k 内收尾”。这样“长预算退化”就可能主要是短训练上限造成的，而不是特权信息本身；这会动摇摘要的核心因果表述。</li>
+<li><strong>当前能够得出的判断</strong>：普通 OPD 对照说明“短训练预算”不是唯一原因，但不能排除“特权上下文 × 短训练预算”的交互。论文的“not explained by the short training completion budget alone”措辞是准确的，但标题与摘要没有充分体现这一保留。</li>
+<li><strong>如何验证或补强</strong>：做 2×2 设计（有&#x2F;无特权 × 4k&#x2F;16k 训练上限），报告每个设置的截断率、训练 token 分布和长预算曲线；如果 16k 训练上限下退化消失，结论应改写为“短 completion 训练与特权上下文的交互”，而不是“特权 OPSD 普遍伤害思考模型”。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：OPSD-的实现与原文设置存在差异，且没有代码"><a href="#质疑：OPSD-的实现与原文设置存在差异，且没有代码" class="headerlink" title="质疑：OPSD 的实现与原文设置存在差异，且没有代码"></a>质疑：OPSD 的实现与原文设置存在差异，且没有代码</h4><ul>
+<li><strong>原文依据</strong>：Appendix A 明确说近期 OPSD 更新会“disable per-token divergence feedback on deliberation tokens, which is necessary to stabilize training”，但 Table 9 的目标只写“Generalized KL&#x2F;JSD distillation on sampled completion tokens”，没有说明是否实现该屏蔽。论文也没有提供代码或配置。与其引用的 OPSD 原文（Zhao et al., 2026，arXiv:2601.18734 v3）相比，本文把主实验从 Qwen3 instruct、30K OpenThoughts、1,024-token 生成、avg@12，改成了 thinking 模型、15K 子集、4,096-token、avg@16（§1、§2、Appendix B.1）；这些差异没有被逐项复现或对齐。</li>
+<li><strong>为什么重要</strong>：如果本文跑的是“未屏蔽 deliberation token”的旧版&#x2F;简化版 OPSD，失败可能部分来自作者自己引用的已知训练稳定性问题，而不是“现有 OPSD 方法”的固有缺陷；如果用了屏蔽但没报告，复现者也无法确认。对于一篇以“rethinking existing method”为卖点的论文，基线保真度是核心。</li>
+<li><strong>当前能够得出的判断</strong>：当前材料无法确认本文的 OPSD 是否等价于其声称的“existing OPSD methods”。论文对超参数和数据的披露较完整，但缺少代码与关键实现开关，属于可复现性缺口。</li>
+<li><strong>如何验证或补强</strong>：公开训练代码与配置；做“有&#x2F;无 deliberation-token 屏蔽”的对照；在相同数据、教师、预算下复现原 OPSD 的设置，再逐步切换到 thinking 模型&#x2F;长预算，定位是哪一步引入退化。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：“指令模型受益、思考模型受损”的边界被数据域、提升空间与教师规模混淆"><a href="#质疑：“指令模型受益、思考模型受损”的边界被数据域、提升空间与教师规模混淆" class="headerlink" title="质疑：“指令模型受益、思考模型受损”的边界被数据域、提升空间与教师规模混淆"></a>质疑：“指令模型受益、思考模型受损”的边界被数据域、提升空间与教师规模混淆</h4><ul>
+<li><strong>原文依据</strong>：Table 2 是主文唯一同数据同配方的指令&#x2F;思考配对，但指令模型的 Average 增益几乎全部来自 Countdown 域内（Qwen +0.129、OLMo +0.095），AIME&#x2F;HMMT 上多为负或接近零；思考模型一侧 Qwen3-4B-Think-2507 下降、OLMo-7B-Think 反而上升（Table 2、Table 14）。Table 1 的 OpenThoughts 主实验没有指令模型；Table 4 的普通 OPD 教师是 8B，OPSD 教师是 1.7B 自身，教师规模与特权信息不正交。思考模型在 Countdown 上已接近天花板（0.945、0.877），提升空间远小于指令模型。</li>
+<li><strong>为什么重要</strong>：摘要的“privileged context can help instruction-tuned models but hurts more performant thinking models”是一个二分法主张；如果指令模型的“受益”主要是域内&#x2F;天花板&#x2F;数据差异，而思考模型的“受损”依赖 OpenThoughts 完整解答，那么这个二分法就是不干净的，结论应缩窄为“在特定数据与上下文密度下”。</li>
+<li><strong>当前能够得出的判断</strong>：现有证据支持“在这组 Countdown 域内，指令模型提升更明显；在 OpenThoughts 完整解答下，五个思考模型点估计下降”；不支持“模型类型本身是决定因素”。OLMo-7B-Think 在 Countdown 上的显著提升是一个直接反例。</li>
+<li><strong>如何验证或补强</strong>：在 OpenThoughts 15k 上训练匹配的指令模型（同数据、同 full-solution 上下文、同预算），并比较相同 headroom 下的增益；在 Countdown 上做难度分层&#x2F;按基座准确率匹配的分析；增加更多模型族（不只 Qwen&#x2F;OLMo）和更多数据域。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：统计稳定性与-headline-指标的选择"><a href="#质疑：统计稳定性与-headline-指标的选择" class="headerlink" title="质疑：统计稳定性与 headline 指标的选择"></a>质疑：统计稳定性与 headline 指标的选择</h4><ul>
+<li><strong>原文依据</strong>：每个基准只有 30 题、每题 16 样本；训练只用一个 seed 42；Appendix C.1 明确说 bootstrap 只反映题目不确定性，不含训练 seed 方差。Table 1 中 OLMo 的平均差值 CI 为 [−0.028, 0.011]，跨零；Table 2 中 Qwen3-4B-Think-2507 的平均差值 CI 为 [−0.026, 0.002]，也跨零。摘要的“up to 17%”来自五个模型中基座最弱的 Qwen3-1.7B（0.064&#x2F;0.372），而最强的 Qwen3-4B-Think-2507 只有约 5.1%；pass@16 的下降仅约 1–5 个百分点（Table 18）。</li>
+<li><strong>为什么重要</strong>：这决定了“五个模型全部受损”是稳健规律还是点估计的集合；也决定了 17% 是“典型幅度”还是“最大单元格”。对于以负面结果为核心的论文，统计稳定性与指标选择会直接影响读者对结论的信任。</li>
+<li><strong>当前能够得出的判断</strong>：点估计方向和多数 Qwen 模型的 CI 支持“存在退化”，但精度有限；OLMo 与部分 Countdown 结果不能支持“所有思考模型”的强结论。17% 是合法的最大值，但不是五个模型的平均或中位数。</li>
+<li><strong>如何验证或补强</strong>：至少 3–5 个训练 seed，报告 seed 间方差；扩大题目数或增加 benchmark；把 avg@16 与 pass@16 都作为预注册主指标，并在摘要中同时给出；对多模型做分层&#x2F;混合效应分析，而不是逐模型挑最大值。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现带特权上下文的在线策略自蒸馏会在长预算评估中压低多个思考模型的 avg@16，并且这种退化随教师特权信息的密度增加、在训练轨迹本身是思考轨迹时出现；因此提出“特权上下文抑制高熵分叉处的探索”这一解释，通过五个模型的预算曲线、普通&#x2F;特权 OPD 对照、fork&#x2F;lock 统计、固定轨迹 log-ratio 和审慎标记计数来支撑。实验在 AIME24&#x2F;25、HMMT25 与 Countdown 上表明，Qwen3-1.7B 的平均相对下降可达约 17%，且短预算受益、长预算转负；其中“稠密比稀疏更伤”“思考训练比非思考训练更伤”“普通 OPD 不降而加 gold 后降”三组证据较强，但“分叉抑制是原因”“所有思考模型都受损”“17% 是典型幅度”仍缺少充分支持。本文最有价值的部分是把一个被广泛看好的自蒸馏配方放进思考模型的长预算场景，并诚实地报告了负面结果与边界；最大的审稿风险是训练&#x2F;评估预算错配与 OPSD 实现保真度没有被完全排除，使“机制”与“方法缺陷”难以区分。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。§1 明确区分了 OPSD 的一般问题、本文的新观察与具体子问题，训练&#x2F;评估协议也交代得清楚；扣分点是“thinking models”作为类别的边界仍偏宽（§5 质疑 4）。</li>
+<li><strong>创新性证据</strong>：中。没有新训练算法，创新主要是系统性负面结果、控制链和诊断工具的组合；相对已有 OPSD 工作的增量清楚（§2），但“首次”类主张没有被提出，机制也不是全新理论（§4.3）。</li>
+<li><strong>方法可信度</strong>：中。同数据&#x2F;同配方的对照、题目级 bootstrap、长度归一化都做得较扎实；但训练上限、教师规模、OPSD 实现细节没有完全隔离（§5 质疑 1–3）。</li>
+<li><strong>实验支持力度</strong>：中。五个思考模型、三个数学基准、五档预算和多种对照提供了较广的覆盖面；但单 seed、每基准 30 题、部分 CI 跨零，使“所有模型”级别的结论偏弱（§4.2、§5 质疑 5）。</li>
+<li><strong>可复现性</strong>：弱。论文未提供代码；主训练超参数较完整（Table 9–10），但 fork&#x2F;lock 诊断的实现、dense 轨迹截断、Appendix D 中“final SRT runs”的表述以及 OPSD 是否屏蔽 deliberation token 都没有交代清楚（Appendix D、§5 质疑 1、3）。</li>
+<li><strong>综合阅读价值</strong>：高。它提供了一个对思考模型后训练很实用的负面结果，且作者对因果与范围的保留比较克制；读者可以据此在设计 OPSD&#x2F;特权蒸馏时优先检查长预算、上下文密度和训练 completion 上限，而不是只看短预算平均分。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Rethinking On-Policy Self-Distillation for Thinking Models</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-20 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-20 19:32:08
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/20/2607.05184v1_Rethinking_On-Policy_Self-Distillation_for_Thinking_Models/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Self-Distillation/">#Self-Distillation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/On-Policy-Distillation/">#On-Policy Distillation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Reasoning/">#LLM Reasoning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Mathematical-Reasoning/">#Mathematical Reasoning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Post-Training/">#Post-Training</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Failure-Analysis/">#Failure Analysis</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/20/2601.18734v3_OPSD_Self-Distilled_Reasoner_On-Policy_Self-Distillation_for_Large_Language_Models/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Self-Distilled Reasoner: On-Policy Self-Distillation for Large Language Models</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/20/2608.04007v1_TurnSight_Turn-Level_Hindsight_Self-Distillation_for_Tool-Integrated_Reasoning/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">TurnSight: Turn-Level Hindsight Self-Distillation for Tool-Integrated Reasoning</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Rethinking On-Policy Self-Distillation for Thinking Models</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E8%BE%93%E5%85%A5%E3%80%81%E6%95%99%E5%B8%88%E4%B8%8A%E4%B8%8B%E6%96%87%E4%B8%8E%E8%AE%AD%E7%BB%83%E7%9B%AE%E6%A0%87"><span class="nav-text">3.1 输入、教师上下文与训练目标</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E5%AF%B9%E7%85%A7%E8%AE%BE%E8%AE%A1%EF%BC%9A%E6%8A%8A%E2%80%9C%E7%89%B9%E6%9D%83%E4%BF%A1%E6%81%AF%E2%80%9D%E4%BB%8E%E2%80%9C%E5%9C%A8%E7%BA%BF%E8%92%B8%E9%A6%8F%E2%80%9D%E9%87%8C%E6%8B%86%E5%87%BA%E6%9D%A5"><span class="nav-text">3.2 对照设计：把“特权信息”从“在线蒸馏”里拆出来</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E8%AF%84%E4%BC%B0%E5%8D%8F%E8%AE%AE%EF%BC%9A%E9%95%BF%E9%A2%84%E7%AE%97%E3%80%81avg-16-%E4%B8%8E%E9%A2%84%E7%AE%97%E6%9B%B2%E7%BA%BF"><span class="nav-text">3.3 评估协议：长预算、avg@16 与预算曲线</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E6%9C%BA%E5%88%B6%E8%AF%8A%E6%96%AD%EF%BC%9Afork-lock%E3%80%81%E5%9B%BA%E5%AE%9A%E8%BD%A8%E8%BF%B9%E6%89%93%E5%88%86%E4%B8%8E%E6%A0%87%E8%AE%B0%E7%BB%9F%E8%AE%A1"><span class="nav-text">3.4 机制诊断：fork&#x2F;lock、固定轨迹打分与标记统计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-%E8%AE%AD%E7%BB%83%E5%90%8E%E7%9A%84%E6%8E%A8%E7%90%86%E4%B8%8E%E8%BE%93%E5%87%BA"><span class="nav-text">3.5 训练后的推理与输出</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 157 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

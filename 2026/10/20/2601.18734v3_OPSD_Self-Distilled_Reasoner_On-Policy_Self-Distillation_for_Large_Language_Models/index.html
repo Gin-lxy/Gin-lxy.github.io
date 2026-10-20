@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/20/2601.18734v3_opsd_self-distilled_reasoner_on-policy_self-distillation_for_large_language_models/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Self-Distilled Reasoner: On-Policy Self-Distillation for Large Language Models">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/20/2601.18734v3_OPSD_Self-Distilled_Reasoner_On-Policy_Self-Distillation_for_Large_Language_Models/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-20T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-20T11:32:08.922Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="LLM Reasoning">
+<meta property="article:tag" content="Mathematical Reasoning">
+<meta property="article:tag" content="On-Policy Distillation">
+<meta property="article:tag" content="Post-Training">
+<meta property="article:tag" content="Self-Distillation">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Self-Distilled Reasoner: On-Policy Self-Distillation for Large Language Models | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">207</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">157</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Self-Distilled Reasoner: On-Policy Self-Distillation for Large Language Models</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-20 12:00</span>
+        <span class="mobile">2026-10-20 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-20 19:32:08</span>
+            <span class="mobile">2026-10-20 19:32:08</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Self-Distillation/">Self-Distillation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/On-Policy-Distillation/">On-Policy Distillation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-Reasoning/">LLM Reasoning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Mathematical-Reasoning/">Mathematical Reasoning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Post-Training/">Post-Training</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<p>Siyan Zhao、Zhihui Xie、Mengchen Liu、Jing Huang、Guan Pang、Feiyu Chen、Aditya Grover</p>
+<p>论文版本：arXiv:2601.18734v3（v1 2026-01-26；v2 2026-03-05；v3 2026-03-20；作者主页标注 ICML 2026，arXiv 元数据未列 venue）</p>
+<p>论文：arXiv:2601.18734v3；来源：用户指定（非 Hugging Face Daily 批次）；精读归档日期：2026-10-20</p>
+<p>官方原文：HTML <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2601.18734v3" >https://arxiv.org/html/2601.18734v3<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> ；PDF <a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/pdf/2601.18734v3" >https://arxiv.org/pdf/2601.18734v3<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2601.18734" >https://huggingface.co/papers/2601.18734<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/siyan-zhao/OPSD" >https://github.com/siyan-zhao/OPSD<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>标签：Self-Distillation、On-Policy Distillation、LLM Reasoning、Mathematical Reasoning、Post-Training。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>这篇论文要把“学生在自己采样的轨迹上接受教师逐 token 监督”的同策略蒸馏（on-policy distillation），改造成同一个大语言模型（LLM）在两种上下文下的自蒸馏（self-distillation）：教师看到含思维链的参考解，学生只看到题目，学生在自己的 rollout（采样轨迹）上逐 token 匹配教师的下一 token 分布。作者在 Qwen3-1.7B&#x2F;4B&#x2F;8B 和三个数学竞赛基准上报告了优于 SFT、总体匹配或略优于 GRPO 的结果；但证据只覆盖数学、LoRA 微调和不超过 8B 的模型，且 token 效率（token efficiency）的统计口径与训练&#x2F;评测设置存在需要澄清的问题。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p><strong>研究背景与任务。</strong> 论文关注大语言模型在数学推理任务上的后训练（post-training）。给定题目 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span> 与带思维链（chain-of-thought, CoT）的参考解 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>y</mi><mo>⋆</mo></msup></mrow><annotation encoding="application/x-tex">y^\star</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8831em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span></span></span></span>，目标是提升模型在竞赛级数学题上的准确率。现有三条路线各有代价：监督微调（SFT）直接在专家轨迹上做离线模仿，存在暴露偏差（exposure bias）与分布不匹配；带可验证奖励的强化学习（RLVR，典型算法为 Group Relative Policy Optimization，GRPO）在策略自己采样的回答上优化，但奖励是序列级二值信号，且每个问题要采样一组回答；知识蒸馏（knowledge distillation）能提供稠密的 token 级监督，但传统做法是离策略（off-policy）的，而同策略蒸馏又通常需要一个独立、往往更大的教师模型（§1、§2）。</p>
+<p><strong>现有方法在哪些条件下表现不好。</strong> 论文给出了两类具体失效条件。第一类是数据风格条件：在 OpenThoughts 数学子集上训练 SFT 时，参考解普遍较短，SFT 会把这种“简洁推理”风格学进去，导致测试时生成长度下降，因而在三个模型规模上平均分都不如基座（Qwen3-1.7B 从 37.1 降到 35.8，4B 从 61.2 降到 58.6，8B 从 61.8 降到 59.8；Table 2，作者归因见 §4.2）。第二类是奖励多样性条件：在同一个数据集上，GRPO 的组内奖励经常全部相同，组内奖励标准差为零，梯度消失；论文 Fig. 3 中的零奖励标准差子图与题注称，在 100 步内超过一半的 batch 出现零奖励标准差。这两点都是论文报告的现象，但“原因就是数据太简洁&#x2F;太简单”仍主要是作者的解释。</p>
+<p><strong>论文发现的新现象。</strong> 除了上述训练信号问题，论文还报告了一个关于 token 类别的经验观察：教师与学生分布之间的逐 token Kullback–Leibler（KL）散度在词表条目上高度偏斜，风格类 token（如 “wait”“think”“therefore”）的 KL 可以显著高于数学类 token；在作者最终采用的 TM-off 学生 &#x2F; TM-on 教师配置下，Table 5 给出的风格&#x2F;数学 KL 比约为 6–13 倍（Qwen3-1.7B 为 0.85 对 0.14，4B 为 0.92 对 0.10，8B 为 0.79 对 0.06）。这个观察直接催生了逐点 KL 裁剪（pointwise KL clipping）的设计。</p>
+<p><strong>被忽略的问题与研究假设。</strong> 作者认为，同策略蒸馏的核心限制是“必须有外部教师”，而推理数据集本身已经带有可用的参考解；如果模型足够强，看到参考解后“合理化&#x2F;讲解”（rationalization）应当比从零生成更容易——论文引用“评估可能比生成更容易”的已有观点（Sun et al., 2024；Naor, 1996）作为类比。由此提出核心假设：同一个模型在“题目 + 参考解”的条件下可以充当教师，在“仅题目”的条件下作为学生，学生只在自己的 rollout 上学习，就能同时获得同策略数据、稠密 token 监督和真实答案信号，而不需要外部教师或奖励模型（reward model）（§1、§3.2）。</p>
+<p><strong>边界。</strong> 需要区分三类内容：暴露偏差、RL 奖励稀疏、教师模型成本是领域早已知道的一般问题；本文新增的是“把参考解当作特权信息（privileged information）、让同一模型自蒸馏”的具体算法，以及在 OpenThoughts&#x2F;GRPO 设置下观察到的零奖励方差与风格 token KL 偏斜；本文实际解决的是“在数学竞赛题、Qwen3 指令模型、LoRA 训练”这一具体子问题。论文没有证明该机制在代码、科学推理、多轮任务或更大模型上同样成立；Appendix A 明确承认实验只做到 8B，且当题目超出模型理解能力时教师也无法提供有意义的监督。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的技术增量不是提出了新的基础模型或新数据，而是把三个已有组件——上下文条件化的“教师”、学生自己的 on-policy rollout、逐 token 分布匹配——组合成一个不需要外部教师的自蒸馏流程，并补上一个稳定训练用的裁剪技巧。根据本文的 related work，最接近的工作是上下文蒸馏（context distillation）、GKD 式的同策略蒸馏，以及并发的 SDPO&#x2F;SDFT；因此只能确认作者声称的差异，是否“首次提出”需要更完整的独立文献检索。</p>
+<ol>
+<li><p><strong>单模型双角色的 OPSD 框架。</strong> 同一个 LLM 用两套提示分别实例化学生策略 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">p_S(\cdot\mid x)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mclose">)</span></span></span></span> 与教师策略 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msup><mi>y</mi><mo>⋆</mo></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">p_T(\cdot\mid x,y^\star)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>；教师看到完整的参考解（含 CoT），学生只看到题目，学生采样自己的轨迹，教师在该轨迹的每个前缀上给出下一 token 分布。与上下文蒸馏的区别是：后者让教师先“生成”一段回答，再对学生做 SFT，属于离线硬蒸馏；与常规同策略蒸馏的区别是：后者需要另一个教师模型。该设计对应 §1 的“外部教师依赖”问题，主要证据在 §4.2 的主结果与 §4.3 的机制证据。</p>
+</li>
+<li><p><strong>在学生 rollout 上做全词表（full-vocabulary）前向 KL 匹配。</strong> 论文没有停在“对采样到的 token 算一个反 KL 优势”，而是对每个位置在整个词表上计算 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo stretchy="false">(</mo><msub><mi>p</mi><mi>T</mi></msub><mi mathvariant="normal">∥</mi><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">D(p_T\|p_S)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">D</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">∥</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，并选择前向 KL（forward KL）；教师固定为初始策略，梯度只回传学生。与 Thinking Machines Lab 的同策略蒸馏（Lu and Lab, 2025）式“采样 token + 策略梯度”做法相比，这提供了更完整的分布监督；对应的消融是 Table 4。该设计对应“奖励稀疏、只有序列级反馈”的问题。</p>
+</li>
+<li><p><strong>逐点 KL 裁剪。</strong> 对每个位置、每个词表条目 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>v</mi></mrow><annotation encoding="application/x-tex">v</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span></span></span></span> 的散度贡献设上限 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span>，再求和，以避免少数风格 token 的高 KL 主导训练信号。它对应 Table 5 报告的 KL 偏斜现象，证据是论文 Fig. 4 的“有无裁剪”对比；这是三个创新中最偏工程稳定性的一个，也是论文正文披露最少的一个（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span> 的取值未在正文给出）。</p>
+</li>
+</ol>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>核心直觉可以这样理解：学生先独立做一遍题，教师不直接给答案，而是拿着标准解“看懂”学生的每一步，并在每个位置告诉学生“如果知道正确答案，这里更可能该写什么”。由于教师和学生共享同一组参数、只差上下文，教师不需要比学生更强的推理能力，只需要具备“看着答案解释思路”的能力；学生的任务也不是复述标准解，而是把自己的生成分布拉向这个“带答案的教师分布”。这样既保留了学生自己的状态分布（on-policy），又获得了每个 token 位置的稠密监督，而且不依赖外部教师或奖励模型。</p>
+<h3 id="3-1-输入：题目、参考解与两套提示"><a href="#3-1-输入：题目、参考解与两套提示" class="headerlink" title="3.1 输入：题目、参考解与两套提示"></a>3.1 输入：题目、参考解与两套提示</h3><p>训练数据是问题—参考解对 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">S</mi><mo>=</mo><mo stretchy="false">{</mo><mo stretchy="false">(</mo><msub><mi>x</mi><mi>i</mi></msub><mo separator="true">,</mo><msubsup><mi>y</mi><mi>i</mi><mo>⋆</mo></msubsup><mo stretchy="false">)</mo><msubsup><mo stretchy="false">}</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></msubsup></mrow><annotation encoding="application/x-tex">\mathcal{S}=\{(x_i,y_i^\star)\}_{i=1}^{N}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.075em;">S</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1em;vertical-align:-0.2587em;"></span><span class="mopen">{(</span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-2.4413em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2587em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mclose"><span class="mclose">}</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-2.4413em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2587em;"><span></span></span></span></span></span></span></span></span></span>，其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">x_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 是题目，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>y</mi><mi>i</mi><mo>⋆</mo></msubsup></mrow><annotation encoding="application/x-tex">y_i^\star</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9474em;vertical-align:-0.2587em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-2.4413em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2587em;"><span></span></span></span></span></span></span></span></span></span> 是参考解，可以包含完整的思维链。论文使用 OpenThoughts 的数学推理子集，最多取 30K 对带 CoT 的样本（§4.1）。同一个样本会被改写为两套提示：学生提示只有题目和一个“Answer:”槽位；教师提示在题目后插入“Here is a reference solution: …”，再要求“After understanding the reference solution, please try to solve this problem using your own approach below:”，最后同样以“Answer:”结尾（论文 Fig. 2）。图 1 展示了这套双提示如何接入同一个模型并形成训练闭环。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/opsd_fig1.png"
+                      alt="图 1：OPSD 训练流程总览"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1）：OPSD 把同一个 LLM 实例化为共享参数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi></mrow><annotation encoding="application/x-tex">\theta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span></span></span></span> 的两个条件策略。数据集中的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><msup><mi>y</mi><mo>⋆</mo></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(x,y^\star)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span> 先被改写成学生提示与教师提示；学生策略从自己的分布采样一条轨迹 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>y</mi><mo>^</mo></mover></mrow><annotation encoding="application/x-tex">\hat y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span></span></span></span>，教师策略在同一个轨迹前缀上给出下一 token 分布；两者逐位置比较后，梯度只沿学生的 logits 回传。关键在于教师不生成新轨迹，而是对学生已经走过的前缀做“带答案的再评估”，因此监督既落在学生自己的状态分布上，又是逐 token 稠密的。</p>
+<p>两套提示在内容上的差别是 OPSD 的关键输入设计，图 2 给出了学生与教师提示的具体形式：学生端只有题目和待填的答案槽位，教师端在题目后插入参考解，再用一句指令把上下文引向“理解之后自己求解”。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/opsd_fig2.png"
+                      alt="图 2：学生与教师的提示构造"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 2）：学生提示只包含题目和待填的 “Answer:” 槽位；教师提示在题目后加入参考解，并要求模型在理解参考解后用自己的方法继续求解。这段指令的作用不是让教师输出一段新解答，而是把教师的上下文从“阅读参考解”自然过渡到“评估学生接下来的 token”，使教师对同一学生前缀的下一 token 分布携带答案信息。教师端只做一次前向计算，不产生额外的生成 token；论文特别说明，所谓“合理化”是在这一次前向中隐式完成的（§3.2、论文 Fig. 2 题注）。</p>
+<p>这里有一个容易误解的点：教师并不是把参考解逐字复制给学生，也不是在学生轨迹后面拼接标准答案。教师看到的是“题目 + 参考解 + 要求自己求解的指令”，然后被要求在学生的前缀之后继续预测；因此它的分布是“在已经知道正确答案的前提下，对学生当前前缀的下一 token 应该是什么”的判断。学生看到的则只有题目，分布必须从零开始生成。两者共享参数但条件信息不同，这正是 OPSD 与“两个不同模型”的同策略蒸馏的本质区别。</p>
+<h3 id="3-2-一次训练迭代的数据流"><a href="#3-2-一次训练迭代的数据流" class="headerlink" title="3.2 一次训练迭代的数据流"></a>3.2 一次训练迭代的数据流</h3><p>一次迭代从 mini-batch <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">B</mi><mo>⊂</mo><mi mathvariant="script">S</mi></mrow><annotation encoding="application/x-tex">\mathcal{B}\subset\mathcal{S}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7224em;vertical-align:-0.0391em;"></span><span class="mord mathcal" style="margin-right:0.0304em;">B</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">⊂</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.075em;">S</span></span></span></span> 开始（有效 batch 为 32，Table 6）。对每个样本 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><msup><mi>y</mi><mo>⋆</mo></msup><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(x,y^\star)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，学生先以当前策略采样一条 on-policy 回答 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>y</mi><mo>^</mo></mover><mo>=</mo><mo stretchy="false">(</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mn>1</mn></msub><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mrow><mi mathvariant="normal">∣</mi><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi mathvariant="normal">∣</mi></mrow></msub><mo stretchy="false">)</mo><mo>∼</mo><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\hat y=(\hat y_1,\ldots,\hat y_{|\hat y|})\sim p_S(\cdot\mid x)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1052em;vertical-align:-0.3552em;"></span><span class="mopen">(</span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.5198em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∣</span><span class="mord katex-accent mtight"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-2.7em;"><span class="pstrut" style="height:2.7em;"></span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">y</span></span><span style="top:-2.7em;"><span class="pstrut" style="height:2.7em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord mtight">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="mord mtight">∣</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3552em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∼</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mclose">)</span></span></span></span>，训练时最大生成长度为 1024 个 token（Table 6）。随后，教师和学生分别对同一条学生轨迹打分：在第 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>n</mi></mrow><annotation encoding="application/x-tex">n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">n</span></span></span></span> 个位置，学生分布是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mrow><mo>&lt;</mo><mi>n</mi></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">p_S(\cdot\mid x,\hat y_{&lt;n})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2274em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，教师分布是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msup><mi>y</mi><mo>⋆</mo></msup><mo separator="true">,</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mrow><mo>&lt;</mo><mi>n</mi></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">p_T(\cdot\mid x,y^\star,\hat y_{&lt;n})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2274em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>。教师端的输入是“教师提示 + 学生已生成的前缀”，学生端的输入是“学生提示 + 同一前缀”；两者在每个位置都输出整个词表上的下一 token 分布。</p>
+<p>这一步由谁执行、哪些部分是固定的，值得说清楚。采样由学生策略执行；两套分布的计算由同一个模型的两组前向执行；提示模板、数据采样、裁剪规则和教师快照都由固定流程控制；只有学生侧的 LoRA 权重在训练中更新。教师不生成 tokens，也不把自己的分布采样成一条新轨迹；它只提供每个位置的软目标。这一点与 STaR&#x2F;ReST 式的“先生成、再筛选、再 SFT”不同：OPSD 不需要等学生生成完整答案再判断对错，也不要求最终答案正确才有学习信号（§3.2、Appendix D）。</p>
+<p>由于学生只在自己的前缀上被评估，训练分布与部署时学生看到的状态分布一致；由于每个位置都有教师分布，监督信号从“整条回答一个二值奖励”变成“每个位置一个词表上的软目标”。论文把这两点分别称为 on-policy 与 dense，并把它们与“无外部教师”一起列为 OPSD 相对 SFT、GRPO 和常规同策略蒸馏的组合优势（Table 1）。</p>
+<h3 id="3-3-目标函数：全词表前向-KL-与逐点裁剪"><a href="#3-3-目标函数：全词表前向-KL-与逐点裁剪" class="headerlink" title="3.3 目标函数：全词表前向 KL 与逐点裁剪"></a>3.3 目标函数：全词表前向 KL 与逐点裁剪</h3><p>OPSD 的主目标是学生轨迹上、逐位置、全词表的散度平均：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="script">L</mi><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi mathvariant="double-struck">E</mi><mrow><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><msup><mi>y</mi><mo>⋆</mo></msup><mo stretchy="false">)</mo><mo>∼</mo><mi mathvariant="script">S</mi></mrow></msub><mrow><mo fence="true">[</mo><msub><mi mathvariant="double-struck">E</mi><mrow><mover accent="true"><mi>y</mi><mo>^</mo></mover><mo>∼</mo><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo stretchy="false">)</mo></mrow></msub><mrow><mo fence="true">[</mo><mfrac><mn>1</mn><mrow><mi mathvariant="normal">∣</mi><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi mathvariant="normal">∣</mi></mrow></mfrac><munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><mrow><mi mathvariant="normal">∣</mi><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi mathvariant="normal">∣</mi></mrow></munderover><mi>D</mi><mrow><mo fence="true">(</mo><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msup><mi>y</mi><mo>⋆</mo></msup><mo separator="true">,</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mrow><mo>&lt;</mo><mi>n</mi></mrow></msub><mo stretchy="false">)</mo><mtext> </mtext><mi mathvariant="normal">∥</mi><mtext> </mtext><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mo>⋅</mo><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mrow><mo>&lt;</mo><mi>n</mi></mrow></msub><mo stretchy="false">)</mo><mo fence="true">)</mo></mrow><mo fence="true">]</mo></mrow><mo fence="true">]</mo></mrow><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">
+\mathcal{L}(\theta)=\mathbb{E}_{(x,y^\star)\sim\mathcal{S}}\left[\mathbb{E}_{\hat y\sim p_S(\cdot\mid x)}\left[\frac{1}{|\hat y|}\sum_{n=1}^{|\hat y|}D\left(p_T(\cdot\mid x,y^\star,\hat y_{&lt;n})\,\|\,p_S(\cdot\mid x,\hat y_{&lt;n})\right)\right]\right].
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathcal">L</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:3.6em;vertical-align:-1.55em;"></span><span class="mord"><span class="mord mathbb">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.5198em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight">x</span><span class="mpunct mtight">,</span><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6183em;"><span style="top:-2.786em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span><span class="mclose mtight">)</span><span class="mrel mtight">∼</span><span class="mord mathcal mtight" style="margin-right:0.075em;">S</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3552em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.05em;"><span class="pstrut" style="height:5.6em;"></span><span style="width:0.667em;height:3.6em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.667em" height="3.6em" viewBox="0 0 667 3600"><path d="M403 1759 V84 H666 V0 H319 V1759 v0 v1759 v84 h347 v-84
+H403z M403 1759 V0 H319 V1759 v0 v1759 v84 h84z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.55em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathbb">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.5198em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord katex-accent mtight"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-2.7em;"><span class="pstrut" style="height:2.7em;"></span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">y</span></span><span style="top:-2.7em;"><span class="pstrut" style="height:2.7em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord mtight">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="mrel mtight">∼</span><span class="mord mtight"><span class="mord mathnormal mtight">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3567em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1433em;"><span></span></span></span></span></span></span><span class="mopen mtight">(</span><span class="mord mtight">⋅</span><span class="mrel mtight">∣</span><span class="mord mathnormal mtight">x</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3552em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.05em;"><span class="pstrut" style="height:5.6em;"></span><span style="width:0.667em;height:3.6em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.667em" height="3.6em" viewBox="0 0 667 3600"><path d="M403 1759 V84 H666 V0 H319 V1759 v0 v1759 v84 h347 v-84
+H403z M403 1759 V0 H319 V1759 v0 v1759 v84 h84z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.55em;"><span></span></span></span></span></span></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">∣</span><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="mord">∣</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.961em;"><span style="top:-1.8829em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.386em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∣</span><span class="mord katex-accent mtight"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-2.7em;"><span class="pstrut" style="height:2.7em;"></span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">y</span></span><span style="top:-2.7em;"><span class="pstrut" style="height:2.7em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord mtight">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="mord mtight">∣</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.2671em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">D</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;">(</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7387em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2274em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">∥</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">⋅</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2274em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mclose delimcenter" style="top:0em;">)</span></span><span class="mclose"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.05em;"><span class="pstrut" style="height:5.6em;"></span><span style="width:0.667em;height:3.6em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.667em" height="3.6em" viewBox="0 0 667 3600"><path d="M347 1759 V0 H0 V84 H263 V1759 v0 v1759 H0 v84 H347z
+M347 1759 V0 H263 V1759 v0 v1759 h84z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.55em;"><span></span></span></span></span></span></span></span><span class="mclose"><span class="delimsizing mult"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:2.05em;"><span style="top:-4.05em;"><span class="pstrut" style="height:5.6em;"></span><span style="width:0.667em;height:3.6em;"><svg xmlns="http://www.w3.org/2000/svg" width="0.667em" height="3.6em" viewBox="0 0 667 3600"><path d="M347 1759 V0 H0 V84 H263 V1759 v0 v1759 H0 v84 H347z
+M347 1759 V0 H263 V1759 v0 v1759 h84z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.55em;"><span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">.</span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi></mrow><annotation encoding="application/x-tex">D</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">D</span></span></span></span> 可以是前向 KL、反向 KL 或广义 Jensen–Shannon 散度（JSD<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow></mrow><mi>β</mi></msub></mrow><annotation encoding="application/x-tex">_\beta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6222em;vertical-align:-0.2861em;"></span><span class="mord"><span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0528em;">β</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>）；主实验采用前向 KL，即 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>D</mi><mo stretchy="false">(</mo><msub><mi>p</mi><mi>T</mi></msub><mi mathvariant="normal">∥</mi><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">)</mo><mo>=</mo><msub><mo>∑</mo><mi>v</mi></msub><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo><mi>log</mi><mo>⁡</mo><mfrac><mrow><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo></mrow><mrow><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">D(p_T\|p_S)=\sum_v p_T(v)\log\frac{p_T(v)}{p_S(v)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">D</span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">∥</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.53em;vertical-align:-0.52em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.0017em;"><span style="top:-2.4003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2997em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.01em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3567em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1433em;"><span></span></span></span></span></span></span><span class="mopen mtight">(</span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span><span class="mclose mtight">)</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.485em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3567em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1433em;"><span></span></span></span></span></span></span><span class="mopen mtight">(</span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.52em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span>。这个方向把教师分布当作目标，学生在教师认为概率高的 token 上概率偏低就会受到较大惩罚；反向 KL（reverse KL）则更偏向让学生只覆盖教师分布的一个 mode。Table 3 在 Qwen3-1.7B&#x2F;AIME25 上比较了三种散度：前向 KL 从基座 36.7 升到 step 50 的 43.9，反向 KL 为 37.5→35.0，JSD（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">\beta=0.5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.5</span></span></span></span>）为 36.9→39.0；作者据此选择前向 KL（§4.3.1）。</p>
+<p>梯度只通过学生侧的 logits 回传，教师侧被视为固定的软目标；教师参数固定为初始策略 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>θ</mi><mn>0</mn></msub></mrow><annotation encoding="application/x-tex">\theta_0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">0</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，而不是随着学生更新（§4.1）。论文给出的理由是稳定训练、隐式正则化，防止学生偏离初始策略太远；但正文没有报告“固定教师 vs 更新教师”的对照数字。实现上，固定教师是通过保存初始 LoRA adapter 的快照完成的（代码 README 的 <code>--fixed_teacher</code> 说明；这是实现信息，不是论文正文的陈述）。</p>
+<p>论文还给出了一个替代实现：只在学生实际采样到的 token 上计算教师与学生的对数概率差，把它当作逐 token 奖励&#x2F;优势 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>A</mi><mi>n</mi></msub><mo>=</mo><mi>log</mi><mo>⁡</mo><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>n</mi></msub><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msup><mi>y</mi><mo>⋆</mo></msup><mo separator="true">,</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mrow><mo>&lt;</mo><mi>n</mi></mrow></msub><mo stretchy="false">)</mo><mo>−</mo><mi>log</mi><mo>⁡</mo><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">(</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi>n</mi></msub><mo>∣</mo><mi>x</mi><mo separator="true">,</mo><msub><mover accent="true"><mi>y</mi><mo>^</mo></mover><mrow><mo>&lt;</mo><mi>n</mi></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">A_n=\log p_T(\hat y_n\mid x,y^\star,\hat y_{&lt;n})-\log p_S(\hat y_n\mid x,\hat y_{&lt;n})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">A</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2274em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2274em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mrel mtight">&lt;</span><span class="mord mathnormal mtight">n</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1774em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，再用策略梯度（policy gradient）式目标优化（正文 Eq. 9）。这条路线更省显存，但只对采样 token 施加 shaping，而不是匹配整个分布；主实验使用的是全词表版本，Table 4 对两者做了比较，具体见 §4.3.3。</p>
+<p>逐点裁剪作用在上述全词表散度的每个词表条目上。设 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi></mrow><annotation encoding="application/x-tex">f</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span></span></span></span> 为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi></mrow><annotation encoding="application/x-tex">f</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span></span></span></span>-散度的生成函数，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi mathvariant="normal">ℓ</mi><mrow><mi>n</mi><mo separator="true">,</mo><mi>v</mi></mrow><mrow><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">)</mo></mrow></msubsup><mo>=</mo><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo>∣</mo><mo>⋅</mo><mo stretchy="false">)</mo><mtext> </mtext><mi>f</mi><mtext> ⁣</mtext><mrow><mo fence="true">(</mo><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo>∣</mo><mo>⋅</mo><mo stretchy="false">)</mo><mi mathvariant="normal">/</mi><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo>∣</mo><mo>⋅</mo><mo stretchy="false">)</mo><mo fence="true">)</mo></mrow></mrow><annotation encoding="application/x-tex">\ell_{n,v}^{(f)}=p_T(v\mid\cdot)\,f\!\left(p_S(v\mid\cdot)/p_T(v\mid\cdot)\right)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.2975em;vertical-align:-0.2527em;"></span><span class="mord"><span class="mord">ℓ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.5834em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight" style="margin-right:0.1076em;">f</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2527em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">⋅</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;">(</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord">⋅</span><span class="mclose">)</span><span class="mord">/</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord">⋅</span><span class="mclose">)</span><span class="mclose delimcenter" style="top:0em;">)</span></span></span></span></span>，则裁剪后的目标为：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msubsup><mi>D</mi><mrow><mi mathvariant="normal">c</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">p</mi></mrow><mrow><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">)</mo></mrow></msubsup><mo stretchy="false">(</mo><msub><mi>p</mi><mi>T</mi></msub><mi mathvariant="normal">∥</mi><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mi mathvariant="normal">∣</mi><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi mathvariant="normal">∣</mi></mrow></mfrac><munderover><mo>∑</mo><mrow><mi>n</mi><mo>=</mo><mn>1</mn></mrow><mrow><mi mathvariant="normal">∣</mi><mover accent="true"><mi>y</mi><mo>^</mo></mover><mi mathvariant="normal">∣</mi></mrow></munderover><munder><mo>∑</mo><mrow><mi>v</mi><mo>∈</mo><mi mathvariant="script">V</mi></mrow></munder><mi>min</mi><mo>⁡</mo><mrow><mo fence="true">(</mo><msubsup><mi mathvariant="normal">ℓ</mi><mrow><mi>n</mi><mo separator="true">,</mo><mi>v</mi></mrow><mrow><mo stretchy="false">(</mo><mi>f</mi><mo stretchy="false">)</mo></mrow></msubsup><mo separator="true">,</mo><mi>τ</mi><mo fence="true">)</mo></mrow><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">
+D_{\mathrm{clip}}^{(f)}(p_T\|p_S)=\frac{1}{|\hat y|}\sum_{n=1}^{|\hat y|}\sum_{v\in\mathcal{V}}\min\left(\ell_{n,v}^{(f)},\tau\right).
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.4822em;vertical-align:-0.4374em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">D</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.0448em;"><span style="top:-2.3987em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">clip</span></span></span></span></span><span style="top:-3.2198em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight" style="margin-right:0.1076em;">f</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.4374em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">∥</span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:3.2827em;vertical-align:-1.3217em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">∣</span><span class="mord katex-accent"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">y</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="mord">∣</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.961em;"><span style="top:-1.8829em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.386em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">∣</span><span class="mord katex-accent mtight"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-2.7em;"><span class="pstrut" style="height:2.7em;"></span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">y</span></span><span style="top:-2.7em;"><span class="pstrut" style="height:2.7em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord mtight">^</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1944em;"><span></span></span></span></span></span><span class="mord mtight">∣</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.2671em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.8557em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span><span class="mrel mtight">∈</span><span class="mord mathcal mtight" style="margin-right:0.0822em;">V</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.3217em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">min</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size2">(</span></span><span class="mord"><span class="mord">ℓ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.938em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">n</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord mathnormal mtight" style="margin-right:0.1076em;">f</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3831em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size2">)</span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">.</span></span></span></span></span>
+<p>对前向 KL，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>f</mi><mo stretchy="false">(</mo><mi>r</mi><mo stretchy="false">)</mo><mo>=</mo><mo>−</mo><mi>log</mi><mo>⁡</mo><mi>r</mi></mrow><annotation encoding="application/x-tex">f(r)=-\log r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord">−</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span>，因此每个词表条目的贡献是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo><mi>log</mi><mo>⁡</mo><mfrac><mrow><msub><mi>p</mi><mi>T</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo></mrow><mrow><msub><mi>p</mi><mi>S</mi></msub><mo stretchy="false">(</mo><mi>v</mi><mo stretchy="false">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">p_T(v)\log\frac{p_T(v)}{p_S(v)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.53em;vertical-align:-0.52em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">v</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.01em;"><span style="top:-2.655em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3567em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0576em;">S</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1433em;"><span></span></span></span></span></span></span><span class="mopen mtight">(</span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span><span class="mclose mtight">)</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.485em;"><span class="pstrut" style="height:3em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3567em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1389em;">T</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.1433em;"><span></span></span></span></span></span></span><span class="mopen mtight">(</span><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.52em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span>；裁剪把单个条目能贡献的上限压到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span>。论文的动机来自 Table 5：风格类 token 的平均 KL 远高于数学类 token，如果不加限制，训练信号会被“wait”“think”“therefore”这类词主导（§3.2、§4.3.2）。需要注意两点：第一，论文正文没有给出 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span> 的具体数值，也没有做 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span> 的扫描，Appendix B 只说“没有对裁剪参数做调优”；代码 README 给出的默认值是 0.05，但这属于实现信息。第二，裁剪后的目标不再是严格的散度，逐点截断可能使总和为负；论文没有讨论这一点，代码 README 明确提示了该现象。</p>
+<h3 id="3-4-训练配置与推理阶段的变化"><a href="#3-4-训练配置与推理阶段的变化" class="headerlink" title="3.4 训练配置与推理阶段的变化"></a>3.4 训练配置与推理阶段的变化</h3><p>训练使用 LoRA（低秩适配，low-rank adaptation）：rank 64、alpha 128，作用在 q&#x2F;k&#x2F;v&#x2F;o 与 gate&#x2F;up&#x2F;down 投影上；优化器为 AdamW，学习率 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>5</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>6</mn></mrow></msup></mrow><annotation encoding="application/x-tex">5\times10^{-6}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">5</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">6</span></span></span></span></span></span></span></span></span></span></span></span>，有效 batch 32，bfloat16，8 张 A100 或 H100，配合梯度检查点和 Flash Attention 2（Table 6、Appendix B）。OPSD 训练 100 步，每步每个问题只采样 1 条最长 1024-token 的回答；GRPO 基线训练 500 步，每步每个问题采样 8 条最长 16k 的回答（Table 6）。学生训练时使用 Thinking Mode off（TM-off，思考模式关闭）的提示格式，教师使用 Thinking Mode on（TM-on，思考模式开启）；这是作者通过 Table 5 的 KL 分析和早期下游实验选出的组合（§4.3.2、Appendix B）。</p>
+<p>推理阶段只保留学生：不再需要参考解、教师提示或第二次前向，直接把训练后的 LoRA 合并&#x2F;加载到 Qwen3 指令模型上，用正常的 thinking mode 评测。评测参数为 temperature 1.0、max new tokens 38,912、top-p 0.95、每个问题采样 12 次，报告 Avg@12（12 次采样的平均准确率；Table 8）。也就是说，OPSD 的额外成本集中在训练期的教师前向与全词表 logits 存储，推理期没有额外的教师调用；这与需要外部大教师的方法在部署成本上有本质区别。</p>
+<p>不过，训练期与评测期的生成模式并不一致：学生在训练时以 TM-off 格式生成最长 1024-token 的短回答，评测时却开启 thinking mode、允许 38,912 个新 token（Table 8）。论文没有解释这一安排，也没有报告“训练时也用 TM-on 学生”的对照。这一点直接关系到“学生训练分布与推理分布一致”的 on-policy 论证，后文 §5 会把它作为主要质疑之一。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p><strong>任务、数据与模型。</strong> 训练数据为 OpenThoughts 数学推理子集，最多 30K 个带 CoT 的问题—参考解对；评测使用 AIME 2024、AIME 2025、HMMT 2025 三个竞赛级数学基准。模型为 Qwen3 指令版的 1.7B、4B、8B 三个规模（§4.1）。所有方法使用同一份训练数据和同一套 LoRA 配置（Table 6、Table 7）。</p>
+<p><strong>基线。</strong> 两个基线都与 OPSD 在同一数据上训练：SFT 在专家轨迹上做标准监督微调，可以视为对生成这些轨迹的更强模型的离策略蒸馏；GRPO 使用二值结果奖励，最大生成长度 16k，每个问题 8 条 rollout，训练 500 步（§4.1、Table 6）。OPSD 每个问题 1 条 rollout、最长 1024 token、训练 100 步。三者都只训练 LoRA，不更新全参数。</p>
+<p><strong>指标与预算。</strong> 主表使用 Avg@12（temperature 1.0、thinking mode、max new tokens 38,912；Table 8），Table 4 的消融使用 pass@8（8 次采样中至少一次正确的比例），两者不可直接比较。SFT 与 OPSD 都训练 100 步，且 SFT 使用与 OPSD 相同数量的训练样本；GRPO 训练 500 步，并在 500 步内取峰值。OPSD 每 20 步评测一次，取 100 步内的最佳 checkpoint；GRPO 取 500 步内的峰值（Table 2 题注）。</p>
+<p><strong>各实验回答什么。</strong> 主实验（Table 2）回答“OPSD 相对 SFT&#x2F;GRPO 的准确率如何”；论文 Fig. 3 回答“在相同训练步数下，OPSD 与 GRPO 的准确率—生成 token 关系如何”；§4.3 的消融分别回答散度选择（Table 3）、裁剪（论文 Fig. 4、Table 5）、生成长度（论文 Fig. 5）、全词表 vs 采样 token（Table 4）以及生成风格（Table 5）的问题。Appendix B 给出训练与评测超参数，Appendix D 给出 OPSD 与 STaR 的策略梯度解释。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p><strong>主结果。</strong> Table 2 报告，OPSD 在三个规模上平均分都高于基座和 SFT，并且总体匹配或略高于 GRPO：</p>
+<ul>
+<li>Qwen3-1.7B：基座 37.1 → OPSD 43.4（+6.3），GRPO 37.7（+0.6），SFT 35.8（−1.3）；</li>
+<li>Qwen3-4B：基座 61.2 → OPSD 63.6（+2.4），GRPO 62.7（+1.5），SFT 58.6（−2.6）；</li>
+<li>Qwen3-8B：基座 61.8 → OPSD 64.8（+3.0），GRPO 64.0（+2.2），SFT 59.8（−2.0）。</li>
+</ul>
+<p>提升主要集中在 1.7B；4B 和 8B 相对 GRPO 的平均优势只有 0.9 和 0.8 个百分点。分任务看，8B 的 HMMT25 上 OPSD 为 45.8，低于 GRPO 的 46.7（基座 43.9）；4B 的 AIME25 上 OPSD 68.3 对 GRPO 68.1，基本持平；8B 的 AIME24 上 OPSD 77.8 对 GRPO 76.4，优势 1.4 个百分点。也就是说，“匹配或超过 GRPO”在平均值上成立，但不是每个任务都赢；作者没有报告标准差或置信区间，无法判断这些差距是否超出训练&#x2F;解码噪声。</p>
+<p><strong>SFT 的负结果。</strong> SFT 在三个规模、三个基准上几乎全面下降，唯一例外是 4B 的 HMMT25（43.4 对基座 42.2，略升 1.2 个百分点）；作者归因于 OpenThoughts 参考解较短，SFT 学到了“短推理”风格，测试时生成长度下降（§4.2、Table 2 题注）。这个解释与观察一致，但论文没有给出 SFT 前后生成长度的统计，也没有做“把参考解扩写后再 SFT”的对照，因此“简洁风格导致退化”仍是作者主张，而不是被隔离验证的因果结论。</p>
+<p><strong>token 效率。</strong> 图 3 在 Qwen3-1.7B 上比较 OPSD 与 GRPO：在相同训练步数下，OPSD 的 Avg@12 曲线持续上升，GRPO 基本停滞；论文 Fig. 3 还把平均准确率对“累计生成 token 数”作图，OPSD 在更少的生成 token 下达到更高准确率。题注报告，100 步内超过一半的 GRPO batch 组内奖励标准差为零，因而没有梯度信号。这里的“token”指学生实际生成的 token 数；教师前向、全词表 logits、训练墙钟时间和 FLOPs 都没有计入。v3 正文和摘要没有给出“4–8×”或“8–12×”的具体倍数；这两个数字分别出现在 v1 和 v2 的摘要中，v3 已删去，HF 页面仍保留 v1 自动摘要的“4–8×”说法（见 §5 的版本核对）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/opsd_fig3.png"
+                      alt="图 3：OPSD 与 GRPO 的 token 效率对比"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 3）：横轴是梯度更新步数或累计生成的 token 数，纵轴是 Avg@12 准确率；OPSD 的曲线在三个基准和平均值上都随步数上升，而 GRPO 在相同步数内基本走平。图中的零奖励标准差比例曲线解释了 GRPO 为何停滞：在 OpenThoughts 数据上，超过一半的 batch 组内奖励全部相同，优势为零，采样预算被浪费。图想传达的机制是：OPSD 的监督来自逐 token 的教师分布，不依赖组内奖励是否有差异，因此能在单条 rollout、最长 1024 token 的预算下继续获得梯度；但该图只比较采样 token，不包含教师前向与全词表 softmax 的开销。</p>
+<p><strong>与“效率”有关的边界。</strong> 论文的训练预算设置是：OPSD 100 步 × batch 32 × 1 条 × 最长 1024 token；GRPO 500 步 × batch 32 × 8 条 × 最长 16k token（Table 6）。按最大生成长度上限计，GRPO 的最大采样量约为 OPSD 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>500</mn><mo>×</mo><mn>8</mn><mo>×</mo><mn>16</mn><mtext>k</mtext><mi mathvariant="normal">/</mi><mo stretchy="false">(</mo><mn>100</mn><mo>×</mo><mn>1</mn><mo>×</mo><mn>1</mn><mtext>k</mtext><mo stretchy="false">)</mo><mo>=</mo><mn>640</mn></mrow><annotation encoding="application/x-tex">500\times8\times16\text{k}/(100\times1\times1\text{k})=640</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">500</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">8</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">16</span><span class="mord text"><span class="mord">k</span></span><span class="mord">/</span><span class="mopen">(</span><span class="mord">100</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">1</span><span class="mord text"><span class="mord">k</span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">640</span></span></span></span> 倍，实际生成长度未知。这个对比对 GRPO 在“步数”上更宽松，但在“每组 8 条”和“500 步”上也给了它更多机会；OPSD 则只取 100 步内的最佳 checkpoint。两边都取了峰值，不能据此判断收敛稳定性或统计显著性。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><h4 id="4-3-1-散度目标：前向-KL-在报告的消融中优于反向-KL-JSD"><a href="#4-3-1-散度目标：前向-KL-在报告的消融中优于反向-KL-JSD" class="headerlink" title="4.3.1 散度目标：前向 KL 在报告的消融中优于反向 KL&#x2F;JSD"></a>4.3.1 散度目标：前向 KL 在报告的消融中优于反向 KL&#x2F;JSD</h4><p>Table 3 在 Qwen3-1.7B&#x2F;AIME25 上比较三种散度，三者都使用相同的逐点裁剪：前向 KL 从 36.7 升到 step 50 的 43.9，step 100 回落到 41.1；反向 KL 为 37.5（step 50）、35.0（step 100），低于基座；JSD（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>=</mo><mn>0.5</mn></mrow><annotation encoding="application/x-tex">\beta=0.5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.5</span></span></span></span>）为 36.9、39.0。这个结果支持“前向 KL 更适合把教师分布当作目标”的设计，但证据只在单一模型、单一基准、单次训练上，且 step 100 的前向 KL 已经比 step 50 低 2.8 个百分点，说明最佳 checkpoint 的选择会影响结论。作者没有解释为什么前向 KL 在 50 步后回落，也没有报告其他模型上的散度消融。</p>
+<h4 id="4-3-2-逐点裁剪：稳定训练，但机制与超参数披露不足"><a href="#4-3-2-逐点裁剪：稳定训练，但机制与超参数披露不足" class="headerlink" title="4.3.2 逐点裁剪：稳定训练，但机制与超参数披露不足"></a>4.3.2 逐点裁剪：稳定训练，但机制与超参数披露不足</h4><p>图 4 在 Qwen3-1.7B&#x2F;AIME24 上比较有无裁剪：不裁剪时准确率在 step 25 见顶（约 52.6）后总体下滑，step 100 降到约 49.2；裁剪后从基座约 51.5 持续上升到约 57.1（均为按图读取的近似值）。这个对比直接支持“裁剪防止性能崩溃”的工程结论。Table 5 提供了动机：在最终采用的 TM-off 学生 &#x2F; TM-on 教师配置下，1.7B 的风格&#x2F;数学&#x2F;其他三类 token 平均 KL 为 0.85&#x2F;0.14&#x2F;0.25，4B 为 0.92&#x2F;0.10&#x2F;0.29，8B 为 0.79&#x2F;0.06&#x2F;0.25；风格 token 的 KL 是数学 token 的约 6–13 倍，确实可能主导总和。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/opsd_fig4.png"
+                      alt="图 4：逐点 KL 裁剪对训练稳定性的影响"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 4）：两条曲线使用同一模型和同一训练流程，只差是否对每个词表条目的散度贡献做上限截断。不裁剪的曲线在前期略有上升后持续下滑，裁剪后的曲线在 100 步内保持上升并在末端明显高于起点。图想说明的机制是：当少数风格 token 的 KL 远高于数学 token 时，未裁剪的逐词表总和会被这些高贡献条目支配，学生被推向模仿教师的措辞而不是数学步骤；逐点截断限制了单个条目的影响力，使训练信号更多来自大量中低贡献的数学 token。</p>
+<p>但这里有几处证据缺口。第一，论文正文没有给出 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span> 的取值，也没有做 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span> 的敏感性分析；Appendix B 明确说没有调优该参数，代码 README 的默认值是 0.05。第二，裁剪是“逐词表条目”而不是“逐 token 类别”，论文没有证明它真的把风格 token 的贡献压下去，只证明了端到端准确率更稳；Table 5 的类别 KL 是相关性证据，不是裁剪生效的直接测量。第三，裁剪后的目标不再是严格的散度，可能为负，论文没有讨论优化性质的变化。第四，Table 5 的 KL 是在 10 个问题上平均的，没有方差，也没有报告不同问题难度下的分布。</p>
+<h4 id="4-3-3-全词表-vs-采样-token：有提升，但对照不隔离变量"><a href="#4-3-3-全词表-vs-采样-token：有提升，但对照不隔离变量" class="headerlink" title="4.3.3 全词表 vs 采样 token：有提升，但对照不隔离变量"></a>4.3.3 全词表 vs 采样 token：有提升，但对照不隔离变量</h4><p>Table 4 在 Qwen3-4B、2048 生成长度上比较两种实现：全词表 logit 蒸馏（full-vocabulary logit distillation）在 AIME25&#x2F;HMMT25 上 pass@8 为 84.1&#x2F;60.0，采样 token 蒸馏（sampled-token distillation）为 82.1&#x2F;57.3，前者高 2.0&#x2F;2.7 个百分点。作者据此认为“暴露给完整教师分布比只对采样 token 做 on-policy shaping 更有信息量”（论文 §4.3.5）。这个结论方向合理，但对照并不干净：Table 4 题注没有逐项说明两个变体的散度方向与裁剪设置；按正文主配方，全词表版本使用前向 KL 加逐点裁剪，而采样 token 版本按 §3.2 是反向 KL 优势的策略梯度，代码 README 又说明该变体“目前没有实现裁剪”。因此，2 个百分点的差距至少混合了三个因素——全词表 vs 单 token、前向 KL vs 反向 KL、裁剪 vs 不裁剪；Table 3 已经显示反向 KL 在同一裁剪方案下明显更差，所以不能把差距单独归因于“全词表”。</p>
+<h4 id="4-3-4-生成长度与生成风格：负结果与未报告的对照"><a href="#4-3-4-生成长度与生成风格：负结果与未报告的对照" class="headerlink" title="4.3.4 生成长度与生成风格：负结果与未报告的对照"></a>4.3.4 生成长度与生成风格：负结果与未报告的对照</h4><p>图 5 在 Qwen3-1.7B 上比较 1024 与 4096 的生成长度。4096 在 AIME24 的 step 50 达到约 58.6，高于 1024 的 52.8，但在 step 100 回落到 55.7，低于 1024 的 57.2；AIME25 上两者在 step 50 为 42.8 vs 43.9，step 100 为 41.6 vs 41.1，差距在噪声范围内。作者据此认为“更长的生成本身不带来一致提升”，并假设早期 token 是更关键的分支点、后期 token 在长前缀下对教师更可预测（§4.3.4）。这个假设与观察相容，但论文没有直接测量“早期&#x2F;后期 token 的 KL 或梯度贡献”，也没有控制 4096 版本的最大生成长度（以及训练 token 预算上限）是 1024 版本的四倍这一事实；因此它是事后解释，不是被验证的机制。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-20/opsd_fig5.png"
+                      alt="图 5：学生生成长度的影响"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 5）：在同一模型上只改变学生 rollout 的最大长度，比较 1024 与 4096 两条训练曲线。更长的 rollout 让教师能在更多位置上给出反馈，但也把每个样本的采样成本提高约四倍，并让后期位置处于更长的学生前缀下。图中 4096 在部分基准的早期步数更高，但到 100 步并没有稳定优势；这说明“监督位置更多”不等于“学习信号更好”，与作者关于早期 token 更重要的假设一致，但尚未把该假设与长度带来的计算&#x2F;分布变化分开。</p>
+<p>生成风格方面，Table 5 比较了四种学生&#x2F;教师 TM 组合的平均 KL：在三个模型上，TM-off 学生 + TM-on 教师的数学 token KL 都是最高的（0.14&#x2F;0.10&#x2F;0.06），作者据此选择该组合，并称它在早期下游实验中最好（§4.3.2）。但论文没有给出四种组合的下游准确率表格，也没有报告 TM-on 学生训练的完整结果；同时，该组合的风格与其他 token KL 也是最高的（0.85&#x2F;0.25、0.92&#x2F;0.29、0.79&#x2F;0.25），这恰好是裁剪要处理的情形。更关键的是，训练用 TM-off 学生、评测却开启 thinking mode（Table 8），论文没有解释这种训练&#x2F;评测模式不一致对 on-policy 论证的影响。</p>
+<h4 id="4-3-5-对-§2-三项创新的逐项核对"><a href="#4-3-5-对-§2-三项创新的逐项核对" class="headerlink" title="4.3.5 对 §2 三项创新的逐项核对"></a>4.3.5 对 §2 三项创新的逐项核对</h4><p><strong>创新 1：单模型双角色、教师看参考解。</strong> 论文用 Table 2 的 SFT&#x2F;GRPO 对比支持“OPSD 整体有效”，但没有做“教师只看题目、不看 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>y</mi><mo>⋆</mo></msup></mrow><annotation encoding="application/x-tex">y^\star</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8831em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span></span></span></span>”的对照，也没有与“外部教师 + 同策略蒸馏”在同一数据&#x2F;预算下比较。因此，无法从现有实验单独分离“特权信息 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>y</mi><mo>⋆</mo></msup></mrow><annotation encoding="application/x-tex">y^\star</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8831em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span></span></span></span>”的贡献：OPSD 相对 SFT 的优势可能来自 on-policy rollout，相对 GRPO 的优势可能来自稠密分布监督，而“同一模型做教师”本身的必要性没有被直接检验。作者在 §4.2 把效率归因于稠密 token 监督，这是作者主张；机制证据只到“整体方法有效”这一层。</p>
+<p><strong>创新 2：全词表前向 KL 匹配。</strong> Table 3 支持前向 KL 优于反向 KL&#x2F;JSD；Table 4 支持全词表版本优于采样 token 版本，但如 §4.3.3 所述，Table 4 混合了散度方向与裁剪两个变量。论文没有做“全词表前向 KL、无裁剪”与“采样 token 前向 KL、无裁剪”的 2×2 对照，也没有报告全词表带来的显存&#x2F;吞吐代价的具体数字（论文 §4.3.5 只说“peak memory 更高”）。因此，全词表监督的独立增益是“有支持但不够干净”。</p>
+<p><strong>创新 3：逐点 KL 裁剪。</strong> 论文 Fig. 4 是最直接的证据：去掉裁剪后性能在 100 步内崩溃，保留裁剪则持续上升。这个消融只在一个模型（1.7B）、一个基准（AIME24）上报告；没有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi></mrow><annotation encoding="application/x-tex">\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span></span></span></span> 扫描、没有多 seed、没有对风格&#x2F;数学 token 贡献的直接测量。它可以支持“裁剪对稳定性重要”，但不足以支持“裁剪通过抑制风格 token 起作用”这一具体机制解释。总体而言，三项创新中裁剪的证据最直接但覆盖面最窄，OPSD 框架的证据最广但无法隔离各组件，全词表目标的证据介于两者之间且对照有混杂。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p><strong>训练成本。</strong> 论文报告使用 8 张 A100 或 H100、LoRA rank 64、batch 32、100 步、每问题 1 条 1024-token rollout；没有报告墙钟时间、GPU 小时、FLOPs 或显存峰值。代码 README 称 Qwen3-1.7B 在 4×H100 上训练约 15 分钟，但这是仓库说明，不是论文数据。OPSD 每个训练样本需要学生前向和教师前向各一次，且教师在每个位置输出全词表 logits；相比只做学生前向的 SFT，训练计算和显存更高，论文只在 §4.3.5 提到全词表带来更高峰值显存，没有量化。</p>
+<p><strong>推理成本。</strong> 推理阶段不需要教师、参考解或额外前向；学生就是普通的 Qwen3 + LoRA，按 Table 8 的 thinking mode 评测。因而部署成本与基座模型相同，这是 OPSD 相对“外部大教师蒸馏”的实际优势。评测本身成本不低：每个问题 12 次采样、每次最多 38,912 个新 token，三个基准 × 三个规模 × 多个 checkpoint，但论文没有报告评测总成本。</p>
+<p><strong>数据与人工标注。</strong> 训练数据来自公开的 OpenThoughts 数学子集，最多 30K 对，带有 CoT；不需要额外的人工过程标注或奖励模型训练。论文没有说明这 30K 是如何从更大的 OpenThoughts 中筛选的（按难度、长度、正确性还是随机采样），也没有报告去重、污染检查或数据难度分布。这会影响复现与对结论外推的判断。</p>
+<p><strong>适用范围与未解决问题。</strong> 实验只覆盖 Qwen3 指令模型的 1.7B&#x2F;4B&#x2F;8B、三个数学竞赛基准、LoRA 微调；没有代码、科学推理、多轮 Agent 或长上下文任务，也没有全参数微调或超过 8B 的模型。4B&#x2F;8B 相对 GRPO 的优势很小，8B 的 HMMT25 还略低于 GRPO，说明“匹配或超过”是平均值意义上的。Appendix A 承认：题目超出模型理解能力时，教师即使看到答案也无法提供有意义的监督；当前框架没有显式利用答案正确性验证；课程学习是未来方向。因此，OPSD 更适合“模型本身已具备基础推理能力、参考解在模型可理解范围内、希望用单条 rollout 获得稠密监督”的场景，而不能直接外推到“弱模型靠答案自学”或“所有推理任务”。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：token-效率的比较口径与版本数字不一致，可能被夸大"><a href="#质疑：token-效率的比较口径与版本数字不一致，可能被夸大" class="headerlink" title="质疑：token 效率的比较口径与版本数字不一致，可能被夸大"></a>质疑：token 效率的比较口径与版本数字不一致，可能被夸大</h4><ul>
+<li><strong>原文依据</strong>：v3 摘要只说“superior token efficiency”，正文没有给出倍数；v1 摘要写“4-8x token efficiency”，v2 摘要写“8-12x”，v3 删去具体数字（arXiv abs 各版本）。HF 页面仍保留 v1 自动摘要的“4-8x”。论文 Fig. 3 的横轴是“累计生成 token”，只统计学生采样；Table 6 的预算为 OPSD 1×1024 vs GRPO 8×16k，且 GRPO 训练 500 步、OPSD 100 步。论文没有报告教师前向、全词表 softmax、墙钟时间或 FLOPs。</li>
+<li><strong>为什么重要</strong>：如果“效率”只指学生生成的 token，而教师前向和全词表 logits 的成本不计入，那么它不能等同于训练总计算或墙钟效率；不同版本的倍数从 4–8× 变为 8–12× 再被删除，也会让读者无法判断作者最终认可的结论是什么。这影响核心卖点的可信度与与 RL 的效率比较。</li>
+<li><strong>当前能够得出的判断</strong>：现有材料只能支持“在报告的学生采样 token 口径下，OPSD 比 GRPO 更省”，不能支持“总训练计算或墙钟时间省 4–8×&#x2F;8–12×”。倍数的版本差异是材料内部不一致，不是审稿人推测。</li>
+<li><strong>如何验证或补强</strong>：报告每步的教师&#x2F;学生前向 FLOPs、全词表 logits 显存、总 GPU 小时与墙钟时间；在相同总计算或相同墙钟预算下比较 OPSD 与 GRPO；明确“token efficiency”的定义并给出与 v1&#x2F;v2 数字差异的解释。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：训练用-TM-off-学生、评测开启-thinking-mode，破坏“on-policy-分布一致”的前提"><a href="#质疑：训练用-TM-off-学生、评测开启-thinking-mode，破坏“on-policy-分布一致”的前提" class="headerlink" title="质疑：训练用 TM-off 学生、评测开启 thinking mode，破坏“on-policy 分布一致”的前提"></a>质疑：训练用 TM-off 学生、评测开启 thinking mode，破坏“on-policy 分布一致”的前提</h4><ul>
+<li><strong>原文依据</strong>：§3.2 说学生只观察题目，“matching the inference-time condition”；§4.3.2 与 Appendix B 明确主实验采用 TM-off 学生 &#x2F; TM-on 教师；Table 8 的评测参数却写 Thinking Mode &#x3D; Enabled，max new tokens 38,912。学生在训练时最多生成 1024-token 的短回答，评测时生成带长思维链的回答。论文没有报告 TM-on 学生训练的对照，也没有解释这一安排。</li>
+<li><strong>为什么重要</strong>：OPSD 的核心卖点之一是 on-policy：学生在自己会访问的状态分布上学习，从而避免 exposure bias。如果训练用 TM-off、评测用 TM-on，那么评测时的前缀分布与训练时不同，“on-policy”只对训练时的短回答成立；这可能削弱方法动机，也可能解释为什么 4B&#x2F;8B 的提升有限。</li>
+<li><strong>当前能够得出的判断</strong>：这是原文设置之间的明显不一致；论文没有提供证据证明 TM-off 训练的优势能迁移到 TM-on 评测。不能据此断定方法无效，但“on-policy 匹配推理条件”的表述被过度简化。</li>
+<li><strong>如何验证或补强</strong>：报告 TM-on 学生 + TM-on 教师的训练&#x2F;评测结果，或至少在 TM-off 评测下比较；给出训练与评测的生成长度&#x2F;模式分布；解释为什么 TM-off 学生的分布可以作为 TM-on 推理的代理。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：最佳-checkpoint-单-seed-无置信区间，结果稳定性不足"><a href="#质疑：最佳-checkpoint-单-seed-无置信区间，结果稳定性不足" class="headerlink" title="质疑：最佳 checkpoint + 单 seed + 无置信区间，结果稳定性不足"></a>质疑：最佳 checkpoint + 单 seed + 无置信区间，结果稳定性不足</h4><ul>
+<li><strong>原文依据</strong>：Table 2 题注：OPSD 每 20 步评测一次、取 100 步内最佳分数；GRPO 取 500 步内峰值；SFT 与 OPSD 同训练样本数。正文没有报告多 seed、标准差、置信区间或显著性检验。代码 README 的“Reproducibility note”明确说明其 Qwen3-1.7B 结果来自 single seed run，并承认应采用多 seed 评测。</li>
+<li><strong>为什么重要</strong>：OPSD 与 GRPO 的 4B&#x2F;8B 平均差距只有 0.8–0.9 个百分点，8B HMMT25 还落后 0.9 个百分点；在这种量级上，单 seed + 最佳 checkpoint 的选择足以改变结论。Avg@12 只降低解码采样噪声，不解决训练随机性。</li>
+<li><strong>当前能够得出的判断</strong>：主结果的方向（OPSD 优于 SFT、总体不差于 GRPO）有一定一致性，但“匹配或超过 GRPO”的细节差距不能视为稳定结论；没有统计证据支持逐项胜负。</li>
+<li><strong>如何验证或补强</strong>：至少 3 个训练 seed，报告均值&#x2F;标准差；固定评测 checkpoint（如最后一步）与最佳 checkpoint 两套结果；对 OPSD vs GRPO 的差值做配对检验或置信区间；公开每个 checkpoint 的完整曲线。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：机制消融没有隔离关键变量，无法证明“全词表-特权教师”各自必要"><a href="#质疑：机制消融没有隔离关键变量，无法证明“全词表-特权教师”各自必要" class="headerlink" title="质疑：机制消融没有隔离关键变量，无法证明“全词表&#x2F;特权教师”各自必要"></a>质疑：机制消融没有隔离关键变量，无法证明“全词表&#x2F;特权教师”各自必要</h4><ul>
+<li><strong>原文依据</strong>：Table 4 题注没有说明两个变体的散度方向与裁剪设置；按正文主配方，“全词表”是前向 KL + 裁剪，而“采样 token”按 §3.2 是反向 KL 策略梯度，代码 README 又说该变体未实现裁剪；Table 3 已显示反向 KL 在相同裁剪下明显更差。论文没有“教师不看 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>y</mi><mo>⋆</mo></msup></mrow><annotation encoding="application/x-tex">y^\star</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8831em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">⋆</span></span></span></span></span></span></span></span></span></span></span>”的对照，没有“外部教师 + 同策略蒸馏”的同预算基线，也没有“固定教师 vs 更新教师”的消融；§4.1 只说固定教师“helps stabilize”，未给数字。生成风格的四种组合只有 KL 分析，没有下游表格。</li>
+<li><strong>为什么重要</strong>：这关系到创新性归因：OPSD 的收益到底来自 on-policy rollout、特权答案、全词表监督，还是裁剪&#x2F;散度选择？如果 Table 4 的差距主要来自反向 KL 或裁剪，那么“全词表分布匹配”这一创新点的证据就被削弱；如果增益主要来自 on-policy，那么“同一模型当教师”并非必要，外部教师也可能达到类似效果。</li>
+<li><strong>当前能够得出的判断</strong>：现有实验支持“整套 OPSD 配方有效”，但不足以逐项证明每个组件的独立贡献；Table 4 的对照存在混杂，固定教师与特权信息的必要性属于未验证。</li>
+<li><strong>如何验证或补强</strong>：做 2×2 消融（全词表&#x2F;采样 token × 前向&#x2F;反向 KL，均加&#x2F;不加裁剪）；加入“教师仅看题目”“教师看答案但去掉 CoT”“外部同规模&#x2F;更大教师”的对照；报告固定 vs 更新教师的训练曲线；给出四种 TM 组合的下游准确率。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：适用范围窄、数据筛选与基准污染未讨论，结论外推有限"><a href="#质疑：适用范围窄、数据筛选与基准污染未讨论，结论外推有限" class="headerlink" title="质疑：适用范围窄、数据筛选与基准污染未讨论，结论外推有限"></a>质疑：适用范围窄、数据筛选与基准污染未讨论，结论外推有限</h4><ul>
+<li><strong>原文依据</strong>：§4.1 只使用 OpenThoughts 数学子集（最多 30K 对）与 AIME24&#x2F;25、HMMT25；模型只到 Qwen3-8B；全部实验用 LoRA（Table 6&#x2F;7）；Appendix A 承认 8B 上限与教师能力门槛。数据筛选只写“sampling up to 30K”，没有过滤标准、难度分布、去重或污染检查；论文没有讨论 AIME&#x2F;HMMT 题目是否可能出现在 OpenThoughts 或其上游数据中。全文没有使用 Amo-Bench，因此与本论文的基准污染问题无关。</li>
+<li><strong>为什么重要</strong>：数学竞赛基准题目数量少、公开时间长，训练数据与评测集的污染风险需要主动排查；只用 LoRA 也不能说明全参数微调下同样有效。若 30K 子集偏向某类难度或风格，OPSD 的收益可能部分来自数据选择而不是算法。</li>
+<li><strong>当前能够得出的判断</strong>：论文的结论应限定在“Qwen3 指令模型、LoRA、数学竞赛题、最多 8B”的范围；对代码&#x2F;科学&#x2F;多轮任务、全参数训练、更大模型和污染控制，当前材料无法确认。</li>
+<li><strong>如何验证或补强</strong>：披露 30K 子集的筛选流程与难度&#x2F;长度分布；做 n-gram&#x2F;嵌入级污染检查并在去污染后重跑；增加代码或科学推理基准；至少在一个模型上做全参数微调对照；报告超过 8B 的结果或明确不外推。</li>
+<li><strong>严重程度</strong>：次要问题（对论文主张的边界重要，但不否定现有数学结果）。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现同策略蒸馏虽然能提供稠密 token 监督，却依赖外部教师，而推理数据集本身已带有参考解；因此提出 OPSD，让同一个 LLM 在“题目 + 参考解”的教师上下文和“仅题目”的学生上下文下共享参数，在学生自己的 rollout 上做逐 token 全词表前向 KL 匹配，并用逐点 KL 裁剪抑制风格 token 的支配。实验在 Qwen3-1.7B&#x2F;4B&#x2F;8B 与 AIME24&#x2F;25、HMMT25 上表明：OPSD 稳定优于 SFT，平均匹配或略优于 GRPO，且只用单条 rollout 与最长 1024 token；其中“优于 SFT”和“1.7B 上的大幅提升”证据较强，裁剪稳定训练的曲线也较直接，但“token 效率”的总计算口径、训练&#x2F;评测生成模式不一致、最佳 checkpoint 与单 seed、以及全词表&#x2F;特权教师各组件的独立贡献仍缺少充分支持。本文最有价值的部分是把“参考答案当作特权信息、在 student rollout 上做软蒸馏”这一简单机制讲清楚，并给出可复现的 LoRA 配方；最大的审稿风险是效率主张与 on-policy 前提的设置不一致，以及消融无法隔离关键变量。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。论文明确把问题限定为“同策略蒸馏需要外部教师、且未利用参考解”，并用 Table 1 对比 SFT&#x2F;GRPO&#x2F;同策略蒸馏&#x2F;OPSD 的四项属性；读者能清楚知道它想补哪个缺口。</li>
+<li><strong>创新性证据</strong>：中。单模型双角色与上下文蒸馏、GKD 式同策略蒸馏有直接血缘，SDPO&#x2F;SDFT 为并发工作；真正的增量是“参考解作为特权信息 + 全词表前向 KL + 逐点裁剪”的组合，论文没有与外部教师同策略蒸馏做同预算比较，首次性无法确认。</li>
+<li><strong>方法可信度</strong>：中。算法本身简单、梯度路径明确、代码与超参数公开；但固定教师、裁剪阈值、生成风格等关键选择缺少消融或正文披露，Table 4 的对照存在混杂。</li>
+<li><strong>实验支持力度</strong>：中。三个模型规模、三个数学基准、一致的主结果方向是优点；但只有数学、最多 8B、LoRA、单 seed、无置信区间、最佳 checkpoint，4B&#x2F;8B 相对 GRPO 的差距很小。</li>
+<li><strong>可复现性</strong>：中。代码、LoRA 配置、训练&#x2F;评测参数和 30K 数据来源都公开，1.7B 配方在仓库中有快速复现说明；但 30K 子集的筛选细节、裁剪阈值在正文缺失、单 seed 结果有波动，严格复现论文数字仍有距离。</li>
+<li><strong>综合阅读价值</strong>：高。它把“自蒸馏 + 特权信息 + on-policy 软监督”讲得直观，Table 1 与 Table 5 的框架对理解后训练路线很有帮助；同时它也是一个适合用来讨论“效率口径、消融隔离、训练&#x2F;评测一致性”的案例。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Self-Distilled Reasoner: On-Policy Self-Distillation for Large Language Models</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-20 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-20 19:32:08
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/20/2601.18734v3_OPSD_Self-Distilled_Reasoner_On-Policy_Self-Distillation_for_Large_Language_Models/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Self-Distillation/">#Self-Distillation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/On-Policy-Distillation/">#On-Policy Distillation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Reasoning/">#LLM Reasoning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Mathematical-Reasoning/">#Mathematical Reasoning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Post-Training/">#Post-Training</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/20/2601.20802v2_SDPO_Reinforcement_Learning_via_Self-Distillation/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Reinforcement Learning via Self-Distillation</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/20/2607.05184v1_Rethinking_On-Policy_Self-Distillation_for_Thinking_Models/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Rethinking On-Policy Self-Distillation for Thinking Models</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Self-Distilled Reasoner: On-Policy Self-Distillation for Large Language Models</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E8%BE%93%E5%85%A5%EF%BC%9A%E9%A2%98%E7%9B%AE%E3%80%81%E5%8F%82%E8%80%83%E8%A7%A3%E4%B8%8E%E4%B8%A4%E5%A5%97%E6%8F%90%E7%A4%BA"><span class="nav-text">3.1 输入：题目、参考解与两套提示</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E4%B8%80%E6%AC%A1%E8%AE%AD%E7%BB%83%E8%BF%AD%E4%BB%A3%E7%9A%84%E6%95%B0%E6%8D%AE%E6%B5%81"><span class="nav-text">3.2 一次训练迭代的数据流</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E7%9B%AE%E6%A0%87%E5%87%BD%E6%95%B0%EF%BC%9A%E5%85%A8%E8%AF%8D%E8%A1%A8%E5%89%8D%E5%90%91-KL-%E4%B8%8E%E9%80%90%E7%82%B9%E8%A3%81%E5%89%AA"><span class="nav-text">3.3 目标函数：全词表前向 KL 与逐点裁剪</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E8%AE%AD%E7%BB%83%E9%85%8D%E7%BD%AE%E4%B8%8E%E6%8E%A8%E7%90%86%E9%98%B6%E6%AE%B5%E7%9A%84%E5%8F%98%E5%8C%96"><span class="nav-text">3.4 训练配置与推理阶段的变化</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 157 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
