@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/22/2610.28577v1_cache_engineering_for_agents/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="面向智能体的缓存工程：让 Agent 直接操控 KV Cache 的推理系统">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/22/2610.28577v1_Cache_Engineering_for_Agents/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-22T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-22T07:31:50.195Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Context Management">
+<meta property="article:tag" content="Efficient Inference">
+<meta property="article:tag" content="KV Cache">
+<meta property="article:tag" content="LLM Agents">
+<meta property="article:tag" content="LLM Serving">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>面向智能体的缓存工程：让 Agent 直接操控 KV Cache 的推理系统 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">211</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">171</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">面向智能体的缓存工程：让 Agent 直接操控 KV Cache 的推理系统</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-22 12:00</span>
+        <span class="mobile">2026-10-22 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-22 15:31:50</span>
+            <span class="mobile">2026-10-22 15:31:50</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Efficient-Inference/">Efficient Inference</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-Agents/">LLM Agents</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Context-Management/">Context Management</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-Serving/">LLM Serving</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/KV-Cache/">KV Cache</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<ul>
+<li><p>论文：Cache Engineering for Agents</p>
+</li>
+<li><p>作者：Tianyu Fu、Ruoxi Wang、Zihan Min、Zhongqi Ren、Zhihao Li、Tengxuan Liu、Shengxu Mu、Hanling Zhang、Yu Wang（清华大学；Hanling Zhang 单位为香港中文大学）</p>
+</li>
+<li><p>版本：arXiv 2610.28577v1（2026-10-20）</p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.28577" >https://arxiv.org/abs/2610.28577<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>arXiv HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.28577v1" >https://arxiv.org/html/2610.28577v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.28577" >https://huggingface.co/papers/2610.28577<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/thu-nics/AKV%EF%BC%88HTTP" >https://github.com/thu-nics/AKV（HTTP<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 200）</p>
+</li>
+<li><p>项目页：<a class="link"   target="_blank" rel="noopener" href="https://fuvty.github.io/thinking_yard_project_page/projects/akv/%EF%BC%88HTTP" >https://fuvty.github.io/thinking_yard_project_page/projects/akv/（HTTP<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 200）</p>
+</li>
+</ul>
+<p>标签：KV Cache、LLM Agents、LLM Serving、Context Management、Efficient Inference。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>这篇论文要解决的是长程 LLM Agent（大语言模型智能体）轨迹中 KV cache（键值缓存）的存储与读取成本、以及上下文工程（context engineering）触发重预填充（re-prefill）之间的两难：作者提出缓存工程（cache engineering），让 Agent 通过 drop、repos 两类操作直接改写活跃 KV cache 的可见性与位置编码，并配套实现 AKV 推理系统。论文在 3 个模型、4 个基准上报告平均分数提升 1.7 分、平均成本下降 27.7%，以及最高 1.18 倍输出吞吐和 1.51 倍 P95 延迟改善；但基线只有两种摘要式上下文工程，缺少与 KV 逐出&#x2F;压缩方法及完整上下文基线的对照，部分单基准分数还略有回退，因此证据足以支持“在该设定下有效”，尚不足以支持普遍优越。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>LLM Agent 由负责推理与工具调用的 LLM，以及调度工具、拼接上下文的执行框架（harness）组成。随着任务变长，轨迹可以跨越数百轮，工具返回、助手推理和用户消息不断累积，KV cache 随之膨胀。论文给出的成本观察是：在典型 Agent API 账单中，KV cache 读取约占总成本的 82.4%（论文 Fig. 13）。除了贵，长轨迹还会因参与注意力的 KV 数量或位置编码范围超出模型可靠处理区间而掉点（§1）。因此问题不只是“上下文太长”，而是成本、上下文长度与位置范围的三重约束。</p>
+<p>现有主流做法是上下文工程：裁剪（trimming）或摘要（summarization）历史消息。问题在于，一旦改写轨迹前缀，后续所有 KV 状态都会失效，必须重新预填充（re-prefill）保留的后缀；编辑发生得越早，需要重算的后缀越长。常见执行框架因此把压缩推迟到活跃上下文达到阈值时，再一次性裁掉或摘要大部分历史，只保留最近几轮，以缩短重预填充（§1、§2）。这又带来信息损失：中间轮次的有用观察可能被整段删除。在 BCP 前 100 题、GPT-OSS-120B、每题 4 次试验下，只保留最近 12 轮工具响应的裁剪式方法成本是完整上下文基线的 1.85 倍；48K 阈值摘要方法成本约降 7%，准确率却掉约 5 个百分点（§3.2，论文 Fig. 3）。</p>
+<p>图 1 并列三条路线：完整上下文保留全部文本和 KV，不重算但成本随轨迹增长；上下文工程删除文本前缀，后缀 KV 无法直接复用，只能重算；缓存工程保留文本轨迹，只把选定的 KV 从后续注意力中排除，已保留的 KV 直接复用。图中把 Agent 消息序列、服务系统的 KV 操作与计算流程放在一起，清楚展示了“逻辑 token 序列”与“实际参与注意力的活跃缓存”的分离。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-22/cacheeng_fig1.png"
+                      alt="图 1：完整上下文、上下文工程与缓存工程"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1）：这张图的核心是数据流的分叉。三种方法面对同一段历史和同一个新问题：完整上下文把全部历史 KV 送入计算；上下文工程先在文本层删除旧消息，旧 KV 与新前缀不再对应，只能把保留文本重新过一遍模型；缓存工程保留完整文本，只在服务系统里把某些 KV 条目移出注意力集合，同时继续用剩余 KV 计算新 token。图中的嵌套色块强调机制：被丢弃的 KV 虽不再被直接关注，但它曾参与保留 KV 的计算，信息仍可能“嵌套”在保留状态中。读者应理解，drop 不是抹掉历史，而是改变未来注意力能看到什么；这也是“丢弃旧工具响应仍能保持准确率”的前提。</p>
+<p>这张图同时暴露了两个子问题：策略上，哪些消息的 KV 该丢、何时丢、位置编码怎么办；系统上，一旦允许这样操作，缓存状态就不再只由 token 前缀决定，服务端必须能正确复用、逐出和恢复。论文的新观察有三点：注意力随新旧和消息角色变化，旧工具响应获得的注意力低于旧推理（论文 Fig. 2、论文 Fig. 15）；保留 KV 仍携带被丢弃历史的信息；位置编码默认随逻辑轨迹增长，缓存很小也可能撞到上限（§3.2）。前两点支持按角色和新鲜度丢弃，第三点要求位置与逻辑位置解耦。</p>
+<p>作者把问题归因于“改文本”与“改缓存”被绑在一起：文本编辑必然破坏前缀，前缀破坏必然触发重算；而现有 KV 逐出方法多在 token 级用注意力分数判断重要性，无法表达“保留所有推理、只丢旧工具响应”这类角色级策略（§2）。核心假设是：如果允许 Agent 直接控制活跃 KV cache，并且服务系统能按操作历史正确复用状态，那么可以在不重写轨迹、不重预填充保留上下文的前提下，获得比摘要式上下文工程更好的成本—准确率前沿。</p>
+<p>长上下文推理成本高是领域早已存在的问题；“按消息角色&#x2F;新鲜度丢弃 + 位置重编码”是本文提出的新观察与设计；“服务系统如何跟踪历史相关缓存状态”是本文实际解决的具体子问题。论文用注意力统计支持设计选择，但这是相关性证据，并未证明注意力低就一定可以安全丢弃；真正的因果证据要看 §4.3 的消融和分长度准确率。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>本文的增量不是新模型或训练目标，而是“控制抽象 + 服务系统 + 策略演示”的组合：把过去由服务系统独占的 KV 管理权部分交给 Agent&#x2F;执行框架，并重新设计缓存复用与恢复路径。以下四点对应后文的方法与证据。</p>
+<ol>
+<li><p><strong>把上下文管理下移为缓存操作。</strong> 论文形式化了 append、drop、repos 三种操作及其操作序列，并明确区分逻辑 token 序列、活跃缓存和位置编码：drop 只改变后续注意力可见的 KV 集合，不改文本、不改保留 KV、不改位置；repos 则单独重排位置。与上下文工程相比，它避免了前缀失效和重预填充；与 token 级 KV 逐出相比，它允许按消息角色、轮次和任务需求做高层策略。证据见 §4.2 的成本—准确率结果与 §4.3 的丢靶消融。</p>
+</li>
+<li><p><strong>把“历史相关”变成可索引、可复用的系统状态。</strong> 同一 token 前缀和保留位置在不同操作顺序下会产生不同 KV 状态，普通前缀匹配因此不足；AKV 用扩展基数树记录 token、drop 和 reposition 节点，并用精确匹配与 retrigger 匹配区分“可直接复用”和“旋转 key 后可复用”。这是本文最核心的系统增量，区别于 SGLang 等系统只按 token 前缀共享缓存。证据主要是 §3.4 的形式化与 Appendix A.1.2 的正确性论证，但缺少单独移除该设计的消融。</p>
+</li>
+<li><p><strong>用分段批量注意力在单次前向中恢复缺失状态。</strong> 恢复时按 drop&#x2F;repos 触发点切分 query，每段只对本段 token 和此前活跃缓存做因果注意力，被丢弃的缓存对后续段不可见、但对更早的段仍可见；只切分注意力，FFN 仍整批处理，从而避免重复读取 FFN 权重。配合“无状态接口、有状态服务”，客户端不必知道服务器上哪些 KV 还在。证据是 §3.4 的机制说明与 §4.3 的延迟分解，但同样没有组件级消融。</p>
+</li>
+<li><p><strong>给出可编程的策略层证据。</strong> 论文不只提出系统，还展示了三种策略：手工的 tool-response rolling drop（保留最近 12 轮工具响应）、让模型主动调用的 Cache-As-Tool（CAT，缓存即工具）、以及在 20 个 BCP 任务上搜索策略的 RSI（recursive self-improvement，递归自我改进）。这说明抽象不仅能跑，还可被搜索和组合；证据见 §4.3 的 Table 3、Table 4 与 论文 Fig. 4。</p>
+</li>
+</ol>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>核心直觉是：不改写 Agent 看到的文本，只改模型在未来注意力中“能看到哪些 KV”，再用位置重编码代替重算。由于保留的 KV 是在包含旧历史的条件下算出来的，旧信息不会因为 drop 而立刻消失；因此可以逐步丢掉最不重要、最占空间的旧工具响应，同时保留推理链和最近观察。下面按一次真实运行的顺序展开。</p>
+<p><strong>输入与状态。</strong> 每一轮，客户端仍然发送标准的 messages 列表，但额外附带一个 cache 字段，说明在哪些消息边界之后执行 drop、丢弃哪些消息的 KV，以及何时执行 repos（论文 Fig. 6）。逻辑轨迹（logical trajectory）是完整的 token 序列，长度记为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span>；活跃缓存（active cache）<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">C</mi></mrow><annotation encoding="application/x-tex">\mathcal{C}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span></span></span></span> 是真正参与后续注意力的 KV 条目集合，其长度可以小于 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span>。这里“活跃”是算法意义上的可见性，不等于物理上驻留在 GPU 显存中；服务系统可以为了省显存换出某些页，只要需要时能恢复。位置编码索引也可以独立于 token 的逻辑下标。</p>
+<p><strong>三个基本操作。</strong> append 是标准解码：处理新 token，把它在前缀条件下的 KV 条目追加到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">C</mi></mrow><annotation encoding="application/x-tex">\mathcal{C}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span></span></span></span>，位置索引从 0 开始逐次加一。drop 接收一组活跃逻辑下标 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi></mrow><annotation encoding="application/x-tex">P</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span></span></span></span>，把这些条目从后续注意力中移除，但保留条目的相对顺序、位置编码和完整文本都不变：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">drop</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>P</mi><mo stretchy="false">)</mo><mo>:</mo><mtext> </mtext><mi mathvariant="script">C</mi><mo>←</mo><mi mathvariant="script">C</mi><mo>∖</mo><mo stretchy="false">{</mo><msub><mi>C</mi><mi>i</mi></msub><mo>:</mo><mi>i</mi><mo>∈</mo><mi>P</mi><mo stretchy="false">}</mo></mrow><annotation encoding="application/x-tex">\operatorname{drop}(P):\ \mathcal{C}\leftarrow\mathcal{C}\setminus\{C_i:i\in P\}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mop"><span class="mord mathrm">drop</span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace"> </span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">←</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∖</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">{</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">:</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6986em;vertical-align:-0.0391em;"></span><span class="mord mathnormal">i</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span><span class="mclose">}</span></span></span></span></span>
+<p>repos 则把保留的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi></mrow><annotation encoding="application/x-tex">r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span> 个条目重新编号为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0</mn><mo separator="true">,</mo><mo>…</mo><mo separator="true">,</mo><mi>r</mi><mo>−</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">0,\ldots,r-1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8389em;vertical-align:-0.1944em;"></span><span class="mord">0</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner">…</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>，下一个 append 使用位置 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi></mrow><annotation encoding="application/x-tex">r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span>。对采用 RoPE（rotary position embedding，旋转位置编码）的模型，把缓存 key 从位置 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span> 移到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span> 只需旋转：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>K</mi><mo>←</mo><mi>R</mi><mo stretchy="false">(</mo><mi>q</mi><mo stretchy="false">)</mo><mi>R</mi><mo stretchy="false">(</mo><mi>p</mi><msup><mo stretchy="false">)</mo><mrow><mo>−</mo><mn>1</mn></mrow></msup><mi>K</mi><mo separator="true">,</mo><mspace width="2em"/><mi>V</mi><mtext> 保持不变</mtext></mrow><annotation encoding="application/x-tex">K\leftarrow R(q)R(p)^{-1}K,\qquad V\ \text{保持不变}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">←</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1141em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="mclose">)</span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span><span class="mopen">(</span><span class="mord mathnormal">p</span><span class="mclose"><span class="mclose">)</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8641em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">1</span></span></span></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right:0.0715em;">K</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mspace"> </span><span class="mord text"><span class="mord cjk_fallback">保持不变</span></span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi><mo stretchy="false">(</mo><mi>p</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">R(p)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span><span class="mopen">(</span><span class="mord mathnormal">p</span><span class="mclose">)</span></span></span></span> 是位置 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span> 的旋转矩阵。repos 不重算 hidden state，只改 key 的旋转表示，value 直接复制，因此比“重新预填充整个后缀”便宜得多；同时它解决了“缓存很小但位置索引已经很大”的问题。论文把这三个操作的交错序列称为 cache operation sequence，并指出对固定模型而言，从空缓存开始，操作序列唯一决定当前缓存状态（§3.3、§3.4）。</p>
+<p><strong>历史依赖：为什么普通前缀缓存不够。</strong> 图 2 给出论文反复使用的 A&#x2F;B&#x2F;C 例子。三条轨迹最终都保留 B 和 C：轨迹 ① 先追加 C 再丢弃 A，C 是在 A、B 的 KV 上算出来的；轨迹 ② 先丢弃 A 再追加 C，C 只能看到 B 的 KV；轨迹 ③ 从只有 B 的状态开始追加 C。三者保留的 token 和位置可能相同，但 B、C 的 KV 内容不同。普通前缀缓存若只看 token 序列，就会把 ① 的 C 错误复用给 ②。扩展基数树因此在 A–B 共享前缀之后按 drop 发生的时机分叉，把不同计算历史下的 C 区分开。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-22/cacheeng_fig2.png"
+                      alt="图 2：缓存操作轨迹与历史相关的 KV 状态"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 5）：这张图用 A&#x2F;B&#x2F;C 例子说明操作顺序如何决定缓存身份。三条轨迹都保留 B、C，但 ① 的 C 在 A、B 的 KV 上算出，② 的 C 只见过 B，③ 的 C 从只有 B 的状态开始，因而三者内容不同；B 在 ①、② 中相同（都见过 A），在 ③ 中不同。扩展基数树把 token 与操作历史一起编码进索引：共享前缀之后按 drop 时机分叉，把不同计算历史下的同名 token 区分开。读者应理解的重点是“缓存状态 &#x3D; token 序列 + 操作序列”：一旦允许 drop 或 repos，token 前缀就不再是缓存身份的充分条件，复用必须沿联合前缀进行。</p>
+<p><strong>AKV 的接口与服务流程。</strong> AKV 遵循“无状态接口、有状态服务”（stateless interface, stateful serving）原则。客户端提交的请求里，messages 隐含了所有 append 操作；cache.drop 是一个从“消息下标”到“要丢弃的消息下标列表”的映射，表示在该消息之后执行 drop；cache.reposition 列出执行 repos 的消息下标。消息下标从 0 开始，同一消息边界上 drop 先于 repos（§4.1）。该设计让请求自描述缓存状态（即使页被换出也可恢复），使 drop 只影响自身请求，并兼容 OpenAI 风格 Chat Completions API，客户端无需跟踪服务器物理驻留。</p>
+<p><strong>扩展基数树与复用。</strong> 服务端把每个 token 节点表示为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>T</mi><mo stretchy="false">(</mo><mi>x</mi><mo separator="true">,</mo><mi>p</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">T(x,p)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1389em;">T</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">p</span><span class="mclose">)</span></span></span></span>，其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>x</mi></mrow><annotation encoding="application/x-tex">x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">x</span></span></span></span> 是 token id、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span> 是该条目当前编码的位置；drop 在触发点插入 drop 节点 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>P</mi></mrow><annotation encoding="application/x-tex">\Delta P</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord">Δ</span><span class="mord mathnormal" style="margin-right:0.1389em;">P</span></span></span></span>，记录被丢弃的逻辑下标；repos 插入 reposition 节点 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>R</mi></mrow><annotation encoding="application/x-tex">R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span></span></span>。精确匹配要求 token、位置、操作节点及其参数完全一致；retrigger 匹配则忽略“当前存储的位置索引”，但保留全部操作记录，若两个前缀的投影相同，就认为它们的历史兼容，可以复制源缓存并通过旋转 key 得到目标位置版本，value 不变（Appendix A.1.2）。必须有 reposition 节点的原因：两条轨迹最后可能落在相同位置，但其中一条在计算某个 token 前执行过 repos，改变了它与更早 token 的相对距离；后来再 repos 也无法抹掉这一计算差异，因此树必须在更早的分叉处保留操作节点。</p>
+<p><strong>逐出策略。</strong> 一个缓存条目只有在没有任何进行中的计算或恢复需要它时才可逐出；例如 A 的 KV 在请求 ① 和 ② 都 drop 之后就可以释放，即使两个请求还在继续生成 D。释放物理存储后，树节点保留为空占位符，以便后代仍能通过前缀匹配被找到。在可逐出条目中，AKV 优先逐出被 drop 的缓存，而不是已完成请求留下的缓存，因为后者更可能在下一轮被复用（§4.2.2）。位置版本也独立逐出：请求 2 复制出的 B、C 新版本可以被回收，而请求 1 仍在用的原始 B 不受影响（图 3）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-22/cacheeng_fig3.png"
+                      alt="图 3：repos 在 KV 池与基数树中的表示"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 8）：这张图说明 repos 如何在不重算 hidden state 的情况下产生“同一内容、不同位置”的缓存版本。请求 1 使用 A、B、D；请求 2 丢弃 A 后保留 B、C，并把 B、C 从位置 1、2 搬到 0、1。服务端对 B、C 复制 KV 页并旋转 key，生成新的位置版本；原始 B 仍被请求 1 使用，原始 C 则变成可逐出状态。基数树在 B 处分叉，用 reposition 节点记录“在 C 之后执行过 repos”，从而把位置版本与原始版本区分开。repos 的代价是复制 KV 页和旋转 key，而不是重跑 Transformer；这也是论文按 cache-hit 价格计费并声称保守估计的原因。</p>
+<p><strong>恢复：分段批量注意力。</strong> 如果缓存因为显存压力被换出，或者服务重启后需要重建，普通因果预填充无法复现“某些 token 曾经看不到 A、另一些 token 又曾经看得到 A”的状态，而按操作历史逐条重放又需要多次前向。AKV 的做法是按 drop&#x2F;repos 触发点把 query 切段，每段对自己的 token 和“此前仍活跃的缓存”做标准因果注意力；被 drop 的缓存对后续段不可见，但对更早的段仍然可见。图 4 给出连续 drop&#x2F;repos 后各段可见性与位置版本的例子。四个 segment 共享一次模型前向：注意力按段批处理，FFN 仍整批处理，避免重复读取 FFN 权重；不同位置版本则在每层通过旋转 key、复制 value 临时构造（§4.2.3、Appendix A.1.1）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-22/cacheeng_fig4.png"
+                      alt="图 4：用分段批量注意力恢复缓存"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 10）：这张图把一次包含两次 drop、两次 repos 的请求拆成四个注意力段，并把 token 序列、操作节点与每段的 query&#x2F;key 可见性对应起来。第一段是普通因果注意力；第二段在 drop B、repos 后，D 只能看到 A、C、D；第三段在 drop D 后，E 只能看到 A、C、E，虽然它与第二段共享位置映射，但 D 已不可见，必须使用独立的 KV 视图；第四段在第二次 repos 后，E 被移到位置 2，F 使用新的位置映射。所有段都标注在“One prefill forward”之下，说明恢复不是逐操作重放，而是在一次前向里用不同页列表和位置版本拼出各段注意力。</p>
+<p><strong>策略、训练与输出。</strong> AKV 本身不训练模型，也不学习缓存控制器；主实验使用固定启发式：保留最近 12 轮工具响应的 KV，丢弃更早的工具响应，保留全部推理 KV；当逻辑位置达到与 Standard 基线相同的阈值（GPT-OSS-120B 与 MiniMax-M2.7 为 96K，MiroThinker-1.7-Mini 为 192K）时执行 repos（§5.1）。模型决定正常的推理与工具调用，drop&#x2F;repos 的时机和对象由策略代码决定。作者还尝试了 CAT：把缓存管理暴露成一个工具，让模型自己决定何时压缩、保留什么；以及 RSI：用 MiniMax-M2.7 在 20 个 BCP 任务上迭代、评估、改写策略，再在 100 个留出任务上测试（§5.4）。最终输出仍是普通助手消息或工具调用，变化只在服务端缓存：下一轮请求携带扩展后的消息与操作历史，服务器据此复用或恢复 KV。</p>
+<p>谁决定什么：模型决定任务层的文本行为（可选地决定是否调用 CAT）；策略代码决定主实验中的丢弃对象与时机；AKV 服务系统决定物理页的匹配、复用、逐出、恢复和分段注意力执行。没有训练阶段，因而也没有训练数据、奖励设计或 SFT 样本构造；这也是论文在 Limitations 中明确留下的未来工作（§6）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p>论文在 BrowseComp-Plus（BCP，深度检索）、xbench-DeepSearch-2510（xbench-DS）、GAIA 纯文本 103 题子集和 SWE-bench Verified（SWE-Verified，软件工程）上评测；模型为 MiniMax-M2.7（230B&#x2F;10B 激活）、GPT-OSS-120B（5.1B 激活）、MiroThinker-1.7-Mini（30B&#x2F;3B 激活），附录另加 GPT-OSS-20B（论文 Table 7）。GPT-OSS-120B 用 high reasoning effort，另两个用 thinking 模式（§5.1）。</p>
+<p>基线有两个，都是摘要式上下文工程：Standard 使用较高的模型相关阈值（GPT-OSS-120B 与 MiniMax-M2.7 为 96K，MiroThinker 为 192K）；Text Engineering 使用统一的 48K 阈值，并沿用 Pi 的摘要提示、序列化方式、切点和摘要预算（Appendix A.2.2）。两者与 AKV 都基于 SGLang v0.5.20，前两者用 LRU 逐出，AKV 用 drop-aware 逐出。主实验的 AKV 策略是保留最近 12 轮工具响应，repos 阈值与 Standard 相同。评价指标是各基准通过率（%）与每题平均 API 等价成本（美分）；成本按 cache-miss、cache-hit、output 三类 token 计价，三个模型分别按 Groq、官方和 Qwen3-30B-A3B 基座价格计费；repos 按 cache-hit 额外计费，作者称这是故意高估（§5.1、Appendix A.3，论文 Table 6）。</p>
+<p>服务效率实验使用 GPT-OSS-120B 和 SWE-Verified 中上下文最长的 80 个任务，在 8 张 A800-80GB 上运行，prefill 与 decode 各 4 卡、TP4，BF16 权重（A800 不支持 MXFP4）（论文 Table 5、Appendix A.1.3）。每个方法回放自己在各自策略下收集的轨迹，因此轮数和输出预算可能不同，这是后文的混淆点（Appendix A.1.4）。主表覆盖 3 个模型 × 4 个基准；消融用每个基准前 100 题；RSI 用 20 个 BCP 任务训练、100 个留出任务评估；在线实验用前 100 个 SWE 任务、每种方法 3 次运行（§5.2–§5.4）。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p>主结果在论文 Table 1。AKV 在三个模型上都取得最高的平均通过率：MiniMax-M2.7 为 53.7，Standard 52.4、Text Engineering 52.8；GPT-OSS-120B 为 53.1，Standard 51.0、Text Engineering 48.3；MiroThinker-1.7-Mini 为 45.8，Standard 44.1、Text Engineering 37.1。平均成本为 4.4&#x2F;7.3&#x2F;14.8 美分（Standard 5.0&#x2F;11.2&#x2F;20.4，Text Engineering 5.7&#x2F;10.2&#x2F;18.1）。跨模型、基准平均，成本相对 Standard&#x2F;Text Engineering 下降 27.7%&#x2F;21.9%，平均分提升 1.7（§5.2）。图 5 从 BCP 前 100 题的准确率—成本前沿给出同样结论：AKV 的 K&#x3D;1、4、12 三点整体优于两个基线。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-22/cacheeng_fig5.png"
+                      alt="图 5：BCP 上的准确率—成本前沿"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 3）：这张图直接回答“值不值”。横轴是每题 API 等价成本，纵轴是准确率，误差棒表示多次试验的均值 ± 标准差。紫色曲线是 AKV 在不同保留轮数 K 下的结果，K 从 1 增到 12 时准确率上升、成本也上升，但整条曲线在成本—准确率权衡上优于灰色 Standard 和蓝色 Text Engineering；蓝色折线是 48K、60K、72K 三个摘要阈值，说明单纯调阈值无法同时达到 AKV 的准确率和成本。AKV 的优势不是“某个单点碰巧更好”，而是在这条前沿上整体外移；但图只覆盖 BCP 前 100 题和 GPT-OSS-120B，不能直接外推到所有基准。</p>
+<p>平均结果掩盖了基准间差异。MiniMax-M2.7 上，AKV 的 BCP 为 58.9（Text Engineering 62.3）、SWE 为 74.4（Standard 75.2）、xbench 40.5 与 Standard 持平；GPT-OSS-120B 的 xbench 为 37.5（Standard 38.5），其余三项领先；MiroThinker 的 SWE 仅 7.4（Standard 7.8），三方法都停留在 4.2–7.8，说明该模型在此任务上几乎不可用，纳入平均会扭曲结论。成本方面，MiniMax-M2.7 仅降约 12%（5.0→4.4），远小于 GPT-OSS-120B 的约 35%（11.2→7.3）和 MiroThinker 的约 27%，27.7% 的均值主要由后两者拉动。论文未在 Table 1 报告方差、置信区间或显著性检验，这些单基准的几分之差是否稳定，当前材料无法确认。</p>
+<p>服务效率在论文 Table 2。作者比较各方法的峰值吞吐并发点：AKV 在 C&#x3D;14 时平均请求延迟 9.09 s、P95 延迟 28.49 s，Standard 在 C&#x3D;12 时为 12.39 s 和 43.16 s，对应 1.36 倍和 1.51 倍加速；输入吞吐 51,837 对 33,832 tokens&#x2F;s（1.53 倍），输出吞吐 369 对 313 tokens&#x2F;s（1.18 倍）。TTFT（time to first token，首 token 延迟）从 21.36 s 降到 2.92 s。并发继续升高时 Standard 明显退化：C&#x3D;16 时平均延迟 36.50 s、P95 229.90 s，而 AKV 为 10.32 s、30.63 s（论文 Table 2）。这些数字与摘要中的“最高 1.2 倍输出吞吐、1.5 倍 P95 加速”一致，但比较的是不同并发度下的峰值点，不是同一负载下的延迟；同一 C&#x3D;14 下 AKV 的优势更大（平均 9.09 s 对 30.16 s），因为 Standard 在高压下反复重预填充。</p>
+<p>在线任务加速在论文 Fig. 9：GPT-OSS-120B 在 SWE-Verified 前 100 题上，AKV 以最少的 GPU 小时达到最高最终通过率；随着累计逻辑输入 token 增加，AKV 的通过率持续上升并超过两个基线；峰值服务吞吐也更高。该实验每种方法跑 3 次，阴影为 ±1 标准差（§5.2）。附录的 GPT-OSS-20B（论文 Table 7）方向一致但幅度更小：AKV 平均 45.2，Standard 44.0，Text Engineering 38.2；平均成本 4.8 对 6.2 和 4.6，说明 AKV 相对 Standard 仍降本，但相对 Text Engineering 反而略贵。作者把较小模型的增益归因于其利用保留信息的能力有限（Appendix A.4.4），这是解释而非已证实的因果结论。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>丢靶消融在论文 Table 3。它在 BCP 和 SWE 前 100 题上比较五种设置：Standard、只丢工具响应（无&#x2F;有 repos）、只丢推理（有 repos）、两者都丢（有 repos）。BCP 通过率为 56.0、55.0、62.0、56.5、56.5，SWE 为 41.0、41.0、41.0、36.5、34.5。最关键的对比是只丢工具响应从无 repos 的 55.0 升到有 repos 的 62.0：没有 repos，位置索引持续增长，任务可能在达到上限时中止；有了它，才能在丢弃旧工具响应后继续探索。丢推理（单独或与工具响应一起）在两个基准上都低于只丢工具响应，支持“推理链更值得保留”。这个消融真正隔离了丢靶与 repos，是全文最强的机制证据。</p>
+<p>为什么准确率会提高？论文 Fig. 7 按逻辑序列长度分桶给出 BCP 前 100 题的准确率：0–48K 区间三个方法都是 88%；48–96K 区间 Standard 65%、Text Engineering 54%、AKV 70%；96K 以上分别为 24%、32%、37%。这与摘要阈值的位置吻合：Text Engineering 在 48K 就压缩，因而在 48–96K 区间损失最大；Standard 在 96K 才压缩，因而在 96K 以上损失最大；AKV 通过滚动丢弃旧工具响应，把信息损失分散到多轮，避免了“一次砍掉一大段”的突变（图 6）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-22/cacheeng_fig6.png"
+                      alt="图 6：按逻辑序列长度分桶的 BCP 准确率"
+                ></p>
+<p><strong>图 6</strong>（论文 Fig. 7）：这张柱状图把 BCP 前 100 题按逻辑输入长度分成 0–48K、48–96K、96K+ 三桶，纵轴是通过率。三个方法在短上下文时完全一样，说明缓存工程没有在“本来就不需要压缩”的场景引入额外损失；一旦超过 48K，Text Engineering 先掉队；超过 96K，Standard 掉到 24%，而 AKV 仍有 37%。AKV 的准确率优势主要来自“长轨迹区间内更平滑的信息保留”，而不是在所有长度上都提升了模型能力。但它仍是相关性证据：长度、任务难度和模型行为可能同时变化，不能单凭分桶结果证明信息损失就是唯一原因。</p>
+<p>成本侧证据见论文 Fig. 13 与论文 Fig. 12：前者把 GPT-OSS-120B 在 BCP 上的单题成本拆成 input、output、cache read 和 repos：Standard 总成本 13.1 美分，其中 cache read 10.8；Text Engineering 12.6，cache read 8.5、input 2.9；AKV 11.4，cache read 9.0、input 1.5、repos 0.3。作者据此说 cache-read 成本比 Standard 低约 17%，cache-miss 输入成本比 Text Engineering 低约 48%（Appendix A.4.2）。论文 Fig. 12 则解释解码加速：同一 batch size 下 full attention 从 7.082 ms 降到 2.849 ms（−59.8%），总 decode step 从 26.186 ms 降到 21.990 ms（−16.0%），MoE 几乎不变（16.764 对 16.785 ms），说明收益主要来自更短的活跃上下文，而不是 MoE 或通信优化（Appendix A.4.1）。这也意味着“AKV 系统”的加速与“AKV 策略”的缩短上下文绑定在一起。</p>
+<p>注意力统计只是策略依据，不是因果证明。论文 Fig. 2 与论文 Fig. 15 显示，越旧的 token 注意力越低，旧工具响应在多数层低于旧推理，最近历史最高；这支持“保留推理和最近工具响应、优先丢旧工具响应”。但这只说明模型“看得少”，不等于“丢了不影响”；真正的证据仍是论文 Table 3 的丢靶消融和论文 Fig. 7 的长度分桶。论文未做干预实验，也未探测被丢弃信息是否编码在保留 KV 中；论文 Fig. 1 的嵌套色块是概念示意，不是测量结果。</p>
+<p>策略层的证据包括 CAT 和 RSI。Table 4 显示，把缓存管理作为工具交给模型后，GPT-OSS-120B 在 100 题 BCP 子集上从 Standard 的 52.1 提升到 61.0，成本从 13.4 降到 12.1；MiniMax-M2.7 从 56.0 提升到 64.0，但成本从 5.4 升到 5.9，因为模型执行了更多轮。RSI 在 论文 Fig. 4 中从 Standard 的约 5.35 美分、专家手工设计的约 4.75 美分，降到第 3 轮约 4.52、第 6 轮约 4.42 美分；论文报告第 3、6 轮相对 Standard 降本 15.6% 和 17.8%，相对专家设计再降 7.1%，同时保持 Standard 的准确率（§5.4）。这些结果说明策略层有进一步压缩空间，但 RSI 的搜索空间、策略表示、提示、评估预算和失败案例都没有披露，复现难度较高。</p>
+<p>系统组件的证据并不对称。扩展基数树和分段批量注意力是技术核心，但论文没有“去掉 drop 节点&#x2F;改用普通前缀缓存”或“用逐操作重放代替分段注意力”的对照；Table 2 也无法把“策略缩短上下文”与“系统更高效”分开。作者自己把解码加速归因于 full attention 时间下降，这更支持“策略是主要收益来源”，而不是“分段注意力内核是主要收益来源”。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p>论文没有训练成本，主要成本在推理侧。drop 几乎只是元数据操作；repos 需要复制 KV 页并旋转 key，论文按 cache-hit 价格计费，但真实 GPU 的复制带宽和额外显存没有单独测量；基数树需维护 token、drop、reposition 节点，位置版本短期增加显存；分段注意力需自定义内核，论文只报告整体吞吐，未给出恢复路径开销。服务实验用 8 张 A800、BF16 权重（不支持 MXFP4），与生产量化推理不同，绝对延迟和显存不能直接外推（论文 Table 5、Appendix A.1.3）。</p>
+<p>成本数字是 API 等价估计，不是自建集群的真实账单：它只计算被评测 Agent 的生成和摘要调用，按公开 token 单价计费，不含检索、工具执行、判题和人工成本（Appendix A.3）。因此“成本下降 27.7%”是在该计价模型下的相对节省，不是 GPU 机时或能耗的同比节省。论文没有报告失败率、恢复频率、恢复失败的后果，也没有不同显存压力下的退化曲线；高并发下 Standard 的崩溃被展示，但 AKV 在更大并发或更小显存下的行为没有系统扫描。</p>
+<p>适用范围也有限。方法依赖 RoPE 与 decoder-only 结构，线性注意力支持被列为未来工作；它假设轨迹中存在大量可丢弃的工具响应，若任务以长推理为主，保留全部推理 KV 会让活跃上下文继续增长（论文 Fig. 14 显示 AKV 的活跃上下文仍随轮次上升，只是斜率更小）。主实验只覆盖三个模型和四个基准，任务数、种子和方差披露不完整；RSI 只在 MiniMax-M2.7 和 BCP 上验证。总体而言，论文改善的是“工具响应多、轨迹长、需要跨轮复用前缀”的负载，尚未证明对一般长上下文推理、训练阶段或非 RoPE 模型同样有效。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：基线过窄，缺少与-KV-逐出-压缩方法及完整上下文基线的对照"><a href="#质疑：基线过窄，缺少与-KV-逐出-压缩方法及完整上下文基线的对照" class="headerlink" title="质疑：基线过窄，缺少与 KV 逐出&#x2F;压缩方法及完整上下文基线的对照"></a>质疑：基线过窄，缺少与 KV 逐出&#x2F;压缩方法及完整上下文基线的对照</h4><ul>
+<li><strong>原文依据</strong>：§5.1 只有 Standard 和 Text Engineering 两个摘要基线；主实验未与 H2O、SnapKV、StreamingLLM 或 Appendix A.5 的 SideQuest、AgentKV、IntentKV 做数值比较；完整上下文也未进入 Table 1。</li>
+<li><strong>为什么重要</strong>：若与更接近的 KV 逐出&#x2F;压缩方法相比无优势，创新性就从“新范式”退化为“另一种摘要替代方案”；完整上下文基线决定“压缩是否必要”。</li>
+<li><strong>当前能够得出的判断</strong>：在论文选择的基线、模型和基准上，AKV 的平均分和成本确实更好；但不能据此声称它优于所有 KV 管理方法，也不能确认它比“不压缩、直接扩上下文”更适合成本敏感场景。</li>
+<li><strong>如何验证或补强</strong>：加入同 token 预算的 H2O&#x2F;SnapKV、SideQuest&#x2F;AgentKV，以及可运行的完整上下文基线；在相同硬件与轮数预算下比较准确率、成本和 P95。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：准确率提升与“更少压缩-更多轮次”混淆，主表缺少方差"><a href="#质疑：准确率提升与“更少压缩-更多轮次”混淆，主表缺少方差" class="headerlink" title="质疑：准确率提升与“更少压缩&#x2F;更多轮次”混淆，主表缺少方差"></a>质疑：准确率提升与“更少压缩&#x2F;更多轮次”混淆，主表缺少方差</h4><ul>
+<li><strong>原文依据</strong>：Appendix A.1.4 明确说“每个方法回放自己在各自策略下收集的轨迹，因此轮数和输出预算可能不同”；Table 1 只给点估计，没有方差、置信区间或显著性检验；MiroThinker 的 SWE 接近地板，另有多个单基准回退。</li>
+<li><strong>为什么重要</strong>：如果 AKV 只是保留更多信息、允许模型多走几轮，提升可能来自“花更多 token&#x2F;轮次”，而非缓存操作；平均分也会被地板效应或权重选择放大。</li>
+<li><strong>当前能够得出的判断</strong>：BCP 前沿（论文 Fig. 3）在相似成本下仍显示 AKV 更优，削弱了“纯靠多花钱”的解释；但 Table 1 的跨基准平均没有控制轮数&#x2F;token 预算，无法排除任务级混淆，单基准的几分差异也缺少统计稳定性证据。</li>
+<li><strong>如何验证或补强</strong>：报告每个基准的题目数、种子、均值和置信区间；增加“固定轮数&#x2F;固定总 token 预算”的对照；对每个基准做配对检验，并给出按难度分层的增益；地板基准单独说明或从平均中剔除。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：服务加速无法归因于-AKV-系统，分段注意力-基数树没有组件消融"><a href="#质疑：服务加速无法归因于-AKV-系统，分段注意力-基数树没有组件消融" class="headerlink" title="质疑：服务加速无法归因于 AKV 系统，分段注意力&#x2F;基数树没有组件消融"></a>质疑：服务加速无法归因于 AKV 系统，分段注意力&#x2F;基数树没有组件消融</h4><ul>
+<li><strong>原文依据</strong>：Table 2 比较 AKV 策略+系统与摘要策略+SGLang，不是同一缓存策略下的系统对比；§5.3 和 Appendix A.4.1 把解码加速主要归因于 full attention 时间下降（7.082→2.849 ms），也就是活跃上下文变短；论文没有“相同 drop 策略下用普通重预填充 vs 用 AKV”的对照，也没有移除扩展基数树或分段注意力的消融。</li>
+<li><strong>为什么重要</strong>：论文的第二个贡献是“首个让 Agent 直接控制缓存的 serving system”，但若吞吐提升主要来自策略缩短上下文，系统增量就没有被量化，工程贡献大小和可替代性也无法判断。</li>
+<li><strong>当前能够得出的判断</strong>：AKV 作为“让该策略可运行”的系统是必要的，尤其是无重预填充复用和恢复；但当前证据只能支持“组合方案更快”，不能支持“扩展基数树&#x2F;分段注意力带来大部分加速”。</li>
+<li><strong>如何验证或补强</strong>：固定同一 cache policy，比较 AKV 与“每轮重预填充”的 SGLang 实现的 TTFT、P95、吞吐；分别关闭 drop-aware 逐出、reposition 匹配、segment-batch 注意力做消融；报告恢复请求占比、恢复延迟和额外显存。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：历史相关缓存的正确性只有论证，缺少端到端等价性测试与恢复开销"><a href="#质疑：历史相关缓存的正确性只有论证，缺少端到端等价性测试与恢复开销" class="headerlink" title="质疑：历史相关缓存的正确性只有论证，缺少端到端等价性测试与恢复开销"></a>质疑：历史相关缓存的正确性只有论证，缺少端到端等价性测试与恢复开销</h4><ul>
+<li><strong>原文依据</strong>：§3.4 和 Appendix A.1.2 用“相同投影前缀 + 位置旋转”论证 retrigger 匹配的正确性，但承认有限精度旋转有舍入误差，且不要求与重算按位一致；论文未报告恢复后输出与原始计算一致性的实验；Appendix A.1.4 的回放协议也没有专门制造显存压力来触发恢复。</li>
+<li><strong>为什么重要</strong>：这是系统正确性的核心。若旋转或分段注意力在某些模型&#x2F;精度下产生偏差，drop&#x2F;repos 的“无损复用”前提就不成立；若恢复很慢或经常失败，高并发优势也可能消失。</li>
+<li><strong>当前能够得出的判断</strong>：设计论证是自洽的，但当前材料只能确认“作者给出了正确性论证”，不能确认“真实服务中端到端等价”；恢复频率和恢复成本均未报告。</li>
+<li><strong>如何验证或补强</strong>：构造覆盖多种 drop&#x2F;repos 顺序的单元测试，对比恢复 KV 与全量重算的数值误差和下游 logits&#x2F;答案一致率；在限制 KV 显存时测量恢复次数、恢复 TTFT 和失败率；报告 BF16&#x2F;FP16&#x2F;FP8 下的误差。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：RSI-与策略泛化被过度概括，关键搜索细节缺失"><a href="#质疑：RSI-与策略泛化被过度概括，关键搜索细节缺失" class="headerlink" title="质疑：RSI 与策略泛化被过度概括，关键搜索细节缺失"></a>质疑：RSI 与策略泛化被过度概括，关键搜索细节缺失</h4><ul>
+<li><strong>原文依据</strong>：§5.4 只说用 MiniMax-M2.7 在 20 个 BCP 任务上“refine policies”，在 100 个留出任务上评估；策略表示、搜索空间、评估量、提示和失败处理均未说明；RSI 只在单一模型和基准上验证，摘要却把“再降本 7.1%”当作卖点。</li>
+<li><strong>为什么重要</strong>：如果 RSI 只是针对 BCP 的手工调参或小规模提示搜索，“自我改进”标签会被夸大；缺少细节也意味着无法复现或判断其能否推广。</li>
+<li><strong>当前能够得出的判断</strong>：论文 Fig. 4 显示第 3&#x2F;6 轮成本低于专家设计且准确率维持，但这是单一模型、基准、20 题搜索集的结果；搜索计算成本未报告，也无法判断是否过拟合 BCP 的消息模式。</li>
+<li><strong>如何验证或补强</strong>：公开策略表示、搜索算法、每轮评估预算和提示；在多个模型、多个基准上做留出评估；报告搜索的 token&#x2F;GPU 成本和方差；与随机搜索、贝叶斯优化或人工调参做同预算比较。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><blockquote>
+<p>作者发现长程 Agent 的 KV cache 读取占据主要成本，而摘要式上下文工程会因改写前缀触发重预填充并在压缩点损失信息，因此提出 cache engineering，通过 drop&#x2F;repos 直接控制活跃缓存，并用 AKV 的扩展基数树、drop-aware 逐出和分段批量注意力实现复用、逐出与恢复。实验在 3 个模型、4 个基准上报告平均分提升 1.7、成本下降 27.7%，以及最高 1.18 倍输出吞吐、1.51 倍 P95 改善；“整套组合在该设定下更优”的证据较强，但基线公平性、准确率归因与组件独立贡献仍缺充分支持。本文的价值在于把“上下文管理”重述为“缓存操作”并给出可运行系统；最大风险是基线过窄和策略&#x2F;系统效应混淆。</p>
+</blockquote>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。论文把成本、准确率和位置范围三个约束串成“改文本 vs 改缓存”的清晰两难，并用形式化操作序列把服务挑战定义清楚（§1、§3）。</li>
+<li><strong>创新性证据</strong>：中。缓存操作抽象和扩展基数树是实质增量，但组件（RoPE 旋转、基数树、分页注意力、摘要基线）多为已有技术的组合；论文声称的“首个”缺少独立文献核查，且未与最接近的 KV 逐出工作做数值比较（§2、§5）。</li>
+<li><strong>方法可信度</strong>：中。接口、树结构、逐出和分段注意力的设计自洽，正确性有论证；但恢复的端到端等价性、旋转误差和组件开销没有实测，系统贡献与策略贡献未分离（§3、§4.3）。</li>
+<li><strong>实验支持力度</strong>：中。三个模型、四个基准和多个消融提供了方向性证据，但主表无方差、基线只有摘要方法、部分单元回退、任务数和种子披露不足，平均结果的解释力有限（§4.2、§4.3）。</li>
+<li><strong>可复现性</strong>：中。代码仓库可访问（HTTP 200），基于 SGLang v0.5.20，服务配置和价格表较完整；但 RSI 细节、主表任务数、随机种子和恢复压力测试缺失（§4.1、§5）。</li>
+<li><strong>综合阅读价值</strong>：高。即使不完全相信其普适性，论文对“Agent 缓存管理”的问题拆解、接口设计和系统权衡对做 LLM serving 与 Agent 系统的读者很有参考价值。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> 面向智能体的缓存工程：让 Agent 直接操控 KV Cache 的推理系统</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-22 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-22 15:31:50
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/22/2610.28577v1_Cache_Engineering_for_Agents/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Efficient-Inference/">#Efficient Inference</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Agents/">#LLM Agents</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Context-Management/">#Context Management</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-Serving/">#LLM Serving</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/KV-Cache/">#KV Cache</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/22/2610.29997v1_DONIC_Generalist_Dexterous_Bimanual_Tracking_Control_from_Human_Demonstrations/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">DONIC：从人类双手演示训练通用双臂灵巧跟踪策略</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/22/2610.28698v1_Scaling_in_Games_Continued_Pre-Training_For_Embodied_Agents_In_Diverse_Virtual_Worlds/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">在游戏中扩展：面向具身智能体的多虚拟世界持续预训练</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">面向智能体的缓存工程：让 Agent 直接操控 KV Cache 的推理系统</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 171 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
