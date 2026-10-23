@@ -1,0 +1,1210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/23/2610.23987v1_what_generation_knows_unlocking_fine-grained_understanding_in_unified_multimodal_models/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="What Generation Knows：把统一多模态模型的生成侧表征变成细粒度理解证据">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/23/2610.23987v1_What_Generation_Knows_Unlocking_Fine-Grained_Understanding_in_Unified_Multimodal_Models/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-23T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-23T17:05:47.431Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Multimodal Generation">
+<meta property="article:tag" content="Multimodal Models">
+<meta property="article:tag" content="Post-Training">
+<meta property="article:tag" content="Preference Optimization">
+<meta property="article:tag" content="Representation Learning">
+<meta property="article:tag" content="Spatial Reasoning">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>What Generation Knows：把统一多模态模型的生成侧表征变成细粒度理解证据 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">217</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">182</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">What Generation Knows：把统一多模态模型的生成侧表征变成细粒度理解证据</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-23 12:00</span>
+        <span class="mobile">2026-10-23 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-24 01:05:47</span>
+            <span class="mobile">2026-10-24 01:05:47</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Post-Training/">Post-Training</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Spatial-Reasoning/">Spatial Reasoning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Representation-Learning/">Representation Learning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Multimodal-Models/">Multimodal Models</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Multimodal-Generation/">Multimodal Generation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Preference-Optimization/">Preference Optimization</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<ul>
+<li><p>论文：What Generation Knows: Unlocking Fine-Grained Understanding in Unified Multimodal Models</p>
+</li>
+<li><p>作者：Tengju Ru（浙江大学；深圳河套学院）、Weitong Lian（浙江大学）、Zecong Tang（香港大学）、Zhiheng Liu（浙江大学）、Lingyi Meng（浙江大学）、Haoran Li（香港大学）、Kaixuan Wang（香港大学）、Bohao Li（香港中文大学（深圳））、Xihui Liu（香港大学；深圳河套学院）</p>
+</li>
+<li><p>版本：arXiv 2610.23987v1（2026-10-14）</p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.23987" >https://arxiv.org/abs/2610.23987<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>arXiv HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.23987v1" >https://arxiv.org/html/2610.23987v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.23987" >https://huggingface.co/papers/2610.23987<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/LRuca/GAFU" >https://github.com/LRuca/GAFU<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>项目页：论文未提供</p>
+</li>
+</ul>
+<p>标签：Multimodal Models、Multimodal Generation、Post-Training、Preference Optimization、Representation Learning、Spatial Reasoning。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>论文先系统比较统一多模态模型（unified multimodal models, UMMs）中生成侧与理解侧视觉表征，发现生成侧表征对细粒度语义变化更敏感、能捕捉理解侧漏掉的变化，且这种优势依赖正确的空间组织；据此提出 GAFU 两阶段后训练框架，把原生生成表征压缩成 256 个 G 令牌（G tokens），再通过任务条件交叉注意力（cross-attention）注入理解通路。三个 UMM、五个基准上，GAFU 相对同数据监督微调（supervised fine-tuning, SFT）在 15&#x2F;15 个模型-基准组合上提升，平均 +3.56–5.98 个百分点；但缺少参数&#x2F;算力匹配与测试时打乱 G 的对照，尚不能证明增益必然来自“生成侧信息”而非额外容量，统计稳定性也未报告。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>细粒度视觉理解（fine-grained visual understanding）要求区分局部属性、小物体、计数和空间关系的细微差异。现有视觉语言模型（vision-language models, VLMs）在高层次语义理解上较强，但在这些任务上仍不可靠。作者把原因归于理解通路的视觉编码方式：主流 VLM 使用语言对齐的视觉编码器（如 CLIP&#x2F;SigLIP），在进入语言模型之前就把视觉内容压缩成有限 token，细粒度证据在上游丢失后，下游无法恢复（§1）。这是领域早已存在的一般问题。</p>
+<p>UMM 同时建模理解与生成，其生成通路通常保留更丰富的结构、空间关系和局部细节；理解与生成通路共享知识、相互适配（§1、§2.1）。于是出现一个自然但未被系统验证的机会：生成侧的原生表征（generation-side native representation）是否包含理解侧没有的细粒度证据？如果有，如何让理解通路用起来？</p>
+<p>现有生成辅助理解（generation-assisted understanding）主要有两条路线。第一条用生成监督（generative supervision）塑造视觉表征或内部隐状态，例如加辅助生成损失；问题是监督目标是启发式的，理解与生成的表征需求可能冲突。第二条在推理时显式生成中间图像，再编码回理解空间；问题是生成过程有开销、有损，还会把生成错误传给下游（§1、§2.2）。两条路线都没有直接、系统地使用生成侧的原生表征。</p>
+<p>作者的新观察来自 §3.1 的表征分析。作者在 6 个 UMM（BAGEL、Janus-Pro、Lance、Show-o2-7B、BLIP3-o-4B、DreamLLM-7B）上，用 2,084 对 VisMin 最小变化图像，覆盖物体（object）、属性（attribute）、计数（count）、关系（relation）四个域，把生成侧与理解侧表征对齐到 16×16 网格，并用控制校正敏感度（control-corrected sensitivity）扣除低层外观变化的影响。结果是：在全部 24 个模型-域组合中，生成侧的敏感度都高于理解侧；生成侧独有的强响应比例平均 28.18%，理解侧独有仅 2.48%（Appendix A.3，逐项见 Table 3）；把图像按 64×64 块做空间置换后，24&#x2F;24 个组合的 G−U 差距都缩小（Fig. 1、Table 5）。生成侧优势在属性、物体、关系上较大，在计数上最小；作者据此认为，生成侧优势依赖局部证据与空间组织，而不是跨实例聚合。</p>
+<p>这些是原文事实，但它们是表征层面的敏感度&#x2F;互补性，不等于“这些信息能被下游任务正确使用”。作者的解释是：理解通路为了语言对齐而压缩视觉信息，生成通路为了重建而保留细节；空间组织是生成侧优势的来源之一。核心假设是：把生成表征压缩、对齐成固定长度的记忆，并让理解通路按当前文本任务状态选择性检索，就能把这种互补信息转化为细粒度理解收益。本文实际解决的具体子问题是：在三个 UMM 上，用两阶段后训练把原生生成表征接入理解通路，并相对同数据 SFT 取得一致提升。论文观察到了表征现象，也用方法验证了可用性，但没有用因果实验完全分离“生成信息”与“额外容量”。</p>
+<p>图 1 把这三项分析放在一起。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/whatgeneration_fig1.png"
+                      alt="图 1：控制校正敏感度与强响应互补"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1）：这张图把论文的三条经验发现压缩成两个面板。上半部分的实心柱是未置换时的 G−U 控制校正敏感度差，斜线柱是空间置换后的差；每个模型下按 attribute、object、count、relation 分组。实心柱几乎全为正，说明生成侧更敏感；斜线柱普遍下降，个别变为负值，说明这种优势依赖图像的空间组织。下半部分堆叠柱是“只有生成侧强响应”和“只有理解侧强响应”的样本比例，生成侧独有（G-only）明显占主导，理解侧独有（U-only）很小。读图时应抓住三点：生成侧敏感度更高、生成侧能捕捉理解侧漏掉的变化、空间打乱会削弱优势；但柱高是表征响应，不是任务准确率，不能直接等同于“生成侧知道答案”。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>本文的增量不是新的生成模型或新的注意力算子，而是把“生成侧原生表征”从一种被间接利用的资源，变成可分析、可压缩、可注入的细粒度理解记忆。具体有三点。</p>
+<p>第一，系统的表征分析协议。作者没有假设“生成有助于理解”，而是用控制校正敏感度、强响应互补性（strong-response complementarity）和空间依赖性（spatial dependence）三个角度，在 6 个 UMM、4 个域、24 个组合上做同模型内的 G vs U 对照；控制图像在同一编辑区域匹配线性 RGB 均方根（root mean square, RMS），试图扣除低层变化。与仅报告下游性能的生成辅助方法相比，这提供了“为什么值得用生成侧”的诊断证据（§3.1，Fig. 1）。这属于分析方法的创新，不是新基准；VisMin 是已有数据。</p>
+<p>第二，Stage 1 的生成表征压缩与对齐。作者用 256 个可学习查询把原生生成表征压成固定长度的 G 令牌，训练目标同时包含图像重建、空间绑定（spatial binding，每个 G 令牌预测对应局部生成目标）和关系对齐（relation alignment，让 G 与 U 的成对关系结构一致）；UMM 原生通路冻结，只训练编码器、解码器和预测头。与生成监督相比，它直接保留原生生成信息；与显式生成相比，推理时不需要生成图像，G 是一段紧凑记忆（§3.2.1，Fig. 2，Table 2）。</p>
+<p>第三，Stage 2 的任务条件注入（task-conditioned injection）与偏好学习。G 令牌在理解通路的每一层通过交叉注意力被当前文本隐状态查询，而不是在输入端与 U 拼接；训练用交叉熵（cross-entropy, CE）、CE 空间的成对直接偏好优化（Direct Preference Optimization, DPO）和打乱 G 分支的 KL 散度（Kullback–Leibler divergence, KL）正则，配合理解表征 masking，鼓励模型使用与样本匹配的 G，同时不让负分支被过度劣化。与“把 G 直接拼进输入”的接口相比，这强调“按任务状态检索”（§3.2.2，Table 2，Fig. 8）。三点分别对应“生成侧是否值得用”“如何保真压缩”“如何让理解通路用起来”；证据细节放在 §4。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>整篇方法分两步：先诊断，再接入。诊断回答“生成侧是否值得用”，GAFU 回答“如何用”。GAFU 的直觉是：生成编码器本来是为了重建图像而训练的，它的表征保留了理解编码器可能丢掉的局部细节；Stage 1 把这些表征压成少量 G 令牌，并强迫它们保留空间位置和关系结构；Stage 2 把这些令牌接到理解 Transformer 的每一层，让文本侧在需要时“查”这段记忆。整个过程不生成图像，也不改 UMM 的原生视觉编码器，只训练一个压缩器、若干注入模块和理解通路的低秩适配（Low-Rank Adaptation, LoRA）。</p>
+<h3 id="3-1-诊断：控制校正敏感度、互补性与空间依赖"><a href="#3-1-诊断：控制校正敏感度、互补性与空间依赖" class="headerlink" title="3.1 诊断：控制校正敏感度、互补性与空间依赖"></a>3.1 诊断：控制校正敏感度、互补性与空间依赖</h3><p>诊断对象是 6 个 UMM，每个模型取一对同模型的生成侧&#x2F;理解侧表征；VisMin 的 2,084 对最小变化图像覆盖 object、attribute、count、relation 四个域。所有表征保留空间排列并自适应池化到 16×16 网格。对每个位置 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span>，计算两图特征的余弦距离并截断到非负；在连续 2×2 窗口内取平均后取最大，得到局部响应 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ρ</mi><mi>R</mi></msub></mrow><annotation encoding="application/x-tex">\rho_R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">ρ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>；再取 log 得到敏感度 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>S</mi><mi>R</mi></msub></mrow><annotation encoding="application/x-tex">S_R</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>。为了扣除低层外观变化，作者为每个语义编辑 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mo>→</mo><msub><mi>I</mi><mi>v</mi></msub></mrow><annotation encoding="application/x-tex">I\rightarrow I_v</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 构造控制图 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>I</mi><mi>n</mi></msub></mrow><annotation encoding="application/x-tex">I_n</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>：从像素差最大的 25% 非零像素出发做两次膨胀得到编辑区域 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span></span></span>，用一组不改变物体结构的自然光度退化算子（端点混色、gamma、局部平滑、区域均值替换、光照重分布、色调曲线、对比度调整等）在 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span></span></span> 内生成候选，要求候选与原图在 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi></mrow><annotation encoding="application/x-tex">M</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">M</span></span></span></span> 内的线性 RGB RMS 与语义编辑相同，并在满足像素范围的候选中选 LPIPS 最近者。控制校正敏感度是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>C</mi><mi>R</mi></msub><mo>=</mo><msub><mi>S</mi><mi>R</mi></msub><mo stretchy="false">(</mo><mi>I</mi><mo separator="true">,</mo><msub><mi>I</mi><mi>v</mi></msub><mo stretchy="false">)</mo><mo>−</mo><msub><mi>S</mi><mi>R</mi></msub><mo stretchy="false">(</mo><mi>I</mi><mo separator="true">,</mo><msub><mi>I</mi><mi>n</mi></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">C_R=S_R(I,I_v)-S_R(I,I_n)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0715em;">C</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0715em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>；域平均后比较 G 与 U（Appendix A.2）。互补性用强响应指标 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>q</mi><mi>R</mi></msub><mo>=</mo><mn mathvariant="bold">1</mn><mo stretchy="false">[</mo><msub><mi>ρ</mi><mi>R</mi></msub><mo stretchy="false">(</mo><mi>I</mi><mo separator="true">,</mo><msub><mi>I</mi><mi>v</mi></msub><mo stretchy="false">)</mo><mo>&gt;</mo><mn>2</mn><msub><mi>ρ</mi><mi>R</mi></msub><mo stretchy="false">(</mo><mi>I</mi><mo separator="true">,</mo><msub><mi>I</mi><mi>n</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">q_R=\mathbf{1}[\rho_R(I,I_v)&gt;2\rho_R(I,I_n)]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathbf">1</span><span class="mopen">[</span><span class="mord"><span class="mord mathnormal">ρ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">v</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">2</span><span class="mord"><span class="mord mathnormal">ρ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0077em;">R</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">n</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)]</span></span></span></span>，统计只有 G 强响应和只有 U 强响应的比例；空间依赖性则在对图像做 64×64 块置换后重算同样的量（Appendix A.5）。</p>
+<p>结果在 §1 已给：G&gt;U 24&#x2F;24，G-only 28.18% vs U-only 2.48%，置换后 gap 24&#x2F;24 缩小。作者据此认为生成侧的优势是细粒度、互补且依赖空间组织的。需要强调，这是“表征响应”的诊断，不是“下游可解码信息”的证明；它的作用是给 GAFU 的设计提供动机和经验约束。</p>
+<h3 id="3-2-Stage-1：把生成表征压成-256-个-G-令牌"><a href="#3-2-Stage-1：把生成表征压成-256-个-G-令牌" class="headerlink" title="3.2 Stage 1：把生成表征压成 256 个 G 令牌"></a>3.2 Stage 1：把生成表征压成 256 个 G 令牌</h3><p>图 2 给出两阶段的完整数据流。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/whatgeneration_fig2.png"
+                      alt="图 2：GAFU 两阶段总览"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 2）：左半部分是 Stage 1：图像先经过冻结的生成编码器得到原生生成表征；一个可训练的编码器把它与 256 个可学习查询一起做联合自注意力，输出 G 令牌；G 令牌一路送入解码器重建生成表征，再经冻结的 UMM 解码器得到重建图像，另一路通过共享线性头做空间绑定，同时与理解侧表征 U 做全局&#x2F;局部关系对齐。图中雪花表示冻结，火焰表示可训练；读图时要看到“重建保细节、空间绑定保位置、关系对齐保结构”三条约束如何同时作用在 G 上。右半部分是 Stage 2：提示词和图像分别进入文本&#x2F;理解编码器与生成编码器，G 经投影后进入每个 Transformer 块，以当前文本隐状态为 query、G 为 key&#x2F;value 做交叉注意力，残差写回文本流，最后解码答案；训练时还有一条打乱 G 的负分支用于 DPO 和 KL。整张图的主线是“生成侧只提供记忆，理解侧仍是主干”。</p>
+<p>Stage 1 的输入是图像 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi></mrow><annotation encoding="application/x-tex">I</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span></span></span></span> 的原生生成表征 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>R</mi><mi>G</mi></msub></mrow><annotation encoding="application/x-tex">R_G</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0077em;">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0077em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">G</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（不同 UMM 可能是变分自编码器（Variational Autoencoder, VAE）后验均值、向量量化（vector quantization, VQ）码本嵌入或生成视觉塔特征；BAGEL 为 KL-VAE 的 32×32 网格，Janus-Pro 为 24×24 的 VQ 嵌入，Lance 为 Wan2.2-VAE 的 32×32 后验均值，Appendix A.1）。编码器先把 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>R</mi><mi>G</mi></msub></mrow><annotation encoding="application/x-tex">R_G</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0077em;">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0077em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">G</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 投影到 1024 维，与 256 个可学习查询拼接，经过 6 层、8 头、前馈网络（feed-forward network, FFN）4096 维、带二维旋转位置编码（rotary position embedding, RoPE）的 Transformer；查询输出再投影到对应理解通路的隐藏维度，形成 256 个 G 令牌（BAGEL&#x2F;Janus-Pro&#x2F;Lance 分别为 3584&#x2F;4096&#x2F;2048 维，Appendix B）。解码器对称：G 令牌与按源网格排列的重建查询拼接，经过 6 层 Transformer 和线性头，重建 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>R</mi><mi>G</mi></msub></mrow><annotation encoding="application/x-tex">R_G</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0077em;">R</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0077em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">G</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>；重建结果再走冻结的生成解码器得到图像 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mover accent="true"><mi>I</mi><mo>^</mo></mover></mrow><annotation encoding="application/x-tex">\hat{I}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9468em;"></span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9468em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span></span><span style="top:-3.2523em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1389em;"><span class="mord">^</span></span></span></span></span></span></span></span></span></span>。</p>
+<p>Stage 1 的损失由三项组成：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">e</mi><mi mathvariant="normal">x</mi><mi mathvariant="normal">t</mi></mrow></msub><mo>=</mo><msub><mi>λ</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">c</mi></mrow></msub><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">c</mi></mrow></msub><mo>+</mo><msub><mi>λ</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">a</mi></mrow></msub><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">a</mi></mrow></msub><mo>+</mo><msub><mi>λ</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">l</mi></mrow></msub><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">l</mi></mrow></msub><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">
+\mathcal{L}_{\mathrm{ext}}=\lambda_{\mathrm{rec}}\mathcal{L}_{\mathrm{rec}}+\lambda_{\mathrm{spa}}\mathcal{L}_{\mathrm{spa}}+\lambda_{\mathrm{rel}}\mathcal{L}_{\mathrm{rel}}.
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">ext</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">rec</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">rec</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.9805em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">spa</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">spa</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">rel</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">rel</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">.</span></span></span></span></span>
+<p>重建项是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∥</mi><mover accent="true"><mi>I</mi><mo>^</mo></mover><mo>−</mo><mi>I</mi><msub><mi mathvariant="normal">∥</mi><mn>1</mn></msub><mo>+</mo><mn>0.5</mn><mi mathvariant="normal">∥</mi><mover accent="true"><mi>I</mi><mo>^</mo></mover><mo>−</mo><mi>I</mi><msub><mi mathvariant="normal">∥</mi><mn>2</mn></msub><mo>+</mo><mn>0.5</mn><mtext> </mtext><mrow><mi mathvariant="normal">L</mi><mi mathvariant="normal">P</mi><mi mathvariant="normal">I</mi><mi mathvariant="normal">P</mi><mi mathvariant="normal">S</mi></mrow><mo stretchy="false">(</mo><mover accent="true"><mi>I</mi><mo>^</mo></mover><mo separator="true">,</mo><mi>I</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\|\hat I-I\|_1+0.5\|\hat I-I\|_2+0.5\,\mathrm{LPIPS}(\hat I,I)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.1968em;vertical-align:-0.25em;"></span><span class="mord">∥</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9468em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span></span><span style="top:-3.2523em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1389em;"><span class="mord">^</span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord"><span class="mord">∥</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1968em;vertical-align:-0.25em;"></span><span class="mord">0.5∥</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9468em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span></span><span style="top:-3.2523em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1389em;"><span class="mord">^</span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mord"><span class="mord">∥</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1968em;vertical-align:-0.25em;"></span><span class="mord">0.5</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm">LPIPS</span></span><span class="mopen">(</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9468em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span></span><span style="top:-3.2523em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1389em;"><span class="mord">^</span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal" style="margin-right:0.0785em;">I</span><span class="mclose">)</span></span></span></span>，目的是让 G 保留足够视觉信息；空间绑定项让每个 G 令牌经共享线性头预测其对应的局部生成目标（每个 G 令牌对应 16×16 网格上的一个位置；BAGEL&#x2F;Lance 的目标来自 32×32 生成网格的 2×2 区域拼接，Janus-Pro 的目标由 24×24 网格池化而来），目的是把令牌绑定到原图位置；关系对齐项把 G 与 U 排成二维网格，在 4×4、8×8、16×16 以及全局图像级节点上比较成对余弦关系向量，目的是让两者的关系结构兼容，而不强行匹配特征值（§3.2.1，Appendix B）。Stage 1 在 Cambrian 的 100 万张图上训练 8,000 步，8 张 GPU、全局批大小 32，只更新编码器、解码器和预测头（Appendix D.2）。</p>
+<h3 id="3-3-Stage-2：任务条件注入与三支路训练"><a href="#3-3-Stage-2：任务条件注入与三支路训练" class="headerlink" title="3.3 Stage 2：任务条件注入与三支路训练"></a>3.3 Stage 2：任务条件注入与三支路训练</h3><p>Stage 2 的输入是问题 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>q</mi></mrow><annotation encoding="application/x-tex">q</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0359em;">q</span></span></span></span> 和图像；理解编码器给出原生 U 令牌，生成侧给出 G 令牌。G 先经过投影器对齐到理解宽度，并使用与 U 相同的视觉位置编码；在理解通路的每个 Transformer 层之后，当前层的文本隐状态作为 query，G 作为 key&#x2F;value 做交叉注意力，输出经零初始化（zero-initialized）的输出投影残差加回文本隐状态。这样，随着文本上下文变化，模型可以反复从 G 中取不同证据，而不是在输入端一次性融合。注入模块使用 1024 维、16 头注意力；理解通路加 LoRA，rank 和 alpha 都是 16；训练前段冻结原生视觉编码器、Stage 1 编码器解码器和大语言模型（large language model, LLM）主干，后段解冻 G 编码器联合优化（§3.2.2，Appendix C）。</p>
+<p>Stage 2 的目标是让“匹配的 G”比“打乱的 G”更有用，同时不破坏原模型。对每个样本构造三条分支：真实分支用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>q</mi><mi>i</mi></msub><mo separator="true">,</mo><msub><mi>U</mi><mi>i</mi></msub><mo separator="true">,</mo><msub><mi>G</mi><mi>i</mi></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(q_i,U_i,G_i)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">U</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">G</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span>，打乱 G 分支（shuffle-G branch）只把 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">G_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">G</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 换成另一个样本的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>G</mi><mrow><mi>π</mi><mo stretchy="false">(</mo><mi>i</mi><mo stretchy="false">)</mo></mrow></msub></mrow><annotation encoding="application/x-tex">G_{\pi(i)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0385em;vertical-align:-0.3552em;"></span><span class="mord"><span class="mord mathnormal">G</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.5198em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0359em;">π</span><span class="mopen mtight">(</span><span class="mord mathnormal mtight">i</span><span class="mclose mtight">)</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3552em;"><span></span></span></span></span></span></span></span></span></span>，参考分支（reference branch）去掉 G 和注入&#x2F;LoRA、用冻结原模型在 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>q</mi><mi>i</mi></msub><mo separator="true">,</mo><msub><mi>U</mi><mi>i</mi></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(q_i,U_i)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">U</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span> 上得到参考分布。总损失为：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="script">L</mi><mo>=</mo><msub><mi>λ</mi><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">E</mi></mrow></msub><msubsup><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">E</mi></mrow><mrow><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msubsup><mo>+</mo><msub><mi>λ</mi><mrow><mi mathvariant="normal">D</mi><mi mathvariant="normal">P</mi><mi mathvariant="normal">O</mi></mrow></msub><mtext> </mtext><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">s</mi></mrow><mtext> ⁣</mtext><mrow><mo fence="true">[</mo><mo>−</mo><mi>β</mi><mrow><mo fence="true">(</mo><msubsup><mi mathvariant="normal">ℓ</mi><mi>i</mi><mo lspace="0em" rspace="0em">−</mo></msubsup><mo>−</mo><msubsup><mi mathvariant="normal">ℓ</mi><mi>i</mi><mo lspace="0em" rspace="0em">+</mo></msubsup><mo fence="true">)</mo></mrow><mo fence="true">]</mo></mrow><mo>+</mo><msub><mi>λ</mi><mrow><mi mathvariant="normal">K</mi><mi mathvariant="normal">L</mi></mrow></msub><mo stretchy="false">(</mo><mi>t</mi><mo stretchy="false">)</mo><msubsup><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">K</mi><mi mathvariant="normal">L</mi></mrow><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">h</mi><mi mathvariant="normal">u</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">e</mi></mrow></msubsup><mo separator="true">,</mo></mrow><annotation encoding="application/x-tex">
+\mathcal{L}=\lambda_{\mathrm{CE}}\mathcal{L}_{\mathrm{CE}}^{\mathrm{real}}+\lambda_{\mathrm{DPO}}\,\mathrm{softplus}\!\left[-\beta\left(\ell_i^{-}-\ell_i^{+}\right)\right]+\lambda_{\mathrm{KL}}(t)\mathcal{L}_{\mathrm{KL}}^{\mathrm{shuffle}},
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1461em;vertical-align:-0.247em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">CE</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8991em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">CE</span></span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">real</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2em;vertical-align:-0.35em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">DPO</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm">softplus</span></span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size1">[</span></span><span class="mord">−</span><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size1">(</span></span><span class="mord"><span class="mord">ℓ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8213em;"><span style="top:-2.433em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.267em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord">ℓ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8213em;"><span style="top:-2.433em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">+</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.267em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size1">)</span></span></span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size1">]</span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.1491em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">KL</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mclose">)</span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8991em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">KL</span></span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">shuffle</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mpunct">,</span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi mathvariant="normal">ℓ</mi><mi>i</mi><mo lspace="0em" rspace="0em">+</mo></msubsup></mrow><annotation encoding="application/x-tex">\ell_i^{+}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0883em;vertical-align:-0.2769em;"></span><span class="mord"><span class="mord">ℓ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8115em;"><span style="top:-2.4231em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span><span style="top:-3.1031em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">+</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2769em;"><span></span></span></span></span></span></span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi mathvariant="normal">ℓ</mi><mi>i</mi><mo lspace="0em" rspace="0em">−</mo></msubsup></mrow><annotation encoding="application/x-tex">\ell_i^{-}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0883em;vertical-align:-0.2769em;"></span><span class="mord"><span class="mord">ℓ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8115em;"><span style="top:-2.4231em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span><span style="top:-3.1031em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2769em;"><span></span></span></span></span></span></span></span></span></span> 分别是真实分支和打乱分支在答案 token 上的平均交叉熵，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>β</mi><mo>=</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">\beta=0.1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0528em;">β</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.1</span></span></span></span>，默认 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mrow><mi mathvariant="normal">C</mi><mi mathvariant="normal">E</mi></mrow></msub><mo>=</mo><mn>5</mn></mrow><annotation encoding="application/x-tex">\lambda_{\mathrm{CE}}=5</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">CE</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">5</span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mrow><mi mathvariant="normal">D</mi><mi mathvariant="normal">P</mi><mi mathvariant="normal">O</mi></mrow></msub><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\lambda_{\mathrm{DPO}}=1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">DPO</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span>。DPO 项鼓励真实 G 的答案 CE 低于打乱 G；但如果只优化它，模型可以靠“把打乱分支弄得很差”来拉大差距，所以 KL 项把打乱分支的输出分布拉回冻结的 U-only 参考模型；KL 系数在 5,000 步内从 1 线性降到 0.25，再降到 0。正负 DPO 梯度按 4:1 加权，负梯度范数上限为正梯度的 0.25 倍，最后统一裁剪到 1.0（Appendix C）。此外，训练早期以 0.8 的概率遮掉整个 U 表征，随后降到 0.5、0.2、0，迫使模型先依赖 G，再逐步恢复两通路协作（Appendix C）。</p>
+<p>推理阶段没有显式生成：给定图像，生成编码器 + Stage 1 编码器 + 投影器产生 G 令牌，注入模块在每层做交叉注意力，语言模型照常解码答案。模型决定“在当前文本状态下从 G 取什么”，固定流程决定“G 怎么压缩、在哪一层注入、如何做残差”；Stage 1 的编码器和注入模块在训练后固定，推理不更新权重。代价是每层多一次交叉注意力、每张图多跑一次生成编码器和 256 个 G 令牌的前向；论文在 Appendix E 承认这带来额外计算和显存开销，但没有给出延迟或显存数字。</p>
+<p>为什么这样设计？重建损失保证 G 不丢细节；空间绑定防止 256 个令牌变成无序的全局摘要；关系对齐让 G 的关系结构与 U 兼容，避免直接对齐特征值抹掉生成侧特有的信息；文本查询的逐层注入让检索随任务状态变化；DPO 给“使用匹配 G”一个直接信号；KL 则防止这个信号被“劣化负样本”作弊。消融主要支持后两点和接口选择（§4.3），但 Stage 1 预训练本身、以及“G 与额外容量”的分离还没有被单独检验。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p>主实验在 5 个基准上：VStar-Bench（191 道细粒度选择题）、OmniSpatial（1,533 道空间推理题）、MMVP（300 题、150 对互补问题）、VSR-Bench（2,195 个 True&#x2F;False 样本）和 PathVQA（6,719 个医学视觉问答（visual question answering, VQA）测试样本）。选择题按候选答案的平均 token CE 选最低者，VSR 用贪心生成 True&#x2F;False，PathVQA 用贪心解码并做归一化精确匹配（exact match）。模型是 BAGEL 14B、Janus-Pro 7B、Lance 3B，三者分别使用 KL-VAE、VQ、Wan2.2-VAE 三种生成表征，覆盖不同架构和规模（§4.1，Appendix D.3）。</p>
+<p>训练数据分两部分：Stage 1 用 Cambrian 的 100 万张图；Stage 2 的通用实验用 FineVision 中 relevance ≥3 的 1,344,016 个非纯文本样本，域特定实验分别用 VSR 官方训练的 7,680 个样本和 PathVQA 官方训练的 19,654 个样本（Appendix D.1）。对比对象是 Base 模型和“同数据 SFT”；Table 1 还列了 InternVL3 1B&#x2F;2B、Qwen3-VL 2B&#x2F;4B 四行 VLM 作为参考，但论文没有说明这些 VLM 行的训练条件，不能当作同条件基线。主实验回答“相对同数据 SFT 是否一致提升”；Table 2 的消融回答“哪个组件重要”；Appendix 回答数据、训练和评测细节。论文没有报告训练种子、置信区间或显著性检验，也没有报告 SFT 基线的训练步数、可训练参数和优化器设置。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p>Table 1 的主结果是：BAGEL 14B 的平均分从 Base 49.67 → SFT 53.60 → GAFU 59.58；Janus-Pro 7B 从 36.97 → 44.92 → 48.48；Lance 3B 从 34.66 → 41.43 → 45.30。按模型看，GAFU 相对 SFT 的平均增益分别是 +5.98、+3.56、+3.87 个百分点，范围 3.56–5.98。分基准看，VStar-Bench 提升 5.23–7.85 点（BAGEL 39.27→47.12；Janus 33.51→38.74；Lance 36.13→42.41），OmniSpatial 提升 2.61–4.44 点（31.90→34.51；27.14→31.57；24.72→29.16），MMVP 提升 3.67–5.67 点（74.00→79.67；54.67→59.67；50.00→53.67），PathVQA 提升 1.12–7.65 点（51.42→59.07；51.75→52.87；43.04→46.91），VSR-Bench 提升 1.09–6.15 点（71.39→77.54；57.54→59.54；53.26→54.35）。15 个模型-基准组合全部为正，这是论文最强的效果证据（Table 1，§4.2–4.3）。</p>
+<p>作者还强调，SFT 在 Janus-Pro 的 MMVP 上没有提升（54.67→54.67），在 Lance 上还略降（50.33→50.00），而 GAFU 仍有 +5.00&#x2F;+3.67；这被用来论证仅靠理解通路微调无法突破细粒度表征瓶颈（§4.2）。但“全部为正”里有两类需要分开看。大增益集中在 VStar、MMVP 和 BAGEL 的 PathVQA&#x2F;VSR：例如 BAGEL 的 VStar +7.85、PathVQA +7.65、VSR +6.15；而 Janus 的 PathVQA 只有 +1.12，Lance 的 VSR 只有 +1.09，均在 1–2 个百分点的量级。VStar 只有 191 题，1 题约 0.52 个百分点；MMVP 300 题，1 题约 0.33 个百分点。论文没有给重复实验或置信区间，因此这些小额增益是否稳定无法确认。另一点是，Table 1 的“Avg.”把五个基准平均在一起，但 Appendix D.1 显示通用、VSR、PathVQA 使用不同的训练集；论文没有说明每一行“Ours”是同一个检查点还是按域分别微调的检查点，这也是平均分的口径问题。</p>
+<p>与表中 VLM 参考行相比，GAFU 的绝对水平并非全面领先：BAGEL 14B 的 OmniSpatial 34.51 低于 InternVL3 1B 的 38.81；VStar 47.12 只略高于 Qwen3-VL 2B 的 45.03 和 4B 的 45.55；MMVP 79.67 高于 Qwen3-VL 4B 的 77.33。由于 VLM 行的训练条件未说明，这些数字只能说明“绝对水平不是压倒性 state-of-the-art（SOTA）”，不能说明同条件优劣。论文的摘要说“maximum relative improvements of 20.00%, 17.94%, 8.62%”，按数值复算，这是相对 SFT 的最大值，不是相对 Base；按 Table 1 的舍入值复算，BAGEL VStar 约 20.00%，Lance OmniSpatial 约 17.96%，BAGEL VSR 约 8.61%，与摘要的 17.94%&#x2F;8.62% 有 0.01–0.02 个百分点的舍入差。读者需要知道“相对谁”，否则容易把 20% 误读成相对 Base 的提升。</p>
+<p>图 3 给出定性例子：细粒度细节（车灯&#x2F;头发）、空间关系（蓝牙按钮、火车左右、迷宫转向）和域特定线索（病理组织、人与大象的前后关系）中，Base 和 SFT 会答错，GAFU 答对。这些例子能帮助理解“细粒度”具体指什么，但它们是挑选过的成功案例，论文没有报告失败案例或错误类型分布，不能据此估计真实错误率。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/whatgeneration_fig3.png"
+                      alt="图 3：细粒度理解定性对比"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 3）：这张图按三列展示 GAFU 相对 Base&#x2F;SFT 的定性改进：左列是局部细节识别，中列是空间关系判断，右列是医学&#x2F;域特定线索。每个例子给出问题、Base 的错误答案、SFT 的错误答案和 GAFU 的正确答案；红色叉和绿色勾表示对错。读图时应把它当作“方法能覆盖哪些错误类型”的示意，而不是性能证据：图中没有展示 GAFU 仍然失败的样本，也没有说明这些例子是否来自训练分布。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>第一类机制证据是 Stage 1 的消融（Table 2，BAGEL，通用设置）。完整模型在 VStar&#x2F;OmniSpatial&#x2F;MMVP 上是 47.12&#x2F;34.51&#x2F;79.67；去掉空间绑定是 46.07&#x2F;33.14&#x2F;75.00，去掉关系对齐是 45.55&#x2F;34.44&#x2F;74.33，只保留重建是 45.03&#x2F;32.81&#x2F;74.33。空间绑定主要影响 OmniSpatial（−1.37），关系对齐主要影响 VStar（−1.57）；两者同时存在时，MMVP 比任一单约束高 4.67–5.34 点。这支持“空间绑定保位置、关系对齐保结构”的设计，但消融只在 BAGEL 上做，且没有“无 Stage 1 预训练&#x2F;随机 G 编码器”的对照，因此只能说明三个损失项的相对作用，不能说明 Stage 1 本身不可替代。</p>
+<p>第二类是接口与损失消融。接口上，Token-level append 是 40.84&#x2F;32.55&#x2F;77.33，Entry fusion 是 41.88&#x2F;22.37&#x2F;75.00，用图像隐状态查询是 43.98&#x2F;33.46&#x2F;75.00，用可学习查询是 42.41&#x2F;34.18&#x2F;75.67，用文本隐状态查询（完整方法）是 47.12&#x2F;34.51&#x2F;79.67；文本查询在三个基准上都最好，Entry fusion 在 OmniSpatial 上甚至低于 Base（22.37 vs 30.79）。损失上，CE only 是 42.93&#x2F;33.33&#x2F;65.33，CE+DPO 是 43.98&#x2F;22.24&#x2F;73.33，CE+DPO+KL 是 47.12&#x2F;34.51&#x2F;79.67；DPO 单独会把 OmniSpatial 从 33.33 拉到 22.24，KL 把它拉回 34.51，说明 DPO 需要 KL 约束才能稳定。这些结果支持“任务条件检索”和“KL 防止负分支劣化”的设计（§4.4，Table 2）。</p>
+<p>值得注意的是，CE-only 的 GAFU 在 MMVP 上只有 65.33，比同数据 SFT 的 74.00 低 8.67 点；在 VStar 和 OmniSpatial 上则高于 SFT。这意味着“把 G 接进来”本身并不保证提升，完整配方依赖 DPO&#x2F;KL 才能把 G 变成有效证据；论文在 §4.4 讨论了 DPO&#x2F;KL 的作用，但没有专门解释 CE-only 为何在 MMVP 上低于 SFT。这是理解方法边界的重要负面结果。</p>
+<p>图 4 展示 Stage 1 的重建质量：每个案例比较原图、直接解码原生生成表征得到的“VAE 上界”和从压缩 G 令牌重建的图像。重建结果在解剖、电路、显微镜、食物等图像上接近 VAE 上界，说明 256 个 G 令牌确实保留了相当多的视觉细节。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/whatgeneration_fig4.png"
+                      alt="图 4：Stage 1 重建可视化"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 4）：这张图用来验证 Stage 1 的压缩是否“保真”。三列分别是原图、直接解码原生生成表征的 VAE 上界、以及只通过 256 个 G 令牌重建的图像；如果第三列接近第二列，说明压缩没有丢掉关键细节。读图时应关注“压缩后的重建与 VAE 上界的差距”，而不是逐图比较纹理；论文只给了定性可视化，没有报告 PSNR&#x2F;SSIM&#x2F;LPIPS 等重建指标，因此“保留细粒度细节”目前是视觉证据，不是定量结论。</p>
+<p>图 5 给出 Stage 2 的验证动态：三列分别是 CE only、CE+DPO、CE+DPO+KL；上排是真实分支与打乱 G 分支的答案 CE，下排是两者之差。CE-only 的 CE gap 很小（约 0.00–0.06），说明模型对 G 是否匹配不敏感；CE+DPO 的 gap 升到约 10，但上排显示打乱分支的 CE 被推到很高，模型可能靠“劣化负分支”拉大差距；CE+DPO+KL 的 gap 稳定在约 0.35，打乱分支的 CE 被拉回约 1.1–1.3，说明 KL 在保留正 gap 的同时限制了负分支的偏移。这是“DPO 促进使用匹配 G、KL 控制代价”的最直接机制证据。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/whatgeneration_fig5.png"
+                      alt="图 5：Stage 2 验证动态"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 8）：这张图把三种训练目标的验证 CE 动态并排。上排绿线是真实 G 分支的答案 CE，橙线是打乱 G 分支的 CE；下排蓝线是二者之差（shuffle − real）。CE-only 的 gap 接近零，说明模型几乎不用 G 的样本特异性；CE+DPO 把 gap 拉得很大，但主要来自打乱分支 CE 的上升；CE+DPO+KL 把打乱分支拉回参考模型附近，同时保留约 0.35 的正 gap。读图时应理解：正 gap 只说明“匹配 G 比打乱 G 好”，并不直接等于“任务准确率提高”；论文没有报告测试时打乱 G 的准确率，因此这是机制线索而非因果闭环。</p>
+<p>还有一个表面矛盾值得注意：从图 5 看，CE-only 的真实分支 CE 最低（约 0.66–0.77），但 Table 2 中 CE-only 的 MMVP 准确率比完整模型低 14.34 点（65.33 vs 79.67）。这说明验证集上的答案 CE 与下游细粒度准确率不是同一个目标，CE-only 可能在对数似然上拟合得更好、却没有学到可迁移的细粒度证据；论文没有解释这一分离，读者不应把图 5 的 CE gap 当作性能的充分代理。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p>论文报告的成本主要是训练配置：Stage 1 用 8 张 GPU、100 万张 Cambrian 图、8,000 步、全局批大小 32；Stage 2 用 5,000 步、全局批大小 32，三个模型各自训练（Appendix D.2）。论文没有报告 GPU 型号、GPU 小时、墙钟时间、token 总量或费用，也没有报告每个模型&#x2F;每个域的训练是分开跑还是一个混合模型；因此无法估算完整复现的算力。推理时，每张图要额外跑生成编码器、Stage 1 编码器和 256 个 G 令牌，并在每层做一次交叉注意力；Appendix E 承认有额外计算和显存开销，但没有给出延迟、吞吐或显存数字。论文没有报告额外人工标注，数据来自 Cambrian、FineVision、VSR、PathVQA 等公开数据集；论文未报告闭源 API 依赖。代码链接已给出（<a class="link"   target="_blank" rel="noopener" href="https://github.com/LRuca/GAFU%EF%BC%89%EF%BC%8C%E4%BD%86%E8%AE%BA%E6%96%87%E6%B2%A1%E6%9C%89%E8%AF%B4%E6%98%8E%E6%98%AF%E5%90%A6%E5%8F%91%E5%B8%83%E6%A3%80%E6%9F%A5%E7%82%B9%E3%80%82" >https://github.com/LRuca/GAFU），但论文没有说明是否发布检查点。<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+<p>适用范围要按实验边界说：GAFU 只在 BAGEL、Janus-Pro、Lance 三个双通路 UMM 上训练和评测；分析里的另外三个 UMM（Show-o2-7B、BLIP3-o-4B、DreamLLM-7B）只参与了表征分析，没有跑 GAFU。方法依赖“有可用的原生生成表征”，对没有独立生成通路或表征接口不兼容的 UMM 需要额外适配（Appendix E）。PathVQA 和 VSR 的结果使用了官方训练集，属于域内监督适配，不是零样本域迁移；通用基准用 FineVision 训练，是否与评测集有图像&#x2F;问题重叠，论文没有讨论。因此，本文能支持的是“在三个双通路 UMM、五个细粒度&#x2F;空间&#x2F;医学基准上，GAFU 相对同数据 SFT 有一致提升”；不能支持“对所有 UMM 通用”“零样本跨域”“绝对 SOTA”或“生成侧信息是唯一原因”。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：增益没有被隔离到“生成侧信息”本身，缺少参数-算力匹配和测试时打乱-G-的对照"><a href="#质疑：增益没有被隔离到“生成侧信息”本身，缺少参数-算力匹配和测试时打乱-G-的对照" class="headerlink" title="质疑：增益没有被隔离到“生成侧信息”本身，缺少参数&#x2F;算力匹配和测试时打乱 G 的对照"></a>质疑：增益没有被隔离到“生成侧信息”本身，缺少参数&#x2F;算力匹配和测试时打乱 G 的对照</h4><ul>
+<li><strong>原文依据</strong>：GAFU 比 SFT 多了 Stage 1（100 万图、8,000 步、8 GPU）、256 个 G 令牌、每层交叉注意力、注入模块和可解冻的 G 编码器；SFT 基线只写“same data”，没有报告训练步数、可训练参数或优化器（§4.1，Appendix D）。Table 2 的消融都保留了 G 令牌，没有“同参数量的可学习记忆”“压缩后的 U 特征”或“随机&#x2F;冻结 G 编码器”对照；论文 Fig. 8 只报告验证 CE gap，没有报告测试时打乱&#x2F;移除 G 的任务准确率。</li>
+<li><strong>为什么重要</strong>：论文的核心主张是“生成侧表征提供了互补证据”。如果同参数量、同算力的额外记忆或额外 cross-attention 也能带来类似增益，那么提升就不能归因于生成侧信息，而应归因于容量或正则化；这会直接影响创新性和标题的可信度。</li>
+<li><strong>当前能够得出的判断</strong>：§3.1 的分析支持“G 表征更敏感、含 U 漏掉的变化”，但这是表征层面的相关性；GAFU 的行为增益与 G 之间的因果链没有被隔离。CE-only GAFU 在 MMVP 上低于 SFT（65.33 vs 74.00）进一步说明“接上 G”本身不保证有用，完整配方的增益可能来自 DPO&#x2F;KL 带来的训练动态。</li>
+<li><strong>如何验证或补强</strong>：增加四个对照：(a) 用同样的 256 令牌架构压缩 U 特征；(b) 同参数量的可学习记忆令牌（不含图像信息）；(c) 随机初始化&#x2F;冻结 G 编码器；(d) 在测试时打乱或移除 G，报告五个基准的准确率下降。再加一个与 GAFU 参数量、训练步数匹配的 SFT 基线。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：控制校正分析的构念效度不足，敏感度不等于任务相关信息"><a href="#质疑：控制校正分析的构念效度不足，敏感度不等于任务相关信息" class="headerlink" title="质疑：控制校正分析的构念效度不足，敏感度不等于任务相关信息"></a>质疑：控制校正分析的构念效度不足，敏感度不等于任务相关信息</h4><ul>
+<li><strong>原文依据</strong>：§3.1 用 2,084 对 VisMin 图像、16×16 网格、余弦距离、2×2 窗口最大池化和 log 变换构造敏感度；控制图像只匹配编辑区域的线性 RGB RMS，并从一组保结构的光度退化算子中选 LPIPS 最近者（Appendix A.2）。强响应阈值固定为 2×，没有阈值敏感性分析；G 与 U 的 token 数、特征维度和预训练目标不同（例如 Show-o2 的 U 为 1152 维、G 为 3584 维，Appendix A.1），余弦距离可能受维度和尺度影响。Appendix A.3 给出的平均 G-only 28.18% 对 U-only 2.48% 差距极大，但没有给出每域样本数或置信区间。</li>
+<li><strong>为什么重要</strong>：整个方法的动机建立在这套分析上。如果 G 的高敏感度主要反映 VAE 对任何像素变化的敏感性、或不同表征维度的尺度差异，而不是“细粒度语义信息”，那么“生成侧互补”的结论就被夸大；24&#x2F;24 的符号一致性很强，但效应量的解释仍需谨慎。</li>
+<li><strong>当前能够得出的判断</strong>：控制校正和空间置换是认真的设计，24&#x2F;24 的符号一致性也不像偶然；但它是“响应敏感度”的证据，不是“可解码&#x2F;可用的任务信息”的证据。U-only 仅 2.48% 的低比例尤其需要解释：可能是因为 G 对所有变化都更敏感，而不是 G 独有语义信息。</li>
+<li><strong>如何验证或补强</strong>：在 G 和 U 上训练线性&#x2F;MLP 探针，直接预测 object&#x2F;attribute&#x2F;count&#x2F;relation 的变化方向；匹配两者的 token 数和特征维度；对 2× 阈值做敏感性分析；报告每域 N 和自助法（bootstrap）置信区间；增加“G 随机投影&#x2F;维度对齐”对照；用人工或 CLIP 校验控制图像是否真的只改变低层外观。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：实验统计与报告口径不足，部分增益很小且缺少统计检验，Table-1-的检查点口径不清"><a href="#质疑：实验统计与报告口径不足，部分增益很小且缺少统计检验，Table-1-的检查点口径不清" class="headerlink" title="质疑：实验统计与报告口径不足，部分增益很小且缺少统计检验，Table 1 的检查点口径不清"></a>质疑：实验统计与报告口径不足，部分增益很小且缺少统计检验，Table 1 的检查点口径不清</h4><ul>
+<li><strong>原文依据</strong>：VStar 只有 191 题、MMVP 300 题；论文没有报告训练种子、均值&#x2F;方差、置信区间或显著性检验（§4.1–4.3）。最小的提升是 Janus PathVQA +1.12 和 Lance VSR +1.09；Table 1 的“Avg.”把五个基准平均，但 Appendix D.1 显示通用、VSR、PathVQA 使用不同训练集，论文没有说明每行“Ours”是一个检查点还是按域分别微调的检查点。SFT 基线的训练步数、参数和优化器也未报告。</li>
+<li><strong>为什么重要</strong>：如果“15&#x2F;15 全部提升”里包含 1–2 个百分点的差异，而论文没有给置信区间，读者无法判断哪些提升是稳定的；如果 Avg. 混合了不同检查点，平均分的含义就不清楚；SFT 基线不透明会影响公平性和复现。</li>
+<li><strong>当前能够得出的判断</strong>：大增益（BAGEL 的 VStar&#x2F;PathVQA&#x2F;VSR、三个模型的 VStar）方向较明显；小额增益和 Avg. 需要更细的报告才能确认。论文没有做统计检验，不能从现有材料判断 1.09&#x2F;1.12 是否显著；VStar&#x2F;MMVP 上 1 题就约 0.3–0.5 点，尤其需要谨慎。</li>
+<li><strong>如何验证或补强</strong>：报告 3–5 个种子的均值±标准差；对每个基准做配对 bootstrap 或 McNemar 检验；明确每个单元格的检查点来源；给出 SFT 的完整训练配方和参数量；报告每域样本数和置信区间。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：缺少与最接近的生成辅助理解方法和强同条件基线的比较，绝对水平并非全面领先"><a href="#质疑：缺少与最接近的生成辅助理解方法和强同条件基线的比较，绝对水平并非全面领先" class="headerlink" title="质疑：缺少与最接近的生成辅助理解方法和强同条件基线的比较，绝对水平并非全面领先"></a>质疑：缺少与最接近的生成辅助理解方法和强同条件基线的比较，绝对水平并非全面领先</h4><ul>
+<li><strong>原文依据</strong>：Table 1 只比较 Base 和同数据 SFT，另列四行 VLM 参考，但没有说明 VLM 的训练条件；§2.2 引用的生成监督方法和显式生成方法都没有在实验中作为基线。BAGEL 14B 的 OmniSpatial 34.51 低于 InternVL3 1B 的 38.81；VStar 47.12 与 Qwen3-VL 2B&#x2F;4B 的 45.03&#x2F;45.55 接近；在三个通用基准中，只有 MMVP 79.67 高于 Qwen3-VL 4B 的 77.33（PathVQA&#x2F;VSR 的 VLM 参考行不是同条件比较）。</li>
+<li><strong>为什么重要</strong>：论文的定位是“生成辅助理解的一条有效路径”，但没有证明它优于已有的生成监督&#x2F;显式生成路线；如果只看“相对 SFT”的提升，读者可能误以为它是该方向的最强方法。绝对水平与 VLM 参考行的比较也说明它不是全面 SOTA。</li>
+<li><strong>当前能够得出的判断</strong>：相对同数据 SFT 的提升是清晰的；相对其他生成辅助方法和同条件强基线的优势无法确认。VLM 行不是同条件基线，不能用来证明或否定 SOTA。</li>
+<li><strong>如何验证或补强</strong>：在相同数据&#x2F;算力下复现至少一个生成监督基线和一个显式生成基线；加入同数据训练、同参数量的强 VLM&#x2F;UMM 基线；明确 VLM 行的训练条件；把摘要和结论的“有效路径”限定为“相对 SFT 的一致提升”。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：适用范围与成本被低估，域特定结果不是零样本迁移"><a href="#质疑：适用范围与成本被低估，域特定结果不是零样本迁移" class="headerlink" title="质疑：适用范围与成本被低估，域特定结果不是零样本迁移"></a>质疑：适用范围与成本被低估，域特定结果不是零样本迁移</h4><ul>
+<li><strong>原文依据</strong>：GAFU 只在 BAGEL&#x2F;Janus-Pro&#x2F;Lance 三个 UMM 上训练；分析中的 Show-o2-7B、BLIP3-o-4B、DreamLLM-7B 没有跑 GAFU（§4.1）。PathVQA 用 19,654 个官方训练样本、VSR 用 7,680 个训练样本做域内微调（Appendix D.1），所以 §4.3 的“domain-specific”是域内监督适配，不是零样本跨域。Appendix E 承认额外推理计算&#x2F;显存，但没有量化；论文没有报告失败率、延迟、显存或 GPU 小时。</li>
+<li><strong>为什么重要</strong>：摘要说“across diverse UMM architectures”，实际只验证了 3 个；读者可能把域内微调结果误读为跨域泛化；部署时额外生成编码器和逐层交叉注意力的成本可能抵消收益。</li>
+<li><strong>当前能够得出的判断</strong>：方法在三个双通路 UMM 上有效；对没有独立生成通路的模型、零样本域迁移和真实部署成本，当前材料无法确认。Limitations 只覆盖了架构、生成表征质量和推理开销三点，没有覆盖评测污染、单种子和域内训练。</li>
+<li><strong>如何验证或补强</strong>：在更多 UMM（包括 Show-o2、BLIP3-o、DreamLLM）上跑 GAFU；做零样本域迁移（不在 PathVQA&#x2F;VSR 上微调）；报告延迟、吞吐、显存、GPU 小时和失败案例；讨论 FineVision 与评测集的潜在重叠。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现 UMM 的生成侧原生表征在细粒度语义变化上比理解侧更敏感、能捕捉理解侧漏掉的变化，并且这种优势依赖空间组织；因此提出 GAFU，用 Stage 1 把生成表征压缩成 256 个 G 令牌并做重建&#x2F;空间绑定&#x2F;关系对齐，用 Stage 2 的文本条件交叉注意力和 CE+DPO+KL 把 G 接入理解通路。实验在 BAGEL、Janus-Pro、Lance 三个 UMM 和五个细粒度&#x2F;空间&#x2F;医学基准上表明，GAFU 相对同数据 SFT 在 15&#x2F;15 个组合上提升，平均 +3.56–5.98 个百分点；其中“跨三个模型、五个基准的方向一致性”“空间绑定&#x2F;关系对齐&#x2F;文本查询接口&#x2F;KL 必要性的消融”证据较强，但“增益来自生成侧信息而非额外容量”“测试时 G 的因果贡献”“统计稳定性”“与其他生成辅助方法的比较”仍缺少充分支持。本文最有价值的部分是把“生成侧表征能否补足理解”做成了可分析、可压缩、可注入的完整链路，并给出了较细的消融；最大的审稿风险是因果归因和基线&#x2F;统计口径。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。论文明确区分生成侧与理解侧表征，把“是否互补、为什么互补、如何利用”拆成三步分析，方法边界（只训练压缩器&#x2F;注入模块，冻结原生通路）也交代清楚；扣分点是“细粒度”覆盖的基准较窄，且“互补”指标与任务可用性之间没有完全打通。</li>
+<li><strong>创新性证据</strong>：中。控制校正+空间置换的分析协议、256 令牌压缩+空间绑定&#x2F;关系对齐、文本查询逐层注入是有价值的组合；但可学习查询、交叉注意力、DPO、KL 都是已有组件，论文没有与最接近的生成监督&#x2F;显式生成方法做实证比较，“首次”边界只能按作者声称确认。</li>
+<li><strong>方法可信度</strong>：中。两阶段流程、损失、梯度权重、KL 与 U 表征掩码日程和超参写得较细，消融也覆盖了主要设计；但 Stage 1 预训练的必要性、G 与额外容量的分离、测试时 G 的因果作用没有隔离，SFT 基线配方缺失。</li>
+<li><strong>实验支持力度</strong>：中。三个 UMM、五个基准、15&#x2F;15 提升，主结果方向一致，Table 2 的消融有信息量；但单种子、无置信区间、部分增益 1 个百分点量级，Table 1 的检查点口径和 VLM 参考条件不清，绝对水平并非全面领先。</li>
+<li><strong>可复现性</strong>：中。代码链接、Stage 1&#x2F;2 超参、数据来源和评测协议较完整；但 SFT 基线细节、检查点&#x2F;随机种子&#x2F;算力、每域训练是否分开、是否发布模型权重都未说明，完整复现仍有缺口。</li>
+<li><strong>综合阅读价值</strong>：高。对 UMM、多模态表征对齐和生成辅助理解的读者，本文提供了一个清晰的问题分解、可操作的两阶段设计和较诚实的消融；即使因果归因仍有争议，分析协议和失败边界也值得作为批判性阅读材料。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> What Generation Knows：把统一多模态模型的生成侧表征变成细粒度理解证据</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-23 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-24 01:05:47
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/23/2610.23987v1_What_Generation_Knows_Unlocking_Fine-Grained_Understanding_in_Unified_Multimodal_Models/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Post-Training/">#Post-Training</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Spatial-Reasoning/">#Spatial Reasoning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Representation-Learning/">#Representation Learning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Multimodal-Models/">#Multimodal Models</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Multimodal-Generation/">#Multimodal Generation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Preference-Optimization/">#Preference Optimization</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/23/2609.26457v1_Recursive_self-improvement_of_AI_research_agents/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">递归自我改进：让 AI 研究智能体改写自己的 harness</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/23/2610.24738v1_Editing_Images_into_Reusable_Layers_via_Compositional_Edit-Prior_Distillation/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">LayerEditor：把一次图像编辑变成可复用的 RGBA 图层</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">What Generation Knows：把统一多模态模型的生成侧表征变成细粒度理解证据</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E8%AF%8A%E6%96%AD%EF%BC%9A%E6%8E%A7%E5%88%B6%E6%A0%A1%E6%AD%A3%E6%95%8F%E6%84%9F%E5%BA%A6%E3%80%81%E4%BA%92%E8%A1%A5%E6%80%A7%E4%B8%8E%E7%A9%BA%E9%97%B4%E4%BE%9D%E8%B5%96"><span class="nav-text">3.1 诊断：控制校正敏感度、互补性与空间依赖</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-Stage-1%EF%BC%9A%E6%8A%8A%E7%94%9F%E6%88%90%E8%A1%A8%E5%BE%81%E5%8E%8B%E6%88%90-256-%E4%B8%AA-G-%E4%BB%A4%E7%89%8C"><span class="nav-text">3.2 Stage 1：把生成表征压成 256 个 G 令牌</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-Stage-2%EF%BC%9A%E4%BB%BB%E5%8A%A1%E6%9D%A1%E4%BB%B6%E6%B3%A8%E5%85%A5%E4%B8%8E%E4%B8%89%E6%94%AF%E8%B7%AF%E8%AE%AD%E7%BB%83"><span class="nav-text">3.3 Stage 2：任务条件注入与三支路训练</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 182 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

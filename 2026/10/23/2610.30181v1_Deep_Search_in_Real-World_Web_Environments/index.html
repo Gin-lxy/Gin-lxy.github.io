@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/23/2610.30181v1_deep_search_in_real-world_web_environments/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="OpenDS-World：真实开放网络中的深度搜索基准">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/23/2610.30181v1_Deep_Search_in_Real-World_Web_Environments/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-23T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-23T17:05:47.442Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Benchmark Construction">
+<meta property="article:tag" content="Long-Horizon Tasks">
+<meta property="article:tag" content="Multimodal Agents">
+<meta property="article:tag" content="Search Agents">
+<meta property="article:tag" content="Tool Use">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>OpenDS-World：真实开放网络中的深度搜索基准 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">217</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">182</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">OpenDS-World：真实开放网络中的深度搜索基准</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-23 12:00</span>
+        <span class="mobile">2026-10-23 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-24 01:05:47</span>
+            <span class="mobile">2026-10-24 01:05:47</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Multimodal-Agents/">Multimodal Agents</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Tool-Use/">Tool Use</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Search-Agents/">Search Agents</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Benchmark-Construction/">Benchmark Construction</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Long-Horizon-Tasks/">Long-Horizon Tasks</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<ul>
+<li><p>论文：Deep Search in Real-World Web Environments</p>
+</li>
+<li><p>作者：Xiaomin Yu、Hongliang Chen、Zhe Huang、Shilin Yan 等（HKUST(GZ)、FDU、UW、IC、NTU、Stanford、SJTU、Yale、NJU、UCSD、NUS、HKU、SAP、Microsoft Research）</p>
+</li>
+<li><p>版本：arXiv 2610.30181v1（2026-10-19）</p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.30181" >https://arxiv.org/abs/2610.30181<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>arXiv HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.30181" >https://arxiv.org/html/2610.30181<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.30181" >https://huggingface.co/papers/2610.30181<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/Yu-xm/OpenDS" >https://github.com/Yu-xm/OpenDS<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>数据集：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/datasets/Yu2020/OpenDS-World" >https://huggingface.co/datasets/Yu2020/OpenDS-World<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+</ul>
+<p>标签：Benchmark Construction、Search Agents、Multimodal Agents、Tool Use、Long-Horizon Tasks。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>本文要解决的是深度搜索（Deep Search）智能体（agent）缺少真实开放网络（open Web）评测的问题：作者构建基准（benchmark）OpenDS-World，用 200 个以视频为锚点、需要跨模态、跨格式、交互式取证的任务评测 12 个前沿模型，在统一的 16 个工具、100 次调用&#x2F;1 小时预算下最高准确率（accuracy）只有 39.0%。基准构建、人工核验和人类难度校准是实质贡献，但 live Web（实时开放网络）的可复现性、最终答案与证据链的对应关系、以及大模型裁判（LLM-as-a-judge）与未报告重复运行的评测的可靠性，限制了结论的外推范围。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>深度搜索研究的共同目标是让智能体自主检索、访问并整合信息，回答需要多步研究的问题。现有评测已经覆盖通用工具使用、复杂检索、持续网页搜索、交互式网页导航等能力，但通常在静态语料、受控网站、单一模态或短程检索上出题，任务的成功条件和证据获取过程被简化。真实开放网络的难点不只是“搜到”，而是证据分散在文字、图像、音频、视频等多模态（multimodal）内容里，承载在 HTML、PDF、CSV、Parquet 等异构格式（heterogeneous formats）里，有些还必须通过页面导航、参数选择、时间索引、图形界面操作或文件下载等交互式访问（interactive access）才能拿到。</p>
+<p>本文的具体任务是 OpenDS：给定一个事实性问题和初始线索（一个视频），智能体要在开放网络中自主搜索、访问、处理并连接多个来源的证据，最终给出唯一、可核验的事实答案。初始视频只是锚点，中间实体、实体间关系和证据位置都不提供；智能体必须根据当前线索决定下一步搜什么、打开什么、如何解析返回内容。作者把这一任务拆成三条属性：信息以何种模态呈现、资源以何种格式组织、证据需要何种访问操作。</p>
+<p>作者的核心判断是：现有基准没有把这三类属性放进同一个任务里系统评测。这不是说已有工作完全没碰多模态或交互式访问，而是说它们的组合、任务规模和证据链验证不足；本文用 200 个任务、8 个领域、4 种模态、42 种格式和 7 种访问类型覆盖这一组合（§2.4）。原文事实是这些覆盖统计与评测数字；作者对“现有基准覆盖不足”的判断来自其 related work 梳理，本文没有做跨基准的同条件对照来证明这一点。</p>
+<p>论文观察到的现象是：当前前沿模型在 OpenDS-World 上仍然很差。最强模型 GPT-6 Astra 只有 39.0%（78&#x2F;200），61% 的任务失败；更多工具调用（tool call）或更长执行时间并不必然带来更高准确率；预算耗尽、工具失败、自然终止但答案错误在多个模型上普遍存在（§3.2–3.6，Table 1、Fig. 6–9）。作者把这些现象解释为模型在信息源选择、工具协调、搜索策略调整和长程（long-horizon）执行管理上的局限（§3.2、§5）。这是作者主张，不是通过控制实验分离出的因果机制。</p>
+<p>核心假设是：一个同时覆盖多模态、异构格式和交互式访问的真实 Web 基准，能够暴露当前智能体的能力边界，并为后续训练或自改进提供可验证的反馈。论文实际验证的是“评测缺口存在”和“当前模型仍差”，而不是某个提升方法有效。</p>
+<p>需要区分三层。领域一般问题是深度搜索缺少真实环境评测；本文新做的是把视频锚点、多源证据链、三类属性和人类难度校准组合成一个 200 题基准；实际解决的是测量问题，不是智能体能力问题。论文没有声称“首个”，但也没有给出与最接近基准的同条件比较；是否首创需要更完整的文献检索。按证据类型划分：§2–§3 的任务规模、构造流程和评测数字是原文事实；“模型在来源选择、工具协调和长程管理上存在局限”是作者主张；本报告据此认为基准存在构念效度与可复现风险，是审稿人判断；评估日期、搜索引擎后端、裁判与人工判分的一致性等，属于当前材料无法确认。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>本文的技术增量是基准构建，而不是新模型或新训练算法。第一，OpenDS 把“从视频锚点出发、跨多源取证、给出唯一答案”形式化为一个任务；与只做静态检索问答或多模态检索的基准相比，它把证据的模态、格式和访问方式写进任务定义，而不是只扩大数据规模。</p>
+<p>第二，构造流程是“先造证据链、再反演问题”：真实视频锚点 → 开放网络逐跳证据扩展 → 问题反演（question inversion） → 人工核验（human verification） → 人类测试与难度校准（difficulty calibration）。这使每个任务都有可复核的答案路径，并用 50 位独立解题者的实际成功率给难度分档，而不是由作者主观标注。</p>
+<p>第三，评测侧提供统一的、含 16 个工具的智能体执行框架（agent harness）、固定预算、12 个模型，以及成本、工具使用、终止行为和失败恢复分析；与只报排行榜分数的基准相比，它把“怎么失败”也作为一等输出。三点分别对应真实 Web 取证、可验证的题和可诊断的评测；具体证据见 §4.2–§4.3。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>直觉上，深度搜索基准不能只是“出一批难题让模型上网找答案”，因为答案可能靠先验知识猜中，证据链也无法复核。作者反过来做：先由专家在真实 Web 上走通一条证据链，确认每一跳都能被多个独立来源支持，再把这条链反演成一个不暴露中间节点的问题；评测时只给问题和输入视频，让智能体自己把链走一遍。</p>
+<p>输入是任务问题和一个归档的锚点视频（通过保留标识 <code>input_video</code> 提供）；输出是一个简短事实答案，通常 1–3 句、不超过 80 词。评测不要求提交证据链，只用参考答案做语义等价判定。图 1 给出一个完整任务，可以看清一条链如何跨模态、跨格式、跨访问方式。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/deepsearch_fig1.png"
+                      alt="图 1：一个跨源深度搜索任务"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：这张图把一道 OpenDS 任务从视频锚点走到最终答案的路径串起来。智能体先从视频与音频里识别出目标实体，再到博物馆的虚拟导览里定位展品，接着读取展柜图像、播客音频、论文与图表、相关公园视频，最后从官方数据集里检索结构化记录，得到可唯一核验的标识符。每一跳都换了信息来源，也换了模态、文件格式或访问方式；评测时中间的实体和证据位置都不会告诉模型，模型只能根据当前线索决定下一跳。读者应理解的重点不是图中每个站点的内容，而是“证据链是被设计出来的、答案由链末端唯一确定”这一构造逻辑。</p>
+<p>三类属性不是抽象口号。图 2 用同一个 Our World in Data 页面说明：同一份信息可以同时以文字和图表呈现，通过 HTML、CSV、JSON、ZIP 和 API 等不同格式获取，并且需要选择地区、年份或提交查询才能看到目标证据。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/deepsearch_fig2.png"
+                      alt="图 2：单一网页同时具备三种属性"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 3）：图中一个“Life expectancy 2023”页面同时展示了多模态、异构格式和交互式访问。页面上有文字说明和可视化图表；同一份数据既可以作为 HTML 阅读，也可以下载 CSV、JSON 或 ZIP，或通过声明式 API 查询；要拿到某个地区或年份的证据，还需要在界面上选择参数或时间。它解释了为什么基准里的一条“证据”可能同时要求读图、下载文件、操作界面和查询结构化数据，而不是打开一个网页复制一句话。这也是后文任务统计中 42 种格式、7 种访问类型的设计依据。</p>
+<p>具体构造分三步。Stage 1 是真实世界锚点：专家从 8 个领域挑选 500 个公开视频，联合分析连续画面和音频，找出一个必须依赖视听内容才能识别的实体；该实体必须唯一映射到一个有效 Wikidata（维基数据）条目；视频归档，随任务按 ID 提供。Stage 2 是开放网络证据扩展：从当前节点写查询，用 Google Search 取候选，逐个检查来源与当前节点的语义关系、证据可验证性，并兼顾模态、格式和访问类型以增加多样性；从选中来源抽取下一个实体；每个节点要由多个独立 Web 来源相互印证；递归直到唯一、稳定的终端节点。Stage 3 是问题反演：终端节点作为参考答案，把整条路径反演成一组相互依赖的约束，中间节点不直接出现，每个线索用前序证据的间接描述表达；单个线索不能直接暴露目标，组合起来才唯一确定答案。</p>
+<p>随后是人工核验。10 位独立评审按保留的源链接重走证据链，检查证据有效性（evidence validity）和任务有效性（task validity）：事实是否正确、来源是否真实可访问、每一跳是否有证据支持；锚点是否能从视频和音频唯一识别、Wikidata 映射是否正确、是否不能从视频页文本直接得到；问题是否清晰、约束是否一致、答案是否唯一。不合格任务直接剔除，最终留下 200 题。图 3 汇总了构建结果的覆盖情况。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/deepsearch_fig3.png"
+                      alt="图 3：OpenDS-World 的任务多样性统计"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 5）：上排是代表性 Web 源，下排把 200 个任务的标注条目按模态、格式和访问类型汇总。文本覆盖 99.5% 的任务，但图像、视频和音频分别覆盖 44.5%、35.5% 和 16.0%；HTML 覆盖 98%，MP4 和 PDF 分别覆盖 35% 和 31%；访问方式中直接观察为 100%，超媒体跳转为 67%，文件转移为 60%，时间索引为 47.5%，参数化状态更新为 42%，图形操作为 12.5%，声明式查询为 6.5%。这些百分比按任务计、可以重叠；任务层面 82.5% 至少涉及两种模态，96.0% 至少涉及两种格式，95.5% 至少涉及两种访问类型（§2.4、Fig. 11）。这说明基准不是文本检索的变体，而是要求智能体在不同表示和交互之间切换。</p>
+<p>人类测试用于给难度提供外部锚点。200 题分成 10 组，每组 20 题，由 5 位独立解题者作答，共 50 人；每人只做一组；不允许使用任何基于 LLM 的工具，只能用普通浏览器；不设统一时间上限；提交答案、总用时和 0–5 主观难度，答案由人工判分。根据每题 5 人中答对的人数，定义 Low（至少 2 人，54 题）、Medium（恰好 1 人，61 题）、High（0 人，85 题）三档（§2.3、Table 1 说明）。</p>
+<p>评测环境是统一的智能体执行框架。它提供 16 个工具，分三类：Search（搜索）支持文本、图像和视频搜索；图形用户界面（GUI）工具支持网页导航、读取 Markdown、列出可点击元素、点击、填表、按键、滚动、截图、查看下载列表与内容；Other 支持视频帧检查和字幕读取。浏览器是持久会话，下载物通过任务本地路径访问；视频默认采样 10 帧，每次可采 1–100 帧，按等间隔时间区间的中点采样；字幕读取带时间戳（Table 4、Appendix C.1）。</p>
+<p>预算与上下文管理是固定的：每题 3,600 秒、100 次工具调用（tool call），任一上限触发就停止搜索；上下文压缩保留最近 4 条工具观察，旧搜索结果只留前 2 条，旧文本截到 2,000 字符，默认最多 250 张图；如果搜索阶段没有生成完整答案，进入最终作答阶段（finalization），禁用工具，最多 2 次请求、共 5,000 token，其中第一次 4,000 token（Table 5、Appendix C.2）。裁判用 Qwen3.8-27B，输入问题、参考答案、候选答案和执行状态，按语义等价（semantic equivalence）与完整性判断对错；拒绝、证据不足、空答案或执行失败都判错（§3.1、Appendix C.4）。</p>
+<p>没有训练阶段。模型决定搜什么、怎么点、何时停止；执行框架决定工具接口、预算、上下文压缩和成功判定。这样设计的理由是：视频锚点防止任务退化成页面级文本搜索；Wikidata 让答案有唯一引用；多源印证降低单源错误；问题反演防止直接检索；人工核验和人类测试保证题可解、答案唯一、难度有外部锚点；统一预算保证跨模型可比。代价是构建成本高、任务数量受限，而且“人类可核验”不等于“模型不能走捷径”；这一点是 §5 的核心质疑。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p>实验对象是 200 个任务，不训练任何模型；12 个前沿模型在相同任务输入、系统提示、工具集和执行预算下各跑一遍。模型包括 GPT-6 Astra、GPT-5.6 Sol、Claude Opus 5.5、Claude Fable 5.1、Gemini 3.8 Flash、Qwen3.8-Max、Qwen3.8-Flash、DeepSeek-V4.1-Flash、DeepSeek-V4-Pro、Kimi K3、GLM-5.3-Flash 和 GLM-5.3（§3.1）。其中 DeepSeek-V4-Pro 与 GLM-5.3 是纯文本模型（表中标 T），只能通过字幕和文本工具获取音视频信息，不能看图像或视频帧；把 12 个模型等权平均会混入模态能力差异。</p>
+<p>评价指标是准确率：Qwen3.8-27B 裁判按语义等价判断答案，200 题中答对的比例；同时报告累计 wall-clock time（墙钟时间）和 token 消耗。没有 pass@k、没有报告重复运行、没有报告置信区间（confidence interval），也没有报告解码温度、API 版本或评估日期。</p>
+<p>人类测试是独立的外部锚点：50 人、1,000 次尝试、21.1% 正确、总计约 646 小时、平均 38.8 分钟&#x2F;次；根据每题 5 人答对人数分成 54&#x2F;61&#x2F;85 三档。图 4 给出解题人数分布和参与者用时。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/deepsearch_fig4.png"
+                      alt="图 4：人类解题成功率与用时"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 4）：左图按每个任务答对的人数给 200 个任务分组：42.5% 的任务无人答对，30.5% 只有 1 人答对，12.5% 有 2 人答对，只有 0.5% 的任务 5 人全对。右图是 50 位参与者各自完成 20 题的总用时分布，均值约 12.9 小时、中位数约 9.4 小时。这组人类数据直接定义了后文的 Low（至少 2 人）、Medium（恰好 1 人）、High（0 人）三档；主观难度评级（均值 3.884&#x2F;5）在 §2.3.2 报告。读图时要理解，人类准确率是难度校准的外部锚点，不是与模型同条件的对照实验。</p>
+<p>对比对象是 12 个模型，不是“提出方法 vs 基线”。没有 search-only、video-only、no-video、no-web 等消融（ablation），也没有与已有深度搜索基准的同条件比较。主实验回答“当前模型有多差”，分析实验回答“怎么失败”；附录 D 按领域、模态、格式、访问类型和视频时长拆分。主实验、行为分析和附录分析的分工清楚，但所有分析都建立在论文报告的一次评测结果上，未报告重复运行。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p>主结果在 Table 1。GPT-6 Astra 以 39.0%（78&#x2F;200）居首，Claude Opus 5.5 为 38.0%（76&#x2F;200），Gemini 3.8 Flash 为 36.5%（73&#x2F;200），Claude Fable 5.1 为 33.5%（67&#x2F;200）；GPT-5.6 Sol 为 28.0%，Qwen3.8-Max 为 25.5%，GLM-5.3-Flash 为 23.5%，DeepSeek-V4.1-Flash 为 20.5%，其余四款低于 20%。最强模型仍失败 122&#x2F;200，失败率 61%（§3.2，Table 1）。按 Table 1 的 12 个总体准确率等权平均约 25.0%，与人类 21.1% 接近；最高模型 39.0% 高于人类，但这不能直接解读为“模型研究能力超过人类”，因为人类没有统一时限、不能用 LLM，模型有 1 小时&#x2F;100 次调用，且论文没有报告同一题上的模型—人类配对胜负。</p>
+<p>人类结果本身也说明任务很难：1,000 次独立尝试中 211 次正确，准确率 21.1%；42.5% 的任务 5 人全没解出，只有 29 题（14.5%）至少 3 人解出，1 题 5 人全对（§2.3.2，Fig. 4(a)）。这组数据支持“基准对常规浏览器用户也很难”，但它不是人类上限；参与者只有 5 人&#x2F;题，且样本以高校相关人员为主。</p>
+<p>难度分层上，12 个模型等权平均从 Low 的 39.66% 降到 Medium 的 23.50%、High 的 16.76%；GPT-6 Astra 从 59.26% 降到 40.98%、24.71%（Table 1，§3.2）。这说明人类难度分组与模型难度在聚合上同向，但 Low 组仍有约 41% 的失败，不能把 Low 理解为“容易”。模型排名也随难度变化：GPT-6 在 Low 领先，Gemini 3.8 Flash 在 High 最高（28.24%），说明没有单一模型在所有难度上占优。</p>
+<p>成本与准确率并不匹配。GPT-6 Astra 平均 51.05 次工具调用、18.66 分钟&#x2F;任务、总计 62 小时、187M token，准确率 39.0%；GPT-5.6 Sol 使用相近的 52.42 次调用，但只用 8.99 分钟&#x2F;任务、30 小时、186M token，准确率 28.0%；Gemini 3.8 Flash 消耗 976M token，约为 GPT-6 的 5.22 倍，准确率反而只有 36.5%；DeepSeek-V4-Pro 累计 148 小时，约为 GPT-6 的 2.39 倍，准确率只有 12.5%（Table 1、§3.3）。这些是跨模型的描述性比较，不是控制实验。</p>
+<p>终止行为揭示了一个关键区别：GPT-6 Astra 在 69.0% 的任务上自然终止，但准确率只有 39.0%；Qwen3.8-Flash 只有 6.5% 自然终止，80.0% 触及工具调用上限，准确率 12.0%（Fig. 8(a)、§3.5）。至少触及一个预算上限的任务比例从 Claude Opus 5.5 的 16.5%、GPT-6 的 25.5%，到 Qwen3.8-Flash 的 81.5%（Fig. 9、§3.6）。自然终止不等于答对，预算耗尽也不等于模型没有能力，二者需要分开看。</p>
+<p>工具失败的成本很高。失败调用只占全部调用的 2.83%–9.42%，却占工具执行时间的 19.27%–61.90%；GPT-6 Astra 为 6.34% 和 42.57%（Fig. 8(b)、§3.5）。这是执行效率分析里最值得注意的数字之一，但论文没有按失败类型或任务级影响进一步拆开。</p>
+<p>长程特征也很明显。任务平均只有 3.94 个标注源条目，但模型平均使用 42.8–89.9 次工具调用；标注源条目为 3、4、5、至少 6 个时，工具调用中位数分别为 74、56、72、82.5（Fig. 15、Appendix E）。证据链短不等于执行短，而且调用数不随证据源数量单调增加，说明“源数量”不是唯一的难度变量。</p>
+<p>附录 D 的模态、格式、访问类型和领域拆分给出了一些模型强弱项：GPT-6 Astra 在 PDF、CSV、ZIP 上分别为 50.00%、60.00%、57.14%，Gemini 3.8 Flash 在 MP4、MP3 上为 42.86%、51.61%，GPT-6 在声明式查询 Q 上为 61.54%（Tables 6–8）。但 Q 只有 13 题、ZIP 只有 14 题、音频只有 32 题，这些单元格没有置信区间，单个任务就能改变几个百分点；应把它们当作描述性观察，而不是稳定排名。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>本文没有提出提升方法，所以“机制证据”应理解为行为层面的证据，而不是因果机制。效果证据是 Table 1 的准确率；机制证据是 Fig. 6–9 和 Fig. 15 对成本、工具使用、终止、工具失败和长程执行的统计。前者说明模型有多差，后者说明差在哪些可观察的执行模式上；两者都不能单独证明“为什么差”。</p>
+<p>“更多调用或更长时间不等于更准”是全文最稳的描述性发现之一。GPT-6 Astra 与 GPT-5.6 Sol 的调用次数几乎相同（51.05 vs 52.42），准确率相差 11 个百分点；Gemini 3.8 Flash 的 token 是 GPT-6 的 5.22 倍，准确率更低；DeepSeek-V4-Pro 的时间是 GPT-6 的 2.39 倍，准确率只有 12.5%（Table 1、§3.3）。这支持“执行策略和效率重要”，但不能排除模型能力、API 延迟、任务分配和预算约束等替代解释。</p>
+<p>工具结构也显示出策略差异。图 5 给出不同模型的工具类别占比、视频&#x2F;字幕调用量和相邻工具步骤的转移。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/deepsearch_fig5.png"
+                      alt="图 5：不同模型的工具使用结构"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 7）：三个面板分别看工具类别占比、视频&#x2F;字幕调用量和相邻工具步骤的类别转移。相同工具集下，GPT-5.6 Sol 把约 74.5% 的调用用于 Search，Claude Opus 5.5 和 Qwen3.8-Flash 分别把约 51.5% 和 49.4% 用于 GUI，但三者准确率分别为 28.0%、38.0% 和 12.0%；视频&#x2F;字幕调用更多也不必然更准；同类转移占主导，说明模型常连续搜索或连续操作。它支持“模型采用不同搜索策略”的描述性结论，但不能单独证明某种工具组合导致更高准确率。</p>
+<p>终止分析是较强的行为证据：GPT-6 的自然终止率 69.0% 与准确率 39.0% 之间的落差，说明“停下来”与“答对”是两件事；Qwen3.8-Flash 的 6.5% 自然终止、80.0% 调用上限则说明另一类失败是“没做完”。但论文没有报告按终止原因分层的准确率，也没有区分“搜索阶段找到答案”和“最终作答阶段靠已有证据猜中”，因此不能把准确率完全归因于搜索能力。</p>
+<p>失败恢复方面，Claude Opus 5.5、Gemini 3.8 Flash、GPT-5.6 Sol 分别约有 83%、81%、79% 的失败后决策是切换工具；Kimi K3 和 GLM-5.3 分别约有 38%、37% 是修改参数后重试（§3.5）。这些数字说明模型有恢复行为，但论文没有把恢复策略与最终准确率做相关或分层分析，也没有给出失败类型分类。因此“工具协调是瓶颈”是合理解释，不是被隔离的机制。</p>
+<p>长程分析提供了另一个侧面：3.94 个标注源条目对应 42.8–89.9 次平均调用，3 个源的任务中位调用数就有 74 次（Fig. 15、Appendix E）。这说明基准确实把智能体推入了长程探索，而不是短检索；但调用数随证据源数量非单调变化，也说明“证据链大小”不是干净的难度变量。论文对此有诚实说明，但没有进一步建模。</p>
+<p>最关键的缺口是：论文有 787 个标注源条目，却没有报告智能体访问这些条目的比例、证据链覆盖率或答案来源；没有做“去掉视频”“只给问题文本”“只给视频不给 Web”的消融；没有检查训练数据污染（contamination）或模型是否靠预训练记忆直接识别锚点。因此，作者关于“来源选择、工具协调、长程管理”的解释目前是审稿人可接受的假设，而不是已证明的机制。Appendix E 把 OpenDS-World 称为递归自改进（recursive self-improvement）的试验台，但论文没有报告任何自改进实验；这是展望，不是结果。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p>评测成本主要是推理与工具执行：每题 3,600 秒、100 次调用，12 个模型各跑 200 题；Table 1 的累计 wall-clock 为每模型 30–148 小时，token 为 187M–976M。人类测试另计约 646 小时（50 人各完成 20 题）；构建阶段有 500 个候选视频和 10 位评审，人类测试另有 50 位解题者。论文没有报告金额、GPU&#x2F;API 成本、存储大小、重试次数或任务级基础设施失败率，也没有把模型推理时延与工具执行时延分开；因此跨模型的 wall-clock 比较可能混入 API 速度差异。</p>
+<p>外部依赖包括 live Web、搜索&#x2F;浏览器&#x2F;YouTube 工具、Qwen3.8-27B 裁判，以及归档的输入视频。输入视频被保存为只读文件，评测时通过 <code>input_video</code> 访问，避免依赖原始 YouTube 视频的可用性（Appendix C.1.2）；但论文没有报告外部证据网页、外部视频和下载文件具有同样的快照（snapshot）保证。这是“真实 Web”与“可复现基准”之间的核心张力。</p>
+<p>适用范围要收紧。任务是视频锚定的、答案简短的事实问答，使用桌面浏览器和公开可访问的 Web 源，固定 1 小时&#x2F;100 次调用预算，最终输出 1–3 句答案；它不是长报告写作、移动 App 操作、登录&#x2F;付费墙内容、实时数据监控或多语言 Web 研究。论文没有报告任务语言分布；从问题、提示和示例看是英文任务，当前材料无法确认多语言覆盖。锚点必须唯一映射到 Wikidata 条目（§2.2.1），这也把任务分布偏向有结构化条目的实体，长尾的无 Wikidata 实体不在覆盖范围内。结论适用于“同任务、同预算、公开 Web 上的视频锚定事实问答”，不能外推到所有深度搜索或真实部署。</p>
+<p>论文改善的是评测缺口：提供了 200 个有证据链和人类难度校准的任务、12 个模型的基线、以及成本&#x2F;工具&#x2F;终止&#x2F;失败的行为分析。它没有改善智能体能力，也没有提出训练方法；live Web 漂移、裁判校准、证据链覆盖率和预算分层仍是未解决问题。代码与数据集链接已给出（见头部），但本报告没有逐项检查仓库内容和许可证。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：最终答案准确率无法证明智能体真的完成了多源证据链"><a href="#质疑：最终答案准确率无法证明智能体真的完成了多源证据链" class="headerlink" title="质疑：最终答案准确率无法证明智能体真的完成了多源证据链"></a>质疑：最终答案准确率无法证明智能体真的完成了多源证据链</h4><ul>
+<li><strong>原文依据</strong>：§2.1.1 把 OpenDS 定义为多步证据搜索与推理；§2.2.1 的 Stage 2 要求每个节点由多个独立 Web 来源相互印证；§2.2.2 的人工核验会重走完整证据链。但 §3.1 明确只用参考答案和模型答案做语义等价判定，主指标是答案准确率；§3.2–3.6 的分析统计工具调用、终止和失败，没有报告智能体访问了 787 个标注源中的多少、是否走完证据链、答案来自哪条证据。</li>
+<li><strong>为什么重要</strong>：这直接决定基准测的是“深度搜索过程”还是“最终事实问答”。模型可能靠预训练记忆识别锚点，靠问题中的组合线索直接搜索答案，或靠猜测答对；如果答案分数与证据链覆盖率脱节，39.0% 就不能被解释为“多源证据整合能力”。这影响构念效度（construct validity），也影响基准作为训练&#x2F;自改进环境的有效性。</li>
+<li><strong>当前能够得出的判断</strong>：证据不足。论文证明了任务有可核验的证据链、人类解题需要真实 Web 研究，但没有证明模型的正确答案来自这条链；没有证据源覆盖率（source coverage）、路径遵循率或答案引用要求，也没有“无视频&#x2F;无 Web&#x2F;仅问题”的消融。因此“深度搜索能力”的结论被最终答案指标放大了。</li>
+<li><strong>如何验证或补强</strong>：利用 787 个标注源计算 source recall&#x2F;precision 和证据链覆盖率；要求模型在答案中给出证据 URL 或引用；加入四组对照：仅问题（不给视频）、仅视频（不给 Web）、视频+Web 但禁用搜索、完整设置；用随机视频或黑屏视频替换锚点，检验视频是否真的必要；抽查正确回答的轨迹，区分“走链得到”与“先验知识&#x2F;猜中”。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：论文未报告-live-Web-证据快照，基准可能随时间漂移"><a href="#质疑：论文未报告-live-Web-证据快照，基准可能随时间漂移" class="headerlink" title="质疑：论文未报告 live Web 证据快照，基准可能随时间漂移"></a>质疑：论文未报告 live Web 证据快照，基准可能随时间漂移</h4><ul>
+<li><strong>原文依据</strong>：§2.2.1 只说明输入视频被归档并随任务分发；§2.2.2 说明保留源链接，但没有说明保存网页快照；Appendix C.1.2 也只保证 <code>input_video</code> 的只读访问。§2.1.1 和标题强调 live、open Web，§3.1 的评测在实时网络上进行，但 §2.2.1 只明确构建阶段用 Google Search，评测阶段 text_search&#x2F;image_search&#x2F;youtube_search 的后端没有说明；论文也没有报告评估日期、地区&#x2F;个性化设置，也没有报告证据网页在评测时是否仍可访问、内容是否变化。</li>
+<li><strong>为什么重要</strong>：基准的核心承诺是可比较的评测。如果证据网页更新、删除、改版或被地区&#x2F;付费墙限制，参考答案可能不再能从原路径得到，任务会变成“不可解”或“另一道题”；不同时间跑的模型也不在同一环境。对想复现或做长期排行榜的读者，这是根本性的可复现性问题。</li>
+<li><strong>当前能够得出的判断</strong>：当前材料无法确认证据源在评估时的一致性和可访问性。论文把 Web 动态性当作研究卖点（Appendix E 的 RSI 讨论），但没有给出基准版本、快照策略或刷新协议；这使“真实 Web”优势同时成为评测噪声来源。</li>
+<li><strong>如何验证或补强</strong>：在构建和每次评测时保存 HTML&#x2F;PDF&#x2F;CSV&#x2F;视频等证据快照及哈希；报告每个任务在评测日的源可用率；提供静态镜像与 live-Web 两个版本，或固定搜索 API、日期和地区；定义版本号和刷新&#x2F;重验流程；如果保留 live Web，至少在论文中报告源漂移对答案的影响。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：LLM-裁判未校准、未报告重复运行与置信区间，使排名和子组结论不可靠"><a href="#质疑：LLM-裁判未校准、未报告重复运行与置信区间，使排名和子组结论不可靠" class="headerlink" title="质疑：LLM 裁判未校准、未报告重复运行与置信区间，使排名和子组结论不可靠"></a>质疑：LLM 裁判未校准、未报告重复运行与置信区间，使排名和子组结论不可靠</h4><ul>
+<li><strong>原文依据</strong>：§3.1 用 Qwen3.8-27B 做裁判，Appendix C.4 给出裁判提示；论文没有报告裁判与人工判分的一致性、双裁判一致性、裁判重复判定的稳定性，也没有报告被评的 Qwen3.8-Max&#x2F;Flash 与裁判同属 Qwen3.8 家族时的偏差检查。Table 1 的每个总体准确率只来自论文报告的一次评测，没有报告重复运行、方差、置信区间（confidence interval）或显著性检验（significance test）；前三名 39.0%、38.0%、36.5% 只相差 2–5 个任务。附录 D 的模态&#x2F;格式&#x2F;访问子组只有 13–32 题，却用来比较“谁在音频&#x2F;视频&#x2F;CSV 上最好”。裁判提示还把“answer from a failed execution”直接判错，但没有说明预算耗尽后的最终作答是否算 failed execution。</li>
+<li><strong>为什么重要</strong>：如果裁判有 2–3 个百分点的偏差，或未报告重复运行带来的随机波动与任务采样误差相当，模型排名和“Gemini 擅长视频&#x2F;音频”“GPT-6 擅长 CSV&#x2F;ZIP”等结论就可能是噪声。基准论文的价值依赖于可重复的测量；没有不确定性信息，读者无法判断差异是否真实。</li>
+<li><strong>当前能够得出的判断</strong>：数字是描述性的，不能当作稳定排名。论文没有提供足够证据证明 top-3 差异、子组优势和“某模型在某格式上最强”的结论超出评测噪声；裁判与人工判分的一致性也无法确认。</li>
+<li><strong>如何验证或补强</strong>：在一个分层抽样的模型答案集上做人工判分，报告 judge–human agreement、混淆矩阵和错误案例；用两个独立裁判或重复判定检验稳定性；每模型重复 3–5 次（不同种子&#x2F;温度&#x2F;API 版本），报告任务级 bootstrap 置信区间；对子组分析标注“探索性”，不要给 13 题的子组排名；明确 failed execution、预算耗尽和 finalization 的计分规则。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：固定-100-次调用-1-小时预算把“能力”与“预算”混在一起"><a href="#质疑：固定-100-次调用-1-小时预算把“能力”与“预算”混在一起" class="headerlink" title="质疑：固定 100 次调用&#x2F;1 小时预算把“能力”与“预算”混在一起"></a>质疑：固定 100 次调用&#x2F;1 小时预算把“能力”与“预算”混在一起</h4><ul>
+<li><strong>原文依据</strong>：§3.1 和 Table 5 规定每题 3,600 秒、100 次调用；§3.6 和 Fig. 9 显示至少触及一个上限的任务比例从 Claude Opus 5.5 的 16.5% 到 Qwen3.8-Flash 的 81.5%；§3.5 和 Fig. 8a 显示 Qwen3.8-Flash 80.0% 触及调用上限。人类测试不设统一时间上限（§2.3.1），模型却被硬性限制在 1 小时；§3.3 的 wall-clock 比较没有拆分模型推理时延与工具执行时延；裁判提示又把 failed execution 判错，但任务级基础设施失败率没有报告。</li>
+<li><strong>为什么重要</strong>：准确率是在固定预算下测的，预算耗尽可能来自任务太难、模型策略差、工具慢或 API 故障，不能直接归因于模型能力。不同模型的 API 速度、重试行为和上下文限制不同，wall-clock 与 token 的跨模型比较也不公平。若预算放宽后排名变化，论文的“当前智能体仍有限”结论就需要重新表述。</li>
+<li><strong>当前能够得出的判断</strong>：论文展示了预算耗尽的比例，但没有报告 accuracy–budget 曲线、按终止原因分层的准确率、任务级基础设施失败率或重试统计；因此“能力不足”与“预算不足”尚未分离。人类无时限、模型有时限的对比也不是同条件实验。</li>
+<li><strong>如何验证或补强</strong>：在 50&#x2F;100&#x2F;200 次调用和 30&#x2F;60&#x2F;120 分钟等预算下重复评测，画准确率—预算曲线；报告自然终止、超时、调用上限、执行错误四种终止原因下的准确率和最终作答成功率；把模型推理延迟与工具执行延迟分开；剔除或单独报告基础设施失败；给人类子集相同的时限做对照。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：人类基线（human-baseline）、难度校准与标注流程的透明度不足"><a href="#质疑：人类基线（human-baseline）、难度校准与标注流程的透明度不足" class="headerlink" title="质疑：人类基线（human baseline）、难度校准与标注流程的透明度不足"></a>质疑：人类基线（human baseline）、难度校准与标注流程的透明度不足</h4><ul>
+<li><strong>原文依据</strong>：§2.2.2 说有 10 位独立评审，但没有报告评审资质、每人审多少题、评审者一致性（inter-annotator agreement, IAA）或 500 个候选视频到 200 题的拒绝原因与比例；§2.3.1 的 50 位解题者、5 人&#x2F;题、无统一时限、只能用普通浏览器，Appendix A 显示参与者来自六所高校相关机构；§2.3.2 的 21.1% 是人工判分结果，但没有报告双人复核或判分一致性。Table 1 用人类答对人数定义 Low&#x2F;Medium&#x2F;High，但没有报告模型与人类在同一题上的配对胜负。</li>
+<li><strong>为什么重要</strong>：人类数据既是“基准很难”的主要证据，也是难度分档的依据。如果参与者不具代表性、题目分配或判分不一致，21.1% 和 Low&#x2F;Medium&#x2F;High 标签就不稳；把最高模型 39.0% 与人类 21.1% 直接并列，也容易被误读为“模型超过人类研究者”。5 人&#x2F;题的解题人数只有 0–5 六档，统计分辨率有限。</li>
+<li><strong>当前能够得出的判断</strong>：人类测试规模（1,000 次尝试、约 646 小时）是明显优点，聚合上模型准确率随人类难度下降也支持分档有效；但样本以高校参与者为主、无时间上限、无评分者一致性、无逐题模型—人类对照，因此不能把 21.1% 当作人类上限，也不能把 39.0% &gt; 21.1% 当作能力超越。难度分档是合理的工程近似，不是严格的心理测量学标定。</li>
+<li><strong>如何验证或补强</strong>：报告评审与解题者的招募标准、资质、每题评审人数和标注者一致性（IAA）；报告候选任务的拒绝率、拒绝原因和最终 200 题的入选偏差；增加参与者多样性；对子集施加统一时限并报告时间分层准确率；报告同一题上模型与人类的配对结果；用项目反应理论或潜变量模型检验三档难度，而不是只用 5 人答对人数。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现现有深度搜索评测多在静态语料、单一模态或受控网站上做题，无法覆盖真实开放网络中多模态、异构格式与交互式取证的组合；因此提出 OpenDS 任务并构建 OpenDS-World：先用视频锚点和真实 Web 证据链造题，再反演成问题，经 10 位评审人工核验、50 位解题者 1,000 次尝试校准难度，最后用统一 16 个工具、100 次调用&#x2F;1 小时预算的执行框架评测 12 个模型。实验在 200 个任务上表明最强模型 GPT-6 Astra 只有 39.0%，人类独立作答为 21.1%，模型准确率随人类难度从 39.66% 降到 16.76%，并伴随预算耗尽、工具失败和自然终止但答错等现象；其中基准的多样性、人工核验、人类测试规模和行为分析证据较强，但 live Web 证据快照未报告、裁判校准、证据链覆盖率和预算分层仍缺少充分支持。本文最有价值的部分是把“真实 Web 取证”拆成可标注、可复核的 200 个任务，并公开了较完整的构建与评测细节；最大的审稿风险是最终答案分数是否能代表深度搜索过程，以及基准随时间漂移后还能否做可比评测。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。§2.1 把任务、输入、输出和三类属性说清楚，§2.2 的构造流程也能让读者理解“题是怎么来的”；扣分点是标题中的“真实 Web 深度搜索”比实际任务（视频锚定的短答案事实问答）更宽，且没有明确任务语言与公开 Web 的边界。</li>
+<li><strong>创新性证据</strong>：中。200 题、42 种格式、7 种访问类型、人工核验和人类测试是实质的基准工程；但任务形式建立在已有深度搜索、多模态检索和交互式网页基准之上，论文没有与最接近的基准做同条件比较，也没有通过文献对比证明其组合是新的。增量主要是组合、规模与验证流程，而不是新的研究思想或算法。</li>
+<li><strong>方法可信度</strong>：中。构造流程具体，证据链有多源核验，人类测试规模大，评测工具与预算写得清楚；但论文未报告 live Web 证据快照、裁判未校准、最终答案指标不验证证据链，使“测到的是深度搜索”这一核心主张仍有缺口。</li>
+<li><strong>实验支持力度</strong>：中。12 个模型、1,000 次人类尝试、成本&#x2F;工具&#x2F;终止&#x2F;失败&#x2F;长程多角度分析提供了有价值的基线；但未报告重复运行、无置信区间、无预算曲线、无视频&#x2F;Web 消融，top-3 排名与小数据子组结论都不稳，无法支撑更强的能力判断。</li>
+<li><strong>可复现性</strong>：中。代码、数据集、输入视频、16 个工具、提示、预算和裁判提示都已给出，构建细节在附录中较完整；但评估日期、搜索后端、地区设置、模型解码参数、基础设施失败率和 live Web 证据快照未报告，跨时间复现受限。</li>
+<li><strong>综合阅读价值</strong>：高。对深度搜索、Web 智能体、多模态检索和基准构建方向的读者，本文提供了可操作的造题流程、人类校准方法和丰富的失败行为分析；即使不完全接受其结论，也适合作为“如何设计并审读真实 Web 基准”的案例。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> OpenDS-World：真实开放网络中的深度搜索基准</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-23 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-24 01:05:47
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/23/2610.30181v1_Deep_Search_in_Real-World_Web_Environments/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Multimodal-Agents/">#Multimodal Agents</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Tool-Use/">#Tool Use</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Search-Agents/">#Search Agents</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Benchmark-Construction/">#Benchmark Construction</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Long-Horizon-Tasks/">#Long-Horizon Tasks</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/23/2610.30926v1_Making_MLLM_Latents_Matter_Factor-Aware_Predictive_Learning_for_Cinematic_Video_Generation/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">FAPL：让 MLLM 隐状态真正参与电影化视频生成</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/23/2610.27851v2_LaLa-World_Scaling_Latent_World_Models_with_Natural_Language_Actions/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">LaLa-World：把自然语言当作动作接口，扩展潜空间世界模型</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">OpenDS-World：真实开放网络中的深度搜索基准</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 182 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

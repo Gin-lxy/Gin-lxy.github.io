@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/23/2610.28416v1_code2video-compass_a_comprehensive_benchmark_for_general-purpose_code-based_video_generation_across_t2v_i2v_and_v2v/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Code2Video-Compass：跨 T2V&#x2F;I2V&#x2F;V2V 的通用代码视频生成基准">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/23/2610.28416v1_Code2Video-Compass_A_Comprehensive_Benchmark_for_General-Purpose_Code-Based_Video_Generation_across_T2V_I2V_and_V2V/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-23T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-23T17:05:47.439Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Benchmark Construction">
+<meta property="article:tag" content="Benchmark Evaluation">
+<meta property="article:tag" content="Code Generation">
+<meta property="article:tag" content="LLM-as-a-Judge">
+<meta property="article:tag" content="Video Generation">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>Code2Video-Compass：跨 T2V/I2V/V2V 的通用代码视频生成基准 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">217</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">182</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">Code2Video-Compass：跨 T2V/I2V/V2V 的通用代码视频生成基准</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-23 12:00</span>
+        <span class="mobile">2026-10-23 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-24 01:05:47</span>
+            <span class="mobile">2026-10-24 01:05:47</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Benchmark-Evaluation/">Benchmark Evaluation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Benchmark-Construction/">Benchmark Construction</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Code-Generation/">Code Generation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Video-Generation/">Video Generation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/LLM-as-a-Judge/">LLM-as-a-Judge</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<ul>
+<li><p>论文：Code2Video-Compass: A Comprehensive Benchmark for General-Purpose Code-Based Video Generation across T2V, I2V, and V2V</p>
+</li>
+<li><p>作者：Zhenghan Chen、Zekai Shao（Project Lead）、Xin Lin、Leting Cheng、Siming Chen（通讯作者）；复旦大学、中山大学</p>
+</li>
+<li><p>版本：arXiv 2610.28416v1（2026-10-20）</p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.28416" >https://arxiv.org/abs/2610.28416<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>arXiv HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.28416v1" >https://arxiv.org/html/2610.28416v1<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.28416" >https://huggingface.co/papers/2610.28416<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/code2video-compass/Code2Video-Compass" >https://github.com/code2video-compass/Code2Video-Compass<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> （HTTP 200，含 12 项指标的评测脚本；Apache-2.0）</p>
+</li>
+<li><p>数据集：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/datasets/code2video-compass/Code2Video-Compass" >https://huggingface.co/datasets/code2video-compass/Code2Video-Compass<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> （HTTP 200；任务表、QA 清单与参考媒体的 URL&#x2F;时间戳；CC BY-NC 4.0）</p>
+</li>
+<li><p>项目页：<a class="link"   target="_blank" rel="noopener" href="https://code2video-compass.github.io/" >https://code2video-compass.github.io/<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> （HTTP 200，含 15 个模型的 leaderboard）</p>
+</li>
+</ul>
+<p>标签：Benchmark Construction、Benchmark Evaluation、Code Generation、Video Generation、LLM-as-a-Judge。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>本文要解决的是基于代码的视频生成（code-based video generation）缺少统一评测的问题：作者构建 Code2Video-Compass，用 2,104 个覆盖文本到视频（text-to-video，T2V）、图像到视频（image-to-video，I2V）和视频到视频（video-to-video，V2V）的任务、10 个类别、24 个子类和三维复杂度标注，加上 12 项客观指标与 5 项主观指标，对 15 个多模态大语言模型（multimodal large language models，MLLMs）做单次生成评测。Claude Opus 5.5 在三个设定中的平均排名均为第一（1.600&#x2F;1.083&#x2F;1.154），但主观分由单个 Gemini 3.8 Flash 评委给出、人类一致性只有 Pearson <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>≈</mo><mn>0.78</mn></mrow><annotation encoding="application/x-tex">r\approx0.78</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4831em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.78</span></span></span></span>–<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.80</mn></mrow><annotation encoding="application/x-tex">0.80</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.80</span></span></span></span>，排行榜与“复杂度越高越差”的结论应限定在该协议与样本内，尚不能当作通用代码视频能力的定论。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>先交代任务形态。基于代码的视频生成要求 MLLM 把视觉与时间要求翻译成可执行程序，再由渲染栈生成完整视频。与直接视频生成（direct video generation）相比，代码显式表示视觉结构与动画参数，优势是精细控制、定点编辑和组件复用（§1）。论文把渲染栈限定在 HTML&#x2F;CSS、SVG、Canvas、Three.js，并用 Remotion 输出视频；参考内容必须在代码中重建，不能直接嵌入或回放（§3.1）。评测覆盖三种输入：T2V 只有自包含指令；I2V 额外给一张参考关键帧，模型要判断它出现在完整视频的哪个阶段并重建；V2V 额外给一段 2–10 秒参考片段，模型要重建其外观、运动和事件顺序（§3.1）。</p>
+<p>现有评测可以分成两类。直接视频基准，如 VBench、EvalCrafter、T2V-CompBench 和 LongAV-Compass，评视觉质量、语义对齐、组合约束和长序列，但不检查“代码能否执行、能否跨文件组织”。代码视频基准则面向专门任务：MMMC 是 456 条 Manim 教学视频，SArena-Animation 是 1,008 条 SVG 动画，Animation2Code 是 1,069 条 Web 动画重建，HeyGen 的 Code2Video 只有 168 条产品动效短片且只做主观评价（Table 1）。作者据此指出缺口：没有同时覆盖 T2V、I2V、V2V，跨多种创作类别，并把执行可靠性、视频质量、文本对齐和参考保真放在一起评的通用代码视频基准（§1、Table 1）。</p>
+<p>作者认为造成缺口的原因是：完整视频任务需要专业的 motion design（动态图形设计）分类体系和多来源参考素材，构造成本高；评测又必须同时对程序执行、渲染质量、语义对齐和参考重建负责，单一指标不够（§1、§3）。这是作者的动机解释，论文没有用数据证明它是唯一原因。</p>
+<p>需要区分三层。领域一般问题是“如何评价生成视频”；本文的新观察是“现有代码视频基准专门化、缺三模态统一评测”；实际解决的是“构造一个大规模、带复杂度标注和双层指标的代码视频基准”。论文没有解决“如何让模型生成更好的视频”，也没有证明该基准覆盖了所有代码视频形态。</p>
+<p>从实验设计看，作者要验证三条假设：(1) 这套任务能区分 15 个 MLLM；(2) 双层指标能揭示执行可靠性与创作质量的分离；(3) MLLM judge 能替代人类评分。前两条有结果支持，第三条只有部分支持（§4、Table 5）。这是审稿人根据实验结构做出的归纳，不是论文明确写出的假设。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的增量是基准资源与评测协议，而不是新的生成模型或学习算法。以下四点分别对应“任务定义”“数据构造”“评价口径”和“模型结论”。</p>
+<p>第一，统一的 T2V&#x2F;I2V&#x2F;V2V 任务形式。作者把三种输入放在同一渲染栈和同一“完整视频”要求下，参考内容必须由代码重建；与已有代码视频基准的单表示、单场景不同（Table 1、§3.1）。这属于新的评测设定，不是新算法。</p>
+<p>第二，混合式数据构造。独立任务集用 145 个 T2V 文本种子、120 张 I2V 参考图和 120 段 V2V 片段，共 385 个任务，提供类别广度；配对任务集从 573 个完整源视频各派生 T2V&#x2F;I2V&#x2F;V2V 三个共享创作目标的任务，共 1,719 个，提供真实创作锚点；两者合计 2,104 个任务、958 个独立内容单元（§3.3–3.4、Fig. 2）。相比只用合成 prompt 的基准，配对集让同一创作目标在三种输入下可比。</p>
+<p>第三，双层评价框架。12 项客观指标覆盖执行、token 消耗、视频质量、文本对齐和参考保真；5 项主观指标覆盖指令遵循和四个整体质量维度。单项指标大多复用现有模型（DOVER++、Aesthetic Predictor、ViCLIP、DINOv3、SSIM、DreamSim、CoTracker3 等），新意在组合与协议：失败样本在非操作性指标上记零；指令遵循用最多 16 题的 QA 清单；整体质量用 5 点李克特量表（Likert scale）。与 MMMC&#x2F;Animation2Code 只有客观指标、HeyGen 只有主观指标相比，这是评测协议层面的整合（§3.5、Table 1）。</p>
+<p>第四，15 个模型的系统评测与诊断分析。作者在固定 1,054 个任务上比较 15 个模型，报告质量-可靠性分离、失败类型、复杂度退化和成本-质量关系（§4–§5）。这是该方向较大规模的横向测量之一，但仍是测量贡献。根据本文的相关工作与 Table 1，只能确认这些差异；是否“首个”通用代码视频基准，还需要更完整的文献检索。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>整体直觉是：把任务当成一次“代码渲染考试”。给定文字说明和可选的参考图&#x2F;片段，模型要写一个能运行的动效项目，渲染出完整视频；评分既看程序是否跑通，也看视频是否清晰、好看、符合说明，并在 I2V&#x2F;V2V 中看参考内容是否被重建。这样就把“写代码的能力”和“做视频的能力”放进同一个可比较的框架，而不是只评最终像素或只评代码。</p>
+<p><strong>输入与输出。</strong> 输入是自包含指令，I2V 额外带一张关键帧，V2V 额外带一段 2–10 秒参考片段；指令会写明视觉元素、空间关系、精确文字与数据、运动、事件顺序和跨阶段依赖（§3.3）。输出是一个 HTML&#x2F;CSS&#x2F;SVG&#x2F;Canvas&#x2F;Three.js 项目，经 Remotion 渲染为视频。参考内容要求“用代码重建”，不能把参考图&#x2F;片段直接嵌入或回放（§3.1）；这一要求是否在渲染环境中被强制执行，论文没有报告。</p>
+<p><strong>任务分类与复杂度。</strong> 作者从专业 motion-design 网站、奖项、模板库和作品集归纳出 10 个类别：解释性动效、品牌与推广动效、动态字体、UI 与产品动效、数据与信息图动画、片头、广播与节目包装、插画与角色叙事、抽象与实验动效、3D 动效；再用 YouTube 案例细分为 24 个子类，一个任务可以多标签（§3.2）。复杂度有三个互补维度，各分三级：构建复杂度（construction complexity）衡量视觉构造，从标准图元组合、定制几何与细节，到程序化&#x2F;模拟系统；动态动画复杂度（dynamic animation complexity）衡量时间组织，从分阶段序列、跨元素&#x2F;场景协同变化，到复杂并发运动与变换；状态依赖复杂度（state-dependency complexity）衡量对象、数据和状态需要保持一致的跨度和长程依赖（§3.2）。</p>
+<p><strong>数据构造。</strong> 图 1 把两条数据流串起来。独立任务集面向“广度”：T2V 从 VidProM 的 prompt 和 Shot2Story 的视频描述出发，清洗后确定性采样得到 54,443 个候选，用 all-MiniLM-L6-v2 嵌入，再在 GPT-6.1 Sol 辅助和人工复核下按分类体系收窄到 720 个，最后选 145 个多样化种子；I2V 从 LICA、SciDraw-6K、SynthChartNet、PD12M 选参考图，V2V 从 YouTube 选动画视频，两者都按每个子类 15 个候选筛到 5 个，各得到 120 个参考、各从 360 个候选里选出，V2V 再裁 2–10 秒连续片段（§3.3）。配对任务集面向“真实创作”：从 YouTube 收 197 条动画记录、从 Bilibili&#x2F;REDnote&#x2F;X 收 2,473 个候选 URL，Gemini 3.8 Flash 辅助筛掉不完整&#x2F;不适合代码化的视频后保留 979 条；用规范化 URL 和 SHA-256 去精确重复，用 SSCD 帧嵌入加 FAISS 找近重复，并用时间匹配区分转载与风格相似；去重后剩 915 条，再由 Gemini 3.8 Flash 按叙事推进、内容、视觉设计和运动质量打分，人工复核保留 573 条完整视频，选关键帧并裁参考片段；每条视频派生共享创作目标的 T2V&#x2F;I2V&#x2F;V2V 三个任务，共 1,719 个（§3.3）。最后所有任务都做 prompt 构造、QA 清单、主体&#x2F;时间事件&#x2F;运动类型&#x2F;复杂度标注，三位共同作者参与人工复核（§3.3）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/code2videocompass_fig1.png"
+                      alt="图 1：Code2Video-Compass 的数据构造流程"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：这张图把 2,104 个任务拆成两条互补的数据流。独立任务流从文本种子、参考图和参考片段出发，经过清洗、嵌入筛选和人工复核，得到 385 个不依赖源视频的任务；配对任务流从完整源视频出发，经过去重、质量评分和人工复核保留 573 个视频，每个视频再派生共享创作目标的 T2V&#x2F;I2V&#x2F;V2V 三个任务，共 1,719 个。两条流最后都进入 prompt 构造、QA 清单和标注环节，标注内容包括主体、时间事件、运动类型和三个复杂度维度。读者应理解两点：第一，“2,104”里有 1,719 个是同一批 573 个源视频的三模态变体，独立内容单元只有 958 个；第二，图中的漏斗数字（54,443→720→145、2,473+197→979→915→573）说明数据经过多轮机器筛选和人工复核，而不是直接爬取。</p>
+<p><strong>规模与统计口径。</strong> 最终 2,104 个任务中，T2V 718 个、I2V 693 个、V2V 693 个，正好对应“145+573”“120+573”“120+573”；用于覆盖分析的记录数是 958，即 573 个配对源视频加 385 个独立任务，配对源只计一次（§3.4）。图 2 把类别-复杂度分布和 prompt 长度放在一起，说明“通用”覆盖并不等于均匀覆盖。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/code2videocompass_fig2.png"
+                      alt="图 2：类别-复杂度分布与 prompt 长度"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 4）：这张图回答两个对使用基准很关键的问题。第一，复杂度标注在各创作类别上是否均衡：横轴是三个维度各自的 1–3 级，纵轴是 10 个类别，格子里是记录数；可以看到 Branding 与 Illustration 在 level 2 高度集中（Branding 的 C2&#x2F;D2&#x2F;S2 为 188&#x2F;260&#x2F;304），而 3D Motion 的 C1 为 0、Broadcast 的 S1 为 0、Titles 的 D3 只有 2。第二，三种输入设定的 prompt 有多长：T2V 的 token 中位数 781.50，明显高于 I2V 的 491.00 和 V2V 的 441.00；按任务数加权后，三种 prompt 的均值正好给出 Table 1 的 594 token 平均值。读者应从中理解：基准的类别与复杂度覆盖并不均匀，后续按类别或复杂度下结论时要考虑样本量；T2V 任务天然需要更长的文字描述，跨设定比较 token 消耗时不能只看绝对值。</p>
+<p><strong>评价协议：12 项客观指标。</strong> 这些指标是并集，单个设定只用适用子集（§3.5.1）。操作性指标是执行成功率（Execution Success，ES）和 token 消耗（Token Consumption，TC）：前者统计在共享后端和资源限制下产出完整可播放视频的比例，后者统计每次尝试的 API 输出 token 均值。视频质量包括技术质量（Technical Quality，TQ，取 DOVER++ 的技术分支）、美学质量（Aesthetic Quality，AQ，Aesthetic Predictor V2.5 的帧级平均）和运动平滑度（Motion Smoothness，MS，重采样到 24 FPS 后用 AMT 由相邻帧预测中间帧，排除硬切）。文本-视频对齐（Text–Video Alignment，TVAlign）分局部和全局：L-TVA 用 ViCLIP-L 计算八帧滑窗与文本块的匹配，G-TVA 用 Qwen3-VL-Embedding-8B 计算整段视频与指令的余弦相似度。I2V 参考保真包括感知保真度（Perceptual Fidelity，PF，用 DINOv3 特征在全视频中找最匹配帧）和结构保真度（Structural Fidelity，SF，在同一匹配帧上算 SSIM）。V2V 参考保真包括序列对齐（Sequence Alignment，SA，用 DINOv3 帧嵌入做子序列动态时间规整，动态时间规整即 dynamic time warping，DTW）、外观保真度（Appearance Fidelity，AF，在定位区间内用 DreamSim 余弦距离做约束 DTW，取 1 减路径平均距离）和运动保真度（Motion Fidelity，MF，用 CoTracker3 提取点轨迹，比较归一化后的位移方向与大小，双向最佳匹配聚合）。失败输出在除 ES&#x2F;TC 外的所有指标上记零，目的是避免“只算成功样本”抬高平均分；代价是质量分与执行成功率被绑在一起（§3.5.1、§5.1）。</p>
+<p><strong>评价协议：5 项主观指标。</strong> 指令遵循（Instruction Following，IF）由 Gemini 3.8 Flash 按 QA 清单逐题判定，清单最多 16 题，其中最多 14 题是覆盖内容、属性、构图、关系、动态、美学六个维度的通用题，另有 2 题针对整段视频要求或参考整合；IF 是答对题目的比例（§3.5.2）。整体视频质量用 5 点李克特量表评四个维度：内容连贯性（Content Coherence，CC）、视觉设计（Visual Design，VD）、运动质量（Motion Quality，MQ）、观众参与度（Viewer Engagement，VE）。这五项就是后文“主观分”的来源。</p>
+<p><strong>推理协议。</strong> 评测在 1,054 个固定任务上进行（360 T2V、347 I2V、347 V2V），约为两种构造策略各一半；每个任务只调用模型一次，不提供执行反馈或修复机会，使用各家默认 reasoning 设置，输出 token 含 reasoning token（§4.1）。V2V 中 GPT 与 Claude 收到 4 FPS 帧序列，其他模型收到原生视频并把 API 采样设为 4 FPS（§4.1）。平均排名（average rank）用来汇总多指标：对每个指标先在 15 个模型中排名，再对指标取平均名次，排除 ES 与 TC：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mover accent="true"><mi>R</mi><mo>ˉ</mo></mover><mi>m</mi></msub><mo>=</mo><mfrac><mn>1</mn><mrow><mi mathvariant="normal">∣</mi><mi mathvariant="script">M</mi><mi mathvariant="normal">∣</mi></mrow></mfrac><munder><mo>∑</mo><mrow><mi>j</mi><mo>∈</mo><mi mathvariant="script">M</mi></mrow></munder><msub><mrow><mi mathvariant="normal">rank</mi><mo>⁡</mo></mrow><mi>j</mi></msub><mo stretchy="false">(</mo><mi>m</mi><mo stretchy="false">)</mo><mo separator="true">,</mo></mrow><annotation encoding="application/x-tex">
+\bar R_m=\frac{1}{|\mathcal{M}|}\sum_{j\in\mathcal{M}}\operatorname{rank}_j(m),
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9701em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8201em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal" style="margin-right:0.0077em;">R</span></span><span style="top:-3.2523em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1667em;"><span class="mord">ˉ</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0077em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">m</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.7519em;vertical-align:-1.4304em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">∣</span><span class="mord mathcal">M</span><span class="mord">∣</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.05em;"><span style="top:-1.8557em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span><span class="mrel mtight">∈</span><span class="mord mathcal mtight">M</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.4304em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop"><span class="mord mathrm">rank</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">m</span><span class="mclose">)</span><span class="mpunct">,</span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="script">M</mi></mrow><annotation encoding="application/x-tex">\mathcal{M}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">M</span></span></span></span> 是该设定下参与排名的指标集合，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mrow><mi mathvariant="normal">rank</mi><mo>⁡</mo></mrow><mi>j</mi></msub><mo stretchy="false">(</mo><mi>m</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">\operatorname{rank}_j(m)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mop"><span class="mop"><span class="mord mathrm">rank</span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">m</span><span class="mclose">)</span></span></span></span> 是模型 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">m</span></span></span></span> 在指标 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.854em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0572em;">j</span></span></span></span> 上的名次，并列取平均名次（Table 2 说明）。因此 T2V 的平均排名基于 10 项指标（5 项客观 + 5 项主观），I2V 12 项，V2V 13 项；每项等权，且四个整体质量维度在模型层面高度相关（§4.3 会给出分析者计算）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p>模型是 15 个最近的闭源与开源权重 MLLM，来自 9 个家族：GPT-6 Astra、GPT-6.1 Sol、GPT-6 Luna，Claude Opus&#x2F;Sonnet&#x2F;Haiku 5.5，Gemini 3.8 Flash，Qwen3.8-Max&#x2F;Flash&#x2F;27B，Kimi K3，GLM-5.3-Flash，DeepSeek-V4.1-Flash，MiniMax M3，MiMo-V2.6-Pro（§4.1）。评测子集为 1,054 个任务；作者用 Pearson <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>χ</mi><mn>2</mn></msup></mrow><annotation encoding="application/x-tex">\chi^2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.0085em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">χ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span></span></span>（Holm 校正）和 Welch <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi></mrow><annotation encoding="application/x-tex">t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6151em;"></span><span class="mord mathnormal">t</span></span></span></span> 检验说明它在三个复杂度维度和 prompt 长度上与未采样记录无显著差异（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mrow><mi mathvariant="normal">H</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">l</mi><mi mathvariant="normal">m</mi></mrow></msub><mo>&gt;</mo><mn>0.05</mn></mrow><annotation encoding="application/x-tex">p_{\mathrm{Holm}}&gt;0.05</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7335em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">Holm</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.05</span></span></span></span>，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>V</mi><mo>&lt;</mo><mn>0.02</mn></mrow><annotation encoding="application/x-tex">V&lt;0.02</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7224em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.2222em;">V</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&lt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.02</span></span></span></span>，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi mathvariant="normal">∣</mi><mi>g</mi><mi mathvariant="normal">∣</mi><mo>&lt;</mo><mn>0.05</mn></mrow><annotation encoding="application/x-tex">|g|&lt;0.05</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">∣</span><span class="mord mathnormal" style="margin-right:0.0359em;">g</span><span class="mord">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&lt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.05</span></span></span></span>）。这只证明子集在输入分布上平衡，不证明模型表现平衡。</p>
+<p>对比对象是 15 个通用 MLLM 的单次代码生成，没有与 Code2Video 等 agentic 代码视频系统、Manim&#x2F;SVG 专用生成器或直接视频模型做同任务对比；因此结果回答的是“这些 MLLM 的一次调用能写出什么”，不是“代码视频系统在允许修复后能达到什么”。指标口径如前：T2V 用 ES&#x2F;TC&#x2F;TQ&#x2F;AQ&#x2F;MS&#x2F;L-TVA&#x2F;G-TVA&#x2F;IF&#x2F;CC&#x2F;VD&#x2F;MQ&#x2F;VE，I2V 另加 PF&#x2F;SF，V2V 另加 SA&#x2F;AF&#x2F;MF；平均排名排除 ES&#x2F;TC（Table 2–4）。论文没有报告重复生成、训练种子、置信区间或模型间显著性检验；最好&#x2F;次好只在同组内加粗&#x2F;下划线，但排名是跨 15 个模型的。主实验回答“谁在这套协议下更好”，§5 的分析回答“为什么好&#x2F;为什么失败”，两者都不是消融实验，因为本文没有可消融的训练组件。</p>
+<p>人类验证单独设置：300 个输出，来自 6 个能力不同的模型（GPT-6 Astra、Claude Opus 5.5、Gemini 3.8 Flash、Kimi K3、Qwen3.8-27B、MiniMax M3），每个模型评同一组 50 个任务；每个输出让 Gemini 3.8 Flash 评 3 次，测重复稳定性；3 名人类评分者对其中 200 个输出评 IF 和平均整体质量；比较三次 judge 均值与三名人类均值（§5.5）。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p>先看总排名。Claude Opus 5.5 在 T2V&#x2F;I2V&#x2F;V2V 的平均排名为 1.600&#x2F;1.083&#x2F;1.154，均为第一；Claude Sonnet 5.5 为 1.900&#x2F;1.917&#x2F;2.846，均为第二；闭源模型占据各设定前三名（I2V 第三名并列）（Table 2–4、§4.2）。开源权重中，DeepSeek-V4.1-Flash 在 T2V 最好（7.350），MiMo-V2.6-Pro 在 I2V 与 V2V 最好（7.500、5.923）。差距的含义要分开看：头部两名在三个设定都稳定，但中游的 0.1–0.5 名次差没有误差线支撑。</p>
+<p>执行成功率（ES）跨度很大：T2V 从 MiniMax M3 的 0.519 到 Claude Opus 5.5 的 0.944，I2V 从 0.588 到 0.960，V2V 从 0.686 到 0.971（Table 2–4；§4.2 概括为 0.52–0.94、0.59–0.96、0.69–0.97）。这说明“能不能跑通”本身就是一个主要差异维度，甚至比风格差异更硬。</p>
+<p>T2V 上，Opus 的 IF 0.915、CC 4.047 最高，Sonnet 的 MQ 3.847、VE 3.900 最高，GPT-6.1 Sol 的 VD 3.883 与 TQ 0.117 最高（Table 2，1,054 任务子集，单次生成）。注意 TQ 的绝对值只有 0.05–0.12，和 AQ 的 1.9–3.8 不同尺度；平均排名用名次而不是原始分数，避免了量纲问题，但也丢掉了“差多少”的信息。</p>
+<p>I2V 上，Opus 的 PF 0.894、SF 0.658 最高；GPT-6 Astra 与 GPT-6 Luna 的 PF 0.834&#x2F;0.823、SF 0.649&#x2F;0.617 接近，但 IF 0.855 vs 0.703、MQ 3.467 vs 2.611 差距很大（Table 3）。作者据此说“参考图重建得好，不代表指令遵循或运动质量好”；这是跨模型观察，不是因果实验。</p>
+<p>V2V 上，Opus 的 SA 0.882、AF 0.787、MF 0.445 最高；Sonnet 的 SA 0.873、AF 0.773、MF 0.443 接近，但 IF 0.756 vs 0.929、CC 3.357 vs 3.997（Table 4）。同样，参考片段保真与完整视频要求之间存在落差。</p>
+<p>质量与可靠性可以分离。由于失败样本在非操作性指标上记零，全样本均值会把“跑不通”算进去。图 3 显示，只看成功渲染的视频，GPT-6 Astra 与 GPT-6.1 Sol 的平均整体质量最高（4.19、4.15），高于 Opus 的 4.04；但全样本均值分别降到 3.62、3.61，Opus 仍以 3.87 最高（§5.1、Fig. 5）。这说明“成功时好看”和“稳定地跑通”是两个不同的能力，排行榜必须同时看。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/code2videocompass_fig3.png"
+                      alt="图 3：全样本与成功渲染视频的质量差"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 5）：这张图把每个模型的两个平均整体质量放在同一行：浅色点是包含失败任务的全样本均值，深色点是只统计成功渲染视频的均值，连线长度就是失败带来的“扣分”。GPT-6 Astra 与 GPT-6.1 Sol 在成功样本上最高，但连线最长，说明它们的执行失败率把全样本均值拉低；Claude Opus 5.5 的成功样本质量略低，却因为执行更可靠而拿到最高全样本均值。读者应理解：这里的差距不是“模型 A 的视频更好看”那么简单，而是“好看”和“能交付”在指标上的合成方式；如果只看全样本均值，会低估成功时的创作质量，如果只看成功样本，又会忽略失败成本。</p>
+<p>失败类型也有明显分化。论文分析 2,756 个错误案例：GPT-6 Astra 的失败有 83.4% 来自编译错误加缺失 API&#x2F;包，Qwen3.8-Max 单是缺失 API&#x2F;包就占 59.7%，Claude Opus 的运行时异常占 75.0%（§5.2、Fig. 6）。这组分析只覆盖 9 个选定模型，论文没有说明选取标准，也没有报告错误分类是人工还是自动完成。</p>
+<p>复杂度方面，图 4 显示指标随构建复杂度、动态动画复杂度和状态依赖复杂度上升而普遍下降。SF 在构建复杂度 C1→C2 下降 14.38% 的分数范围，在动态动画复杂度 D1→D2 下降 12.82%；状态依赖复杂度则在全部 15 项指标上呈现 L2→L3 降幅大于 L1→L2（§5.3）。这里的百分比是按下式归一化的分数范围变化，不是绝对分数：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msubsup><mi mathvariant="normal">Δ</mi><mi>j</mi><mrow><mi>L</mi><mo>→</mo><msup><mi>L</mi><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msup></mrow></msubsup><mo>=</mo><mfrac><mrow><msubsup><mover accent="true"><mi>s</mi><mo>ˉ</mo></mover><mi>j</mi><mi>L</mi></msubsup><mo>−</mo><msubsup><mover accent="true"><mi>s</mi><mo>ˉ</mo></mover><mi>j</mi><msup><mi>L</mi><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msup></msubsup></mrow><mrow><msubsup><mi>s</mi><mi>j</mi><mi>max</mi><mo>⁡</mo></msubsup><mo>−</mo><msubsup><mi>s</mi><mi>j</mi><mi>min</mi><mo>⁡</mo></msubsup></mrow></mfrac><mo>×</mo><mn>100</mn><mi mathvariant="normal">%</mi><mo separator="true">,</mo></mrow><annotation encoding="application/x-tex">
+\Delta_j^{L\to L&#x27;}=\frac{\bar s_j^{L}-\bar s_j^{L&#x27;}}{s_j^{\max}-s_j^{\min}}\times100\%,
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.3756em;vertical-align:-0.3831em;"></span><span class="mord"><span class="mord">Δ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.9925em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">L</span><span class="mrel mtight">→</span><span class="mord mtight"><span class="mord mathnormal mtight">L</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8278em;"><span style="top:-2.931em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3831em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.8425em;vertical-align:-1.1153em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.7273em;"><span style="top:-2.2977em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6462em;"><span style="top:-2.4231em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span><span style="top:-3.0448em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mop mtight"><span class="mtight">m</span><span class="mtight">a</span><span class="mtight">x</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.413em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathnormal">s</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8123em;"><span style="top:-2.4231em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span><span style="top:-3.0448em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mop mtight"><span class="mtight">m</span><span class="mtight">i</span><span class="mtight">n</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.413em;"><span></span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.7848em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.5678em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">s</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">ˉ</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-2.4413em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">L</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3948em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.5678em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">s</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">ˉ</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.9425em;"><span style="top:-2.4413em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">L</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8278em;"><span style="top:-2.931em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3948em;"><span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.1153em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.9444em;vertical-align:-0.1944em;"></span><span class="mord">100%</span><span class="mpunct">,</span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mover accent="true"><mi>s</mi><mo>ˉ</mo></mover><mi>j</mi><mi>L</mi></msubsup></mrow><annotation encoding="application/x-tex">\bar s_j^{L}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.2361em;vertical-align:-0.3948em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.5678em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">s</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">ˉ</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.8413em;"><span style="top:-2.4413em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0572em;">j</span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">L</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3948em;"><span></span></span></span></span></span></span></span></span></span> 是指标 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>j</mi></mrow><annotation encoding="application/x-tex">j</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.854em;vertical-align:-0.1944em;"></span><span class="mord mathnormal" style="margin-right:0.0572em;">j</span></span></span></span> 在复杂度层级 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>L</mi></mrow><annotation encoding="application/x-tex">L</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal">L</span></span></span></span> 上的均值，分母是该指标的分数范围；正值表示性能下降。需要强调，这里的“15”指 15 项指标，不是 15 个模型；SF 只适用于 I2V，SA&#x2F;AF&#x2F;MF 只适用于 V2V，热图每一列的实际样本子集不同。图 4 按这一归一化口径展示各复杂度层级的退化幅度。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/code2videocompass_fig4.png"
+                      alt="图 4：复杂度上升时的指标退化"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 7）：这张热图的行是相邻复杂度层级的对比（C、D、S 各两组），列是 15 项指标，颜色越红表示归一化下降越大。最醒目的格子是 SF 在 C1→C2 和 D1→D2 的下降，说明参考图的结构重建对“中等”构建&#x2F;动画复杂度就很敏感；另一条主线是 S2→S3 一行几乎全为正，说明状态依赖的长程跨度一旦增加，多数指标都会退化。读者应理解：这里比较的是同一指标在不同复杂度层级上的平均分，而不是同一批任务的前后对照；层级之间还混有类别、任务长度和执行失败率的差异，所以它说明“复杂度标注与难度相关”，还不能单独证明“复杂度导致失败”。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>这是基准论文，所谓机制证据要分成两层：一是“基准是否测量了它声称的能力”（构念效度），二是“模型为什么失败”（因果解释）。论文在第一层有实质证据，在第二层主要是描述性分析。</p>
+<p>构念效度上，最强的证据是 Table 5 的人类一致性：IF 的 Pearson <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.796</mn></mrow><annotation encoding="application/x-tex">r=0.796</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.796</span></span></span></span>，平均整体质量 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.783</mn></mrow><annotation encoding="application/x-tex">r=0.783</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.783</span></span></span></span>；三次 judge 的 ICC(A,3)（组内相关系数，intraclass correlation coefficient）为 0.983&#x2F;0.970（300 个输出）。这说明 judge 重复稳定，且与三名人类评分者的均值有中高相关。但证据有四个缺口：只验证了 IF 和四个质量维度的平均值，没有分别验证 CC&#x2F;VD&#x2F;MQ&#x2F;VE；人类只有 3 人、200 个输出，论文未报告人类评分者之间的一致性、置信区间、MAE 或排序一致性；相关是在 6 个能力差异很大的模型上算的，模型间整体差异会抬高 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi></mrow><annotation encoding="application/x-tex">r</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span></span></span></span>，不能证明同一模型内部或同一任务上的细粒度一致性；评委 Gemini 3.8 Flash 本身也是被评模型之一，论文没有做去掉该模型、换第二评委或自偏好（self-preference）对照。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>≈</mo><mn>0.78</mn></mrow><annotation encoding="application/x-tex">r\approx0.78</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4831em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.78</span></span></span></span> 对应 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>r</mi><mn>2</mn></msup><mo>≈</mo><mn>0.61</mn></mrow><annotation encoding="application/x-tex">r^2\approx0.61</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≈</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.61</span></span></span></span>–<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.63</mn></mrow><annotation encoding="application/x-tex">0.63</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.63</span></span></span></span>，作为排行榜唯一的主观来源，解释力有限。</p>
+<p>第二层证据是分布与趋势。1,054 子集的复杂度&#x2F;长度平衡检验支持“子集在输入分布上代表全集”；Opus&#x2F;Sonnet 在三个设定都排前二，说明头部排序跨设定稳定；复杂度下降趋势在多数指标上一致。但这些都是观察性证据：复杂度与类别、任务长度、执行失败率混在一起，论文没有按类别分层、没有只在成功渲染样本上重做复杂度分析、也没有报告每个复杂度格子的样本量。论文对失败原因的解释（编译、依赖、运行时）也是描述性的，没有干预实验证明某个能力缺陷导致失败。</p>
+<p>指标冗余还会影响平均排名的解释。按 Table 2 的 15 个模型均值计算，CC&#x2F;VD&#x2F;MQ&#x2F;VE 两两 Pearson 相关约 0.99（分析者计算，不是论文报告）；五个主观指标里，IF 加四个整体质量维度占了 T2V 排名指标的一半。平均排名实际上给了“整体质量”很大的权重，不能把它当成 10&#x2F;12&#x2F;13 个独立能力的等权综合。这一点在 §5 的排行榜质疑中会展开。</p>
+<p>最后，参考保真是任务要求，不是已证明的执行约束。论文说参考内容必须由代码重建（§3.1），但没有报告渲染环境是否禁止 base64 嵌入、读取参考文件或访问网络；I2V 的 PF&#x2F;SF 在全视频里搜索最匹配帧，V2V 的 SA&#x2F;AF&#x2F;MF 在输出里搜索最匹配区间。如果模型直接嵌入参考图&#x2F;片段，这些指标会很高。当前材料无法确认基准是否防住了这种捷径，这也是下一节的第一项质疑之一。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p>成本方面，论文报告的是 token 与估算 API 成本，不是 GPU 小时或渲染时间。GLM-5.3-Flash 每次请求 90.0k 输出 token，整体质量 2.94；GPT-6 Astra 13.9k token，质量 3.62；GPT-6 Astra 的估算 API 成本约为 GPT-6.1 Sol 的 6.1 倍，而两者质量 3.62 vs 3.61；Claude Opus 5.5 以低于 Astra 的估算成本达到最高 3.87（§5.4、Fig. 8）。图 5 把这些关系画成 token&#x2F;成本-质量散点，并用虚线标出帕累托前沿（Pareto frontier）。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/code2videocompass_fig5.png"
+                      alt="图 5：token、成本与整体质量"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 8）：这张图把“多花钱是否更好”变成可读的二维关系。横轴分别是每个请求的输出 token 与估算 API 成本，纵轴是平均整体质量，虚线连接帕累托前沿。GLM-5.3-Flash 在 token 轴上很远但质量不高，GPT-6 Astra 与 GPT-6.1 Sol 质量几乎相同却成本相差约 6.1 倍，Claude Opus 5.5 在质量最高处而成本低于 Astra。读者应理解：这里的成本是作者按 API 价格估算的，不是实测账单；token 也不是唯一成本，渲染与人工复核没有计入，因此这张图适合比较模型调用侧的效率，不适合当作完整系统成本。</p>
+<p>论文没有报告：渲染&#x2F;评测的墙钟时间、GPU 型号与数量、每任务平均渲染时长、失败重试与人工复核工时、API 价格表、数据构造的总人力；也没有报告 15 个模型的推理日期或快照版本。外部依赖包括数据构造阶段的 Gemini 3.8 Flash 与 GPT-6.1 Sol、评测 judge 的 Gemini 3.8 Flash、Remotion 与浏览器&#x2F;Three.js 生态，以及以 URL 加时间戳给出的参考媒体。作者公开了代码、Hugging Face 数据集和 12 个指标脚本（截至 2026-10-23 均可访问；代码 Apache-2.0，数据集 CC BY-NC 4.0），但仓库不包含模型输出、渲染环境快照或一键排行榜脚本；论文也没有给出 judge prompt 的完整文本，评测 README 建议使用者自行记录 prompt 与返回的模型版本。</p>
+<p>适用范围要收紧。基准测的是“单次 API 调用、无执行反馈&#x2F;修复”的 MLLM 代码生成，不是 agentic 的迭代修复流程；类别限定在 motion design 动效视频，渲染栈限定 HTML&#x2F;CSS&#x2F;SVG&#x2F;Canvas&#x2F;Three.js + Remotion，不覆盖 Manim 教学、数据可视化动画、shader 等其他代码视频；参考素材来自 YouTube&#x2F;Bilibili&#x2F;REDnote&#x2F;X，论文没有讨论版权、隐私与内容审核。因此，本文能支持“在这套 1,054 任务和这套协议下，15 个 MLLM 的执行可靠性、参考保真与整体质量差异，以及复杂度上升时的平均退化”；不能支持“模型已具备通用代码视频创作能力”或“排行榜可外推到所有代码视频任务”。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：主观分由一个评委决定，而且这个评委也是被评模型之一"><a href="#质疑：主观分由一个评委决定，而且这个评委也是被评模型之一" class="headerlink" title="质疑：主观分由一个评委决定，而且这个评委也是被评模型之一"></a>质疑：主观分由一个评委决定，而且这个评委也是被评模型之一</h4><ul>
+<li><strong>原文依据</strong>：§3.5.2 与 §5.5 说明 IF 和四个整体质量维度都由 Gemini 3.8 Flash 评分；§4.1 的 15 个模型里有 Gemini 3.8 Flash 本身。Table 5 只验证 IF 和平均整体质量两个量，人类样本是 200 个输出、3 名评分者；没有报告人类评分者之间的一致性、置信区间、平均绝对误差或四个质量维度的分维度验证。论文也没有做第二评委、换评委或去掉 Gemini 的对照。</li>
+<li><strong>为什么重要</strong>：五项主观指标中，T2V 的平均排名有一半（10 项中的 5 项）来自主观分；I2V&#x2F;V2V 也占 5&#x2F;12 与 5&#x2F;13。如果 judge 的风格偏好与人类不一致，排行榜会变。r≈0.78 对应 r²≈0.61–0.63，只能算中高相关；而相关是在 6 个能力差异很大的模型上算的，模型间方差会抬高 r，不能证明同一任务内的细粒度判断可靠。评委同时是参赛者，自偏好无法排除。</li>
+<li><strong>当前能够得出的判断</strong>：现有证据支持“Gemini 3.8 Flash 的评分在重复性上很稳定，且与三名人类的均值有中高相关”；不支持“五个主观指标都已被人类验证”，也不支持“排行榜的细微名次是人类的共识”。Gemini 3.8 Flash 的排名并不靠前（T2V 5.700、I2V 6.792、V2V 5.462），说明即使存在自偏好也不是主导因素，但当前材料无法量化。</li>
+<li><strong>如何验证或补强</strong>：加第二评委（不同家族）并报告评委间一致性；对人类和 judge 都做分维度、分任务的相关与 MAE；报告人类评分者之间的 ICC；在剔除 Gemini 3.8 Flash 的子集上重算排行榜；做 prompt 改写与评分顺序的敏感性分析；报告同一模型内部的 judge-人类一致性，而不只是跨模型相关。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：“参考内容必须由代码重建”没有被执行侧验证，I2V-V2V-保真指标可能被直接嵌入绕过"><a href="#质疑：“参考内容必须由代码重建”没有被执行侧验证，I2V-V2V-保真指标可能被直接嵌入绕过" class="headerlink" title="质疑：“参考内容必须由代码重建”没有被执行侧验证，I2V&#x2F;V2V 保真指标可能被直接嵌入绕过"></a>质疑：“参考内容必须由代码重建”没有被执行侧验证，I2V&#x2F;V2V 保真指标可能被直接嵌入绕过</h4><ul>
+<li><strong>原文依据</strong>：§3.1 把“参考内容通过代码重建，而不是直接嵌入或回放”写成任务要求；§3.5.1 的 PF&#x2F;SF 是在完整输出视频中搜索与参考图最匹配的帧，SA&#x2F;AF&#x2F;MF 是在输出中搜索与参考片段对应的区间；ES 只检查视频完整可播放。论文没有报告渲染环境是否禁止 base64&#x2F;data URI 嵌入、读取参考媒体文件或访问网络，也没有报告对生成代码的静态检查或人工抽查。</li>
+<li><strong>为什么重要</strong>：I2V&#x2F;V2V 的核心卖点是“理解并重建参考内容”。如果模型把参考图编码进代码、或把参考片段直接拼进输出，PF&#x2F;SF&#x2F;SA&#x2F;AF&#x2F;MF 会天然很高，基准测到的就是复制&#x2F;检索能力，而不是代码重建能力。这直接影响构念效度和排行榜的可解释性，尤其是 Claude Opus 在 I2V&#x2F;V2V 的领先很大程度建立在参考保真指标上。</li>
+<li><strong>当前能够得出的判断</strong>：论文明确了任务要求，但没有给出执行约束或反例检查；当前材料无法确认生成侧是否真的无法嵌入参考媒体。即使大多数模型不会主动作弊，缺少检查也意味着这个漏洞没有被排除。</li>
+<li><strong>如何验证或补强</strong>：在渲染沙箱中禁止网络和参考文件读取；扫描生成代码中的 base64、data URI、外部 URL 和媒体读写；加入“参考媒体在渲染时不可见”的对照；对高分样本做人工审计；报告去掉参考保真指标后的排名是否稳定；在论文中明确“重建”的判定规则。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：排行榜没有不确定性，任务又不独立，平均排名的权重是人为选择"><a href="#质疑：排行榜没有不确定性，任务又不独立，平均排名的权重是人为选择" class="headerlink" title="质疑：排行榜没有不确定性，任务又不独立，平均排名的权重是人为选择"></a>质疑：排行榜没有不确定性，任务又不独立，平均排名的权重是人为选择</h4><ul>
+<li><strong>原文依据</strong>：Table 2–4 只给点估计，没有置信区间、标准差或模型间显著性检验；2,104 个任务来自 958 个独立内容单元，其中 573 个源视频各派生 3 个高度相关的任务（§3.3–3.4）；评测子集 1,054 个任务只生成一次（§4.1）。平均排名对每个指标等权，排除 ES 与 TC（Table 2 说明）；T2V 的 10 项里有 5 项是主观指标，而 CC&#x2F;VD&#x2F;MQ&#x2F;VE 在 15 个模型均值上两两相关约 0.99（分析者按 Table 2 计算）。§5.1 强调执行可靠性重要，但 ES 被排除在平均排名之外。</li>
+<li><strong>为什么重要</strong>：中游模型的差距很小，例如 T2V 的 GPT-6 Luna 7.400 与 DeepSeek-V4.1-Flash 7.350、I2V 的 GPT-6 Astra 与 Claude Haiku 都是 4.000、V2V 的 GPT-6.1 Sol 5.538 与 MiMo 5.923；在单次生成、任务聚类的条件下，这些名次可能落在噪声里。平均排名的等权假设没有论证，换成“纳入 ES”或“按指标可靠性加权”可能改变中游排序；四个整体质量维度高度相关，等于给同一个“整体质量”因子重复计权。</li>
+<li><strong>当前能够得出的判断</strong>：头部结论（Opus&#x2F;Sonnet 在三个设定均前二）跨设定一致，方向可信；中游的精确名次和“开源第一”的细微差别不可靠。论文没有提供统计不确定性，也没有做任务&#x2F;源视频层面的聚类分析，因此不能把排行榜当成精确的能力刻度。</li>
+<li><strong>如何验证或补强</strong>：以源视频&#x2F;任务为聚类单位做 bootstrap，报告平均排名的置信区间和模型间配对检验；对同一任务做多次生成，报告方差；报告纳入 ES&#x2F;TC 不同权重下的排名敏感性；给出指标间相关矩阵，说明是否存在冗余；按类别和复杂度分层报告排名；公开每个任务的分数，便于复算。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：数据构造高度依赖-LLM-筛选，类别与复杂度覆盖不均，“通用”的边界被夸大"><a href="#质疑：数据构造高度依赖-LLM-筛选，类别与复杂度覆盖不均，“通用”的边界被夸大" class="headerlink" title="质疑：数据构造高度依赖 LLM 筛选，类别与复杂度覆盖不均，“通用”的边界被夸大"></a>质疑：数据构造高度依赖 LLM 筛选，类别与复杂度覆盖不均，“通用”的边界被夸大</h4><ul>
+<li><strong>原文依据</strong>：§3.3 用 Gemini 3.8 Flash 筛选 2,473 个候选 URL、给 915 个视频按叙事&#x2F;内容&#x2F;设计&#x2F;运动打分、选关键帧和裁片段；用 GPT-6.1 Sol 辅助把 720 个候选收窄到 145 个种子，并迭代改进 QA 清单。人工复核由三位共同作者完成，但论文没有报告标注一致性、复核工作量、拒绝原因或争议解决流程。2,104 个任务只对应 958 个独立内容单元（§3.4）。Fig. 4(a) 显示分布不均：Branding 的 C2&#x2F;D2&#x2F;S2 为 188&#x2F;260&#x2F;304，而 3D Motion 的 C1、Broadcast 的 S1 为 0，Titles 的 D3 只有 2。类别体系来自 motion-design 网站&#x2F;奖项&#x2F;模板，渲染栈限定 HTML&#x2F;CSS&#x2F;SVG&#x2F;Canvas&#x2F;Three.js + Remotion（§3.1–3.2）。</li>
+<li><strong>为什么重要</strong>：基准的“通用”主张依赖类别覆盖和任务质量。LLM 筛选会带入模型偏好：被 Gemini 选中的“好视频”和 Gemini 评委的审美可能同源，造成数据与评分的双重偏差；人工复核没有一致性数据，读者无法判断标签可靠度。类别和复杂度分布不均，使按类别或复杂度分层的结果（以及“复杂度越高越差”的结论）在某些格子上样本很少，甚至没有样本。把“motion design 动效视频”称为“general-purpose code-based video”也会让读者误以为覆盖 Manim、数据动画、shader 等全部代码视频。</li>
+<li><strong>当前能够得出的判断</strong>：数据规模和构造流程是真实的，2,104&#x2F;958 的口径也透明；但“通用”应限定为“motion design 动效视频的通用”，类别级结论目前缺少每类结果和样本量支撑，人工复核质量无法量化。论文没有证明 LLM 筛选与人类判断一致，也没有证明类别分布能代表整个代码视频创作。</li>
+<li><strong>如何验证或补强</strong>：报告人工标注的 ICC&#x2F;Cohen’s kappa、复核耗时和拒绝原因；公开每个类别的任务数与模型结果；对类别&#x2F;复杂度做重加权或分层抽样；增加人类专家对“好视频”的独立评分，检验 LLM 筛选偏差；若要主张 general-purpose，补充 Manim、数据动画、shader 等代码视频类型，或把标题&#x2F;摘要限定到 motion design。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：V2V-输入模态不一致，单次生成协议限制外推"><a href="#质疑：V2V-输入模态不一致，单次生成协议限制外推" class="headerlink" title="质疑：V2V 输入模态不一致，单次生成协议限制外推"></a>质疑：V2V 输入模态不一致，单次生成协议限制外推</h4><ul>
+<li><strong>原文依据</strong>：§4.1 明确 V2V 中 GPT 与 Claude 收到 4 FPS 帧序列，其他模型收到原生视频并把 API 采样设为 4 FPS；Table 4 的题注原本应有一个表示“帧序列输入”的标记，但提取文本中该标记丢失，只留下“indicates frame sequence input”的半句。评测只调用一次模型，不给执行反馈或修复机会，使用各家默认 reasoning 设置（§4.1）；没有重复生成，也没有与 agentic 代码视频系统或允许修复的流程对比。</li>
+<li><strong>为什么重要</strong>：V2V 的排名（Claude Opus 第一）可能部分来自输入格式差异：帧序列与原生视频在时间分辨率、压缩、模型可处理帧数上都不同，论文没有做同输入格式的对照，无法判断这个差异的方向和大小。单次生成是对“MLLM 原始一次性代码能力”的有效测量，但不是对“代码视频系统”的完整测量；真实工作流通常允许运行、看报错、修复，ES 会显著不同。默认 reasoning 设置和 token 预算也会影响质量与成本结论。</li>
+<li><strong>当前能够得出的判断</strong>：V2V 结果应视为“在该输入协议下的结果”，不能直接外推为模型对视频输入的统一能力；单次生成的结论适用于“一次性 MLLM 代码生成”，不适用于“允许修复的 agentic 视频创建”。论文对这些限制有部分交代（单次调用写得很清楚），但没有做输入模态对照，也没有讨论其对排名的影响。</li>
+<li><strong>如何验证或补强</strong>：在 V2V 子集上做 2×2 输入格式对照（原生视频 vs 帧序列 × 模型家族），报告同一模型两种输入下的分数；加入“执行反馈 + 修复”基线与单次生成对比；重复生成并报告方差；记录并统一 reasoning&#x2F;token 预算；若目标是评测系统而非模型，补充 agentic 基线。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现现有代码视频基准要么面向 Manim&#x2F;SVG&#x2F;Web 等专门任务，要么只做单一输入或单一评价层，缺少跨 T2V&#x2F;I2V&#x2F;V2V 的通用评测；因此构建 Code2Video-Compass，用 2,104 个任务（958 个独立内容单元）、10 个类别、24 个子类、三维复杂度标注和 12+5 指标，在 1,054 个固定任务上评 15 个 MLLM。实验在单次 API 调用、无执行反馈的条件下表明，Claude Opus 5.5 在三个设定平均排名第一（1.600&#x2F;1.083&#x2F;1.154），执行成功率跨度 0.52–0.97，成功视频质量与全样本质量可以分离，复杂度上升时指标普遍下降（§4.2、§5）。其中“任务规模与三模态配对”“执行-质量分离”“头部排序跨设定稳定”的证据较强；但“主观分的人类一致性”“排行榜的统计不确定性”“参考保真的防作弊”“V2V 输入模态公平性”仍缺少充分支持。本文最有价值的部分是把“代码能否跑通”和“视频是否好看&#x2F;是否符合要求”放进同一基准，并公开数据与评测脚本；最大的审稿风险是把单次调用下的测量结果外推为通用代码视频能力，以及把 Gemini judge 的排序当成人类共识。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。论文明确区分 T2V&#x2F;I2V&#x2F;V2V、完整视频与参考重建，Table 1 的对比也把缺口说清楚；扣分点是“general-purpose”没有给出可操作边界，实际覆盖的是 motion design 动效视频。</li>
+<li><strong>创新性证据</strong>：中。2,104 个任务、三模态配对和双层指标是实质资源与协议贡献；但单项指标大多复用现有模型，没有新算法，也没有与最接近的代码视频基准在同一模型上做结果对照，“首个&#x2F;通用”的首创性仍需文献检索。</li>
+<li><strong>方法可信度</strong>：中。数据计数能对上（718&#x2F;693&#x2F;693、958、1,054），子集平衡检验、失败记零规则、公开代码与数据都增加了可信度；但 LLM 辅助筛选没有一致性数据，参考保真没有防作弊检查，judge 与排行榜统计也有明显缺口。</li>
+<li><strong>实验支持力度</strong>：中。15 个模型、三个设定、1,054 个任务，外加失败、复杂度、成本分析，覆盖面在这一方向少见；但单次生成、无重复、无置信区间、无显著性检验，V2V 输入模态不一致，主观验证只覆盖两个量，因此结论只能到“该协议下的大方向差异”，到不了精确排名或通用能力。</li>
+<li><strong>可复现性</strong>：中。代码、Hugging Face 数据集、12 个指标脚本均可访问，数据构造的漏斗数字也完整；但仓库不含模型输出、渲染环境快照或一键排行榜脚本，论文没有附录&#x2F;环境细节，judge prompt 全文未给出，专有 API 模型还会漂移，完整复算排行榜需要大量重新调用。</li>
+<li><strong>综合阅读价值</strong>：高。对做视频生成、MLLM 评测、代码生成或基准构建的读者，本文提供了可复用的任务设计、双层指标和失败&#x2F;成本分析，也暴露了“LLM judge + 单次生成 + 平均排名”这套评测范式的典型问题；适合作为基准设计与批判性阅读的材料。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> Code2Video-Compass：跨 T2V/I2V/V2V 的通用代码视频生成基准</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-23 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-24 01:05:47
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/23/2610.28416v1_Code2Video-Compass_A_Comprehensive_Benchmark_for_General-Purpose_Code-Based_Video_Generation_across_T2V_I2V_and_V2V/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Benchmark-Evaluation/">#Benchmark Evaluation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Benchmark-Construction/">#Benchmark Construction</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Code-Generation/">#Code Generation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Video-Generation/">#Video Generation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/LLM-as-a-Judge/">#LLM-as-a-Judge</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/23/2610.27598v1_Meta_Expert_Cross-Layer_Expert_Sharing_for_Storage-_and_Retrieval-Efficient_MoE/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Meta Expert：跨层共享专家能否让 MoE 更省存储、更易检索？</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/23/2610.29677v1_Toward_Recursive_Self-Improvement_in_Physical_AI/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">Physical RSI：机器人如何从「会做」走向「会改进自己的学习方式」</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">Code2Video-Compass：跨 T2V/I2V/V2V 的通用代码视频生成基准</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 182 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

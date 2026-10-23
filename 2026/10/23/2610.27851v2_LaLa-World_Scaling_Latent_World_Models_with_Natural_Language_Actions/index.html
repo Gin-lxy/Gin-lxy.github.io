@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/23/2610.27851v2_lala-world_scaling_latent_world_models_with_natural_language_actions/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="LaLa-World：把自然语言当作动作接口，扩展潜空间世界模型">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/23/2610.27851v2_LaLa-World_Scaling_Latent_World_Models_with_Natural_Language_Actions/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-23T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-23T17:05:47.438Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="JEPA">
+<meta property="article:tag" content="Planning">
+<meta property="article:tag" content="Robot Manipulation">
+<meta property="article:tag" content="World Action Models">
+<meta property="article:tag" content="World Models">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>LaLa-World：把自然语言当作动作接口，扩展潜空间世界模型 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">217</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">182</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">LaLa-World：把自然语言当作动作接口，扩展潜空间世界模型</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-23 12:00</span>
+        <span class="mobile">2026-10-23 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-24 01:05:47</span>
+            <span class="mobile">2026-10-24 01:05:47</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Robot-Manipulation/">Robot Manipulation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/World-Action-Models/">World Action Models</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/World-Models/">World Models</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Planning/">Planning</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/JEPA/">JEPA</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<ul>
+<li><p>论文：LaLa-World: Scaling Latent World Models with Natural Language Actions</p>
+</li>
+<li><p>作者：Junha Song、Geonmo Gu、Jeongeun Park、Heejeong Nam、Lucas Maes、Byeongho Heo、Dongyoon Han、Sangdoo Yun（NAVER AI Lab、Georgia Institute of Technology、Brown University、Mila &amp; Université de Montréal）</p>
+</li>
+<li><p>版本：arXiv 2610.27851v2（2026-10-21；v1 2026-10-20）</p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.27851" >https://arxiv.org/abs/2610.27851<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>arXiv HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.27851v2" >https://arxiv.org/html/2610.27851v2<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.27851" >https://huggingface.co/papers/2610.27851<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/junha1125/LaLa-World" >https://github.com/junha1125/LaLa-World<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>项目页：<a class="link"   target="_blank" rel="noopener" href="https://june-page.github.io/lala-world/" >https://june-page.github.io/lala-world/<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+</ul>
+<p>标签：World Models、JEPA、Planning、Robot Manipulation、World Action Models。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>LaLa-World 把数值动作改写成自然语言模板，并把视频与图像编辑对的变化描述也统一成同一种语言条件（language-conditioned），用一个 0.8B 的语言模型在冻结视觉编码器的表示空间里预测下一帧；因此一套预测器可以同时在 7 个控制数据集和 3 个图像&#x2F;视频来源上训练。论文报告它在多个短程规划基准上高于按域单独训练的 JEPA 世界模型（五个仿真任务平均 72.1% 对 64.6%），在与 RAEv2 生成式世界模型的匹配比较中以 59.4% 对五步去噪 RAEv2 的 48.0% 取得更高分数，规划快 2.9–13.9 倍；但「联合训练的收益有多少来自语言接口、多少来自更多数据与按基准选择编码器」以及「策略微调的优势是否超出噪声」仍未被充分隔离。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>先交代背景。世界模型（world model）要回答的是「在某个动作条件下，环境下一步会变成什么样」；潜空间世界模型（latent world model，LWM）不重建像素，而是让预测器在冻结的视觉表示空间里预测未来表示，因此做模型预测控制（model predictive control，MPC）时可以廉价地滚动多条候选未来。DINO-WM、V-JEPA 2-AC、JEPA-WMs 等联合嵌入预测架构（Joint-Embedding Predictive Architecture，JEPA）模型都属于这一类，它们的训练目标通常是：给定最近几帧的表示和一段数值动作条件，预测下一帧的表示（§1–§2）。</p>
+<p>问题出在「动作条件」这个接口上。现有 LWM 的预测器大多只在单个仿真或机器人数据集上训练，动作是维度与物理含义都依赖具体域的数值向量：同一个 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">[</mo><mn>2</mn><mo separator="true">,</mo><mn>4</mn><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">[2,4]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">2</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">4</span><span class="mclose">]</span></span></span></span> 在一个域里可能表示水平&#x2F;竖直位移，而 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">[</mo><mn>4</mn><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">[4]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">4</span><span class="mclose">]</span></span></span></span> 在另一个域里只表示一个力的大小（§1）。同时，图像和视频数据虽然富含视觉变化，却没有对应的数值动作标注，因此很难被现有 LWM 直接用于训练。结果就是两个瓶颈叠在一起：控制数据不能跨域汇总，视频数据又进不来，LWM 的「规模化」被卡在动作接口上。</p>
+<p>已有的两条路线各有取舍。第一条是继续改进单域 LWM：在某个仿真器或机器人数据上把预测器和规划器做得更准，但每个域仍要单独训练一个模型（§2、Table 1 的基线都是这种设置）。第二条是视频生成模型：它们用语言描述视频内容，能从网络规模的视频里学习视觉变化，也能被微调成机器人策略（例如 Cosmos Policy 从 Cosmos-Predict2 出发）；但生成式世界模型在 MPC 里要反复合成像素，规划成本高，而且是否能与 LWM 在同一条件下比较此前并不清楚（§2、§4.2）。</p>
+<p>论文没有报告一个新的经验现象，而是把上述接口限制重新表述为一个设计假设：如果动作和视觉变化都能写成语言，那么语言就可以作为跨域、跨数据源的共享条件，一个预测器就能同时吃控制轨迹和视频&#x2F;图像对；如果这个预测器建立在语言模型上，它还能直接读懂条件的语义，而不需要额外的文本编码器（§1、§3）。作者用已有 LWM 的「按域训练」设置和动作空间的异质性来支撑这个判断，但这更多是问题定义，而不是因果实验。</p>
+<p>因此，论文真正要验证的核心假设有两层。第一层是表示层：语言条件是否足以让同一个预测器在不同动作空间和不同视觉域上都学到有用的动力学；第二层是使用层：这个预训练好的潜空间预测器，能否在两条下游路径上提供价值——一条是冻结预测器、用 MPC 在潜空间里做目标图像条件（goal-image-conditioned）规划；另一条是把预测器微调成策略（LaLa-Policy），同时输出动作块（action chunk）和未来表示（§3–§5）。论文的「scaling」指的是数据来源和动作空间的扩展，不是参数规模：预测器只有 0.8B，Appendix B 明确把「更大数据&#x2F;更大模型是否继续有效」留作未来工作。</p>
+<p>需要区分三层：领域一般问题是「世界模型如何跨域扩展、如何高效规划」；本文提出的是「用语言作为动作接口，把异构控制数据与无动作标注的视频&#x2F;图像数据接到同一个潜空间预测目标上」；实际解决的是「在若干短程仿真规划任务和两个仿真策略基准上，验证这套接口能跑通并取得有竞争力的数字」。论文没有声称它是首个语言条件 LWM，也没有证明它适用于长程任务、真实机器人或开放世界。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的技术增量不是新的预测损失，而是一个「接口 + 骨干」的组合：把动作变成语言，让语言模型直接做未来表示预测，再把同一个预训练模型接到 MPC 和策略微调两条路径上。以下三点分别对应数据、模型和下游使用；具体证据统一放在 §4。</p>
+<p>第一，语言条件的转移数据构造。作者用固定模板把 7 个控制数据集里的数值动作改写成句子（例如「move 2 left and 4 up」），并把 OpenVid 视频的相邻帧变化描述、OmniEdit&#x2F;ShareGPT 的图像编辑指令也当作条件，于是所有样本都变成同一个三元组「当前观测—语言条件—下一观测」（§3.1、论文 Fig. 3）。与 DINO-WM&#x2F;JEPA-WMs 的数值动作条件相比，这消除了动作维度和物理含义的绑定；与 Dynalang 把语言当观测或任务描述不同，这里的语言就是动作条件本身（Appendix A.1）。这是数据接口层面的贡献，不是新网络。</p>
+<p>第二，用语言模型直接充当未来预测器。LaLa-World 以 Qwen3.5-0.8B 为骨干，把冻结视觉编码器的 patch 表示投影进语言模型的 token 空间，语言条件按原 tokenizer 编码，预测结果从一组可学习的 query token 读出（§3.2）。与 LWM 常用的 AdaLN、特征拼接或序列条件相比，它不需要额外的动作编码器；与视频生成模型用独立文本编码器相比，它省掉了那部分参数和文本编码开销。这个设计让「读语言」和「预测未来」在同一个网络里发生，但预测目标仍是冻结编码器的下一帧表示，而不是像素。</p>
+<p>第三，同一个预训练模型的两条使用路径。MPC 路径把目标图像编码成表示，用交叉熵方法（Cross-Entropy Method，CEM）采样动作序列、逐条语言化后让预测器滚动，最后按终点表示与目标表示的距离选动作（§4）；策略路径在预测器上增加动作 query 和本体感知输入，接一个 Isaac-GR00T 风格的动作生成头，联合预测动作块与未来表示（§5）。策略微调的配方本身沿用 Cosmos Policy，但起点从视频生成模型换成了潜空间世界模型；论文还给出了 latent 与 generative 世界模型在匹配条件下的规划比较（§4.2）。这属于已有组件的新组合与系统实现，而不是新的学习算法。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>整体直觉可以这样理解：如果「把杯子往左推 2 厘米」和「画面里的杯子向左移动了一点」都能写成一句话，那么预测器就不需要知道动作是二维还是七维，只需要学会「当前画面 + 这句话 → 下一画面的表示」。这样一来，仿真动作、机器人轨迹、视频字幕和图像编辑指令都能排进同一条训练流水线；而预测目标留在冻结视觉编码器的表示里，既避免了像素重建，也让 MPC 的成本只与表示维度有关。图 1 给出了这个思路的系统位置：异构数据先被语言统一，再进入编码器—预测器，最后分成 MPC 与策略微调两种用法。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/lalaworld_fig1.png"
+                      alt="图 1：语言统一动作与视觉变化的总览"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 1）：这张图把论文的三段式论证放在一个系统视图里。数据侧，Push-T、PointMaze、MetaWorld、DROID 的数值动作和 OpenVid 等视频&#x2F;图像的变化描述都被写成同一种语言条件 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi></mrow><annotation encoding="application/x-tex">z</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.044em;">z</span></span></span></span>，因此可以进入同一个训练池；模型侧，冻结编码器把上下文帧变成表示，语言模型骨干读取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi></mrow><annotation encoding="application/x-tex">z</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.044em;">z</span></span></span></span> 并预测下一帧表示，训练信号只是预测表示与目标表示之间的平方误差；使用侧，预训练预测器一方面被冻结用于 MPC 的潜空间滚动，另一方面被微调成 LaLa-Policy，额外地输出动作。图中的成功率柱状图想说明的是「一个联合训练的潜空间模型在规划上不输按域训练的基线，在策略上不输生成式世界模型派生的策略」；读图时应记住，规划与策略是两条不同的评测路径，而且论文 Fig. 1(c) 的平均值来自与 RAEv2 比较所用的基准子集（LaLa-World 59.4%），不是 Table 1 的 72.1%。</p>
+<p>接下来的三节按这个流程展开：先把数据写成统一格式，再说明预测器如何训练，最后分别看 MPC 与策略这两条使用路径。</p>
+<h3 id="3-1-数据：把动作与视觉变化写成同一种条件"><a href="#3-1-数据：把动作与视觉变化写成同一种条件" class="headerlink" title="3.1 数据：把动作与视觉变化写成同一种条件"></a>3.1 数据：把动作与视觉变化写成同一种条件</h3><p>控制数据来自 7 个数据集：Wall、PointMaze、Push-T、MetaWorld、Rope、Granular 六个仿真数据集，以及真实机器人数据 DROID（§3.1、§4）。对每个转移，作者用固定模板把数值动作逐分量写成方向加大小，例如「move 0.60 left and 1.95 down」「push the ball with force 0.50 right and 0.40 up」；对于由多个仿真子步组成的转移，先把各子步的动作分量求和，再只描述这个和，以避免句子过长（Appendix D.4.2）。每个控制转移同时配一份保留数值的描述和一份把数值粗化成「slightly &#x2F; no modifier &#x2F; far」三档的定性（qualitative）描述（Appendix D.1、D.4.3）。DROID 保留一个外部相机视角、每四帧取一帧，用末端执行器的位置、姿态和夹爪变化生成描述，共约 150 万条转移，约占原始数据的 20%，以免它在固定训练预算下压过其他域（Appendix D.1）。</p>
+<p>图像和视频数据则提供了另一类条件：OpenVid-1M 中按时长、运动和美学分数筛选出的片段，以 0.5 秒间隔抽十帧，相邻帧之间用 Qwen3-VL-30B-A3B-Instruct 生成「发生了什么变化」的描述；OmniEdit 和 ShareGPT-4o-Image 则直接使用源图—编辑图对及其编辑指令（§3.1、Appendix D.1）。这些条件描述的是视觉变化，不是机器人动作，但它们与控制数据共享同一个预测目标，因此预测器可以把「描述—变化」的对应关系从自然视频迁移到控制场景。Table G 列出十个来源的规模：控制数据约 517 万条，图像&#x2F;视频来源约 136 万条，合计约 654 万条目标转移或编辑对（按表内数字相加；图像&#x2F;视频约占 21%）。图 2 展示了这些来源在训练样本格式中的实际样子。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/lalaworld_fig2.png"
+                      alt="图 2：语言条件转移数据的例子"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 3）：这张图展示的是同一种训练样本格式如何容纳完全不同的数据源。每个样本都是「过去的观测帧—一句语言条件—下一帧」，其中既有控制数据（Push-T、PointMaze、Wall、Granular、MetaWorld、DROID），也有 OmniEdit 的图像编辑对和 OpenVid 的视频片段；控制数据的语言条件写出位移的方向和数值，视频&#x2F;编辑数据的条件则描述画面里物体或手部的变化。读者应理解的关键点不是这些句子有多自然，而是它们都被放进了同一个条件位置：模型不需要为每个域准备不同维度的动作输入，训练时只看到「当前表示 + 文本 → 下一表示」。这也解释了为什么视频字幕可以参与训练——字幕本身就是对「下一帧相对当前帧发生了什么」的描述。</p>
+<p>数据格式统一之后，剩下的问题是预测器本身如何在同一组 token 里既读语言又输出未来表示，这就是下一节的模型设计。</p>
+<h3 id="3-2-模型：冻结编码器-语言模型预测器-潜空间损失"><a href="#3-2-模型：冻结编码器-语言模型预测器-潜空间损失" class="headerlink" title="3.2 模型：冻结编码器 + 语言模型预测器 + 潜空间损失"></a>3.2 模型：冻结编码器 + 语言模型预测器 + 潜空间损失</h3><p>观测编码器是冻结（frozen）的 DINOv2-S&#x2F;14 或 DINOv3-L&#x2F;16（§3.2、Appendix C.5）。选择冻结有两个原因：一是防止编码器在预测损失下塌缩，二是保留自监督预训练带来的通用视觉表示；代价是表示本身不会针对「预测未来」这件事做适配（Appendix B 把端到端训练列为未来工作）。每个上下文帧的 patch 表示经过一个两层 MLP 投影到语言模型的 embedding 维度，加上按时间、行、列索引的 3D 位置编码；语言条件用 Qwen3.5 的 tokenizer 编码后直接拼在视觉 token 后面。预测时，模型在序列末尾追加一组可学习的 query token，每个 query 对应目标帧的一个 patch 位置，最后一层隐藏状态经过两层 MLP 预测头映射回编码器的特征维度，就得到下一帧的整张 patch 网格（Appendix D.2）。训练目标只有一项：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="script">L</mi><mo>=</mo><msup><mrow><mo fence="true">∥</mo><msub><mover accent="true"><mi>e</mi><mo>^</mo></mover><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>−</mo><msub><mi>e</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo fence="true">∥</mo></mrow><mn>2</mn></msup><mo separator="true">,</mo><mspace width="2em"/><msub><mi>e</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>=</mo><msub><mi>E</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><msub><mi>x</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
+\mathcal{L}=\left\|\hat{e}_{t+1}-e_{t+1}\right\|^{2},\qquad e_{t+1}=E_{\theta}(x_{t+1})
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal">L</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.204em;vertical-align:-0.25em;"></span><span class="minner"><span class="minner"><span class="mopen delimcenter" style="top:0em;">∥</span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">e</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;">∥</span></span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.954em;"><span style="top:-3.2029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>E</mi><mi>θ</mi></msub></mrow><annotation encoding="application/x-tex">E_{\theta}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 是冻结编码器，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover accent="true"><mi>e</mi><mo>^</mo></mover><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub></mrow><annotation encoding="application/x-tex">\hat{e}_{t+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9028em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">e</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span> 是预测器输出。论文不把本体感知（proprioception）作为输入或预测目标，理由是它按域定义，会破坏跨域共享（§3.2）。解码器只在可视化和论文图中使用，不参与世界模型训练，也不参与规划成本计算（§4、Appendix D.3）。训练时更新语言模型骨干、视觉投影层和 query token，编码器保持冻结；使用 AdamW、全局批大小 512、20 个 epoch（每个 epoch 约 100 万样本）、学习率从 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">1\times10^{-5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span> 线性升到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>4</mn></mrow></msup></mrow><annotation encoding="application/x-tex">2\times10^{-4}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">2</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span></span></span></span> 再余弦衰减，在 8 张 H100 80GB 上以 bfloat16 训练（Appendix D.3）。这些细节说明它是一个中等规模、实现细节较完整的实验，而不是靠超大模型堆出来的结果。</p>
+<h3 id="3-3-使用路径一：MPC-在潜空间里滚动候选动作"><a href="#3-3-使用路径一：MPC-在潜空间里滚动候选动作" class="headerlink" title="3.3 使用路径一：MPC 在潜空间里滚动候选动作"></a>3.3 使用路径一：MPC 在潜空间里滚动候选动作</h3><p>规划时，系统拿到初始观测 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mrow><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">t</mi></mrow></msub></mrow><annotation encoding="application/x-tex">x_{\mathrm{init}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">init</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 和目标观测 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>x</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msub></mrow><annotation encoding="application/x-tex">x_{\mathrm{goal}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">goal</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>，用同一个冻结编码器把目标编码成 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>e</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msub></mrow><annotation encoding="application/x-tex">e_{\mathrm{goal}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">goal</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>。CEM 在数值动作空间里采样一批动作序列；每条序列的每个动作先按训练模板语言化，再喂给预测器，自回归地预测 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi></mrow><annotation encoding="application/x-tex">H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span> 步，得到终点表示 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover accent="true"><mi>e</mi><mo>^</mo></mover><mrow><mi>t</mi><mo>+</mo><mi>H</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\hat{e}_{t+H}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9028em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">e</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mathnormal mtight" style="margin-right:0.0813em;">H</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span>。候选序列的代价是终点表示与目标表示的平方距离：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="script">C</mi><mo>=</mo><msup><mrow><mo fence="true">∥</mo><msub><mover accent="true"><mi>e</mi><mo>^</mo></mover><mrow><mi>t</mi><mo>+</mo><mi>H</mi></mrow></msub><mo>−</mo><msub><mi>e</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msub><mo fence="true">∥</mo></mrow><mn>2</mn></msup><mo separator="true">,</mo><mspace width="2em"/><msub><mi>e</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msub><mo>=</mo><msub><mi>E</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><msub><mi>x</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
+\mathcal{C}=\left\|\hat{e}_{t+H}-e_{\mathrm{goal}}\right\|^{2},\qquad e_{\mathrm{goal}}=E_{\theta}(x_{\mathrm{goal}})
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathcal" style="margin-right:0.0583em;">C</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.2401em;vertical-align:-0.2861em;"></span><span class="minner"><span class="minner"><span class="mopen delimcenter" style="top:0em;">∥</span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">e</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mathnormal mtight" style="margin-right:0.0813em;">H</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">goal</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose delimcenter" style="top:0em;">∥</span></span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.954em;"><span style="top:-3.2029em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">e</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">goal</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0576em;">E</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0576em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">goal</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></span>
+<p>CEM 用低代价的样本更新采样分布，重复若干轮；选中序列只执行前若干步，需要时重新观测再规划（§4、Appendix D.4）。这里要特别澄清「自然语言动作」在 MPC 里的含义：动作候选仍然由 CEM 在数值空间采样，语言只是预测器看到的条件；执行时也是把数值动作送进仿真器。语言化不是让模型生成动作，而是把数值动作翻译成预测器在训练中见过的条件格式。图 3 用一个仿真任务把这条闭环画了出来：候选语言动作序列、潜空间滚动、按终点距离选择与执行回环。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/lalaworld_fig3.png"
+                      alt="图 3：MPC 用语言动作在潜空间里规划"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 2）：这张图把 MPC 的闭环展开：给定初始观测和目标观测，CEM 采样出的候选动作序列先按训练模板语言化，再由 LaLa-World 在潜空间里滚动成未来表示，系统按终点表示与目标表示的距离给序列打分，选择代价最低者交给仿真器执行，执行后重新观测并进入下一轮规划。图中同时给出保留数值与定性描述的两种条件，说明同一个预测器可以接受不同粒度的语言；显示的画面是解码器为了可视化而生成的，真正的规划成本只在表示空间里计算。</p>
+<p>论文还测试了两种更弱的语言接口。第一种是定性描述：CEM 仍然采样数值动作，但在送入预测器之前把幅值映射成「slightly &#x2F; no modifier &#x2F; far」三档，方向和数值执行保持不变（Appendix D.4.3）。第二种是让一个外部大语言模型代替 CEM 提议语言动作，LaLa-World 只返回代价，LLM 根据代价修改提案；这被称为可交流世界建模（communicable world modeling），放在 Appendix C.2，作为接口可用性的旁证，而不是主实验。两种设置都说明语言在这里是「条件的中介」，不是「动作空间的替代品」：真正决定执行的是数值动作，语言影响的是预测器对未来的想象。</p>
+<p>动作聚合是另一个容易被忽略的设计。一个规划步可能包含 5 个仿真子步，基线会把 5 个子步的二维动作拼成十维向量；LaLa-World 则把各分量求和成二维再语言化，执行时把和平均分回 5 个子步（Appendix D.4.2）。这样做让句子保持简短，也丢掉了子步内部的运动变化；论文承认这可能造成预测转移与真实执行之间的差异，但在实验中仍取得了较高的规划成功率。这是一个明确的工程折中，读者不应把它理解为「语言动作天然适合精细控制」。</p>
+<h3 id="3-4-使用路径二：把世界模型微调成-LaLa-Policy"><a href="#3-4-使用路径二：把世界模型微调成-LaLa-Policy" class="headerlink" title="3.4 使用路径二：把世界模型微调成 LaLa-Policy"></a>3.4 使用路径二：把世界模型微调成 LaLa-Policy</h3><p>策略路径的目标是回答「预训练的潜空间世界模型能否作为策略学习的初始化」，也就是把一个潜空间世界模型变成同时输出动作与未来表示的世界动作模型（world action model）。LaLa-Policy 在预测器上增加三类输入：当前本体感知状态（经一个 MLP 变成一个 token）、任务指令 token、以及一组动作 query；同时保留未来 query，用来预测 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>+</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">t+N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6984em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">N</span></span></span></span> 时刻的视觉表示。预测器的输出有两部分：未来表示 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mover accent="true"><mi>e</mi><mo>^</mo></mover><mrow><mi>t</mi><mo>+</mo><mi>N</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\hat{e}_{t+N}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9028em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6944em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">e</span></span><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.1944em;"><span class="mord">^</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span>，以及动作 query 的隐藏状态 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>h</mi><mrow><mi>t</mi><mo>:</mo><mi>t</mi><mo>+</mo><mi>N</mi><mo>−</mo><mn>1</mn></mrow></msub></mrow><annotation encoding="application/x-tex">h_{t:t+N-1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9028em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mrel mtight">:</span><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span><span class="mbin mtight">−</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span>。后者（以及预测器的完整输出隐藏状态）作为 Isaac-GR00T 风格的动作生成器（16 个 DiT block、宽度 1536）的条件，生成器从高斯噪声出发，经流匹配（flow matching）迭代去噪，输出长度为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi></mrow><annotation encoding="application/x-tex">N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">N</span></span></span></span> 的动作块（§5、Appendix D.6）。训练损失是动作生成器的 flow-matching 速度损失加上未来表示的均方误差，两项系数都为 1；观测编码器换成 SigLIP2-So400M&#x2F;14 并保持冻结，预测器从 LaLa-World 初始化，动作生成器从头训练（Appendix D.6、D.8）。</p>
+<p>这里有两个关键事实。第一，策略的视觉编码器与世界模型预训练时的 DINO 编码器不同，因此投影层和预测头需要重新适配，真正迁移的是语言模型骨干的权重；这也解释了为什么论文要额外比较「Qwen3.5 初始化」和「随机初始化」，以区分「语言模型预训练」与「世界模型预训练」的贡献。第二，评测时预测出的未来表示不参与动作选择（Appendix D.9）；未来预测是训练时的辅助监督，不是测试时的规划器。因此 LaLa-Policy 的「预判」（anticipation）主张应理解为「表示学习中有未来预测」，而不是「推理时用想象来选动作」。动作块长度为 LIBERO 16、RoboCasa 32；LIBERO 每步执行全部 16 个动作，RoboCasa 只执行前 16 个（§5、Appendix D.9）。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p>规划实验覆盖 7 个仿真任务（Wall、PointMaze、Push-T、MetaWorld-R、MetaWorld-RW、Rope、Granular）、真实机器人数据 DROID，以及完全不在世界模型训练集中的 RoboCasa Reach 与 Place，用来测零样本（zero-shot）迁移（§4、Table 1）。Table 1 分成上下两张表：上表是五个仿真任务（Wall、PointMaze、Push-T、MetaWorld-R、MetaWorld-RW），下表是 Rope、Granular、RoboCasa-R&#x2F;P 与 DROID，各自报告非加权平均。基线包括 DINO-WM、JEPA-WMs、V-JEPA 2-AC，以及作者按公开实现重新训练的 IRIS、DreamerV3、TD-MPC2；论文声称所有基线使用相同控制数据、相同规划设置（包括规划时域 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi></mrow><annotation encoding="application/x-tex">H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span>），且都不使用本体感知（§4）。评价指标是任务成功率，DROID 用离线动作分数；Table 1 括号内是标准误（standard error），但论文没有说明统计单位，也没有做跨训练种子的显著性检验（Table 1、§4.1）。</p>
+<p>匹配的生成式世界模型比较使用 RAEv2：两边共用 DINOv3-L&#x2F;16 编码器、相同的语言条件和相同的训练数据；LaLa-World 的预测器与 RAEv2 的 DiT（Diffusion Transformer，扩散 Transformer）都约 0.8B 参数；RAEv2 从公开的 ImageNet 预训练 DiT 初始化，使用 flow matching 与 REPA（representation alignment，表示对齐），规划时每步做 1 或 5 次去噪（§4.2、Appendix D.5）。训练成本比较在 8 张 H100 上给 12 小时预算，规划时间比较则在 16M 条转移上训练四种深度的模型，在单张 H100 上测量每条轨迹的平均规划时间（§4.2）。</p>
+<p>策略实验在 LIBERO 与 RoboCasa 仿真器中进行。LIBERO 使用 Spatial、Object、Goal、Long 四个套件共 40 个任务，每个任务 50 个 episode；RoboCasa 使用 24 个厨房任务，每个任务 50 个 episode，测试场景和物体实例与训练分开（§5、Appendix D.9）。RoboCasa 有两种数据设置：每任务约 50 条人类演示，或 300 条 MimicGen 生成演示（§5、Appendix D.7）。基线包括 π0、π0.5、OpenVLA-OFT、CogVLA、Cosmos Policy、Video Policy、GR00T-N1.5 等；LaLa-Policy 与 Cosmos Policy 都只用动作和未来观测作为预测目标，不加辅助的未来本体感知或价值预测（§5）。策略表没有报告标准误、置信区间或训练种子，这一点在 §4.3 和 §5 会再讨论。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p>先看规划主结果。Table 1 上半部分的五个仿真任务上，LaLa-World 的平均成功率为 72.1%，比 JEPA-WMs 的 64.6% 高 7.5 个百分点，比 DINO-WM 的 62.3% 高 9.8 个百分点；其中 Push-T 从 68.8% 提到 81.2%，Wall 达到 95.8%（同表最强基线是 DINO-WM 的 90.6%），MetaWorld-R 75.0%、MetaWorld-RW 52.1%。但 PointMaze 只有 56.2%，低于 JEPA-WMs 的 60.4% 和 DINO-WM 的 59.4%（Table 1 上半部分）。下半部分的五个基准平均 50.5%，高于 JEPA-WMs 的 44.8%；RoboCasa 零样本 Reach 40.6%、Place 46.9%，分别高于 JEPA-WMs 的 37.5% 与 31.2%；DROID 为 40.2%，低于 JEPA-WMs 的 43.0%（Table 1 下半部分）。这组数字支持「联合训练在平均上更强」，但也清楚显示它不是每个域都赢。</p>
+<p>加入图像&#x2F;视频数据的效果见论文 Fig. 4 与 Table F。在 Wall、PointMaze、MetaWorld-R、RoboCasa-R、DROID 五个域上，只用控制轨迹训练时平均 59.3%，加入全部数据后 61.6%；把动作模板改写成同义表达（paraphrase）后，只用控制数据掉到 52.5%（下降 6.8 个百分点），用全部数据只掉到 61.0%（下降 0.6 个百分点）（§4.1、Table F）。作者据此主张图像&#x2F;视频数据既提升平均性能，也提升对动作措辞的鲁棒性。原文事实是这两组数字；作者主张是「更广的语言与视觉变化让预测器减少对固定模板的依赖」；审稿人判断是，这一对比只覆盖五个域，且数据量同时增加，无法把「语言多样性」与「更多视觉数据」分开。</p>
+<p>定性语言动作的结果更能说明边界。Table E 中，把数值幅值粗化成三档后，Wall 仍有 83.3%、MetaWorld-R 70.8%、MetaWorld-RW 60.4%，其中 MetaWorld-RW 甚至高于数值版的 52.1%，但 Push-T 从 81.2% 跌到 4.2%，PointMaze 从 56.2% 跌到 47.9%，RoboCasa-P 从 46.9% 跌到 25.0%。这说明「没有数字也能规划」只在动作粗粒度足够的任务上成立；对于需要精确推动的 Push-T，丢掉幅值信息几乎是灾难性的。论文在 §4.1 与 Appendix C.6 提到定性描述会带来性能下降，但没有单独分析 Push-T 的 4.2%；摘要与标题的「natural language actions」仍可能让读者高估其通用性。</p>
+<p>最后是论文最看重的匹配比较。LaLa-World 与 RAEv2 共用 DINOv3-L&#x2F;16 编码器、语言条件和训练数据，预测器都约 0.8B 参数；区别在于前者预测每个未来帧只需一次前向，后者每个未来帧要做 1 或 5 次去噪。在 8 张 H100、12 小时预算下，LaLa-World 约 2 小时达到五步 RAEv2 训练 12 小时的水平，最终规划成功率 59.4%，五步 RAEv2 为 48.0%、一步为 40.4%；单条轨迹规划时间相对五步 RAEv2 快 13.9 倍、相对一步快 2.9 倍（§4.2、论文 Fig. 5、Appendix C.8）。图 4 把训练时间曲线与推理时间散点放在一起，读者可以同时看到「更快到达同等性能」和「更低的单次规划成本」；但 6 倍成本优势来自到达时间，不是同一预算下的最终分数。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/lalaworld_fig4.png"
+                      alt="图 4：潜空间与生成式世界模型的匹配比较"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 5）：这张图比较的是两个在编码器、语言条件和训练数据上都对齐的世界模型。它一方面追踪规划性能随训练时间的变化：LaLa-World 的曲线在约 2 小时达到五步 RAEv2 在 12 小时达到的水平，并在 12 小时预算结束时达到 59.4%，而五步 RAEv2 是 48.0%、一步 RAEv2 是 40.4%。另一方面，它把规划性能与每条轨迹的平均规划时间放在一起，四个点对应不同的预测器深度；LaLa-World 的完整模型在更高性能下用时更短，论文据此报告相对一步 RAEv2 约 2.9 倍、相对五步 RAEv2 约 13.9 倍的速度优势。读图时要区分「时间到性能」与「相同算力下的最终性能」：6 倍训练成本的说法来自到达时间，而不是两条曲线在同一预算下的完整比较；速度优势也依赖于基线只做 1 或 5 步去噪。</p>
+<p>策略结果见 Table 2、Table 3 与 Table 4。LIBERO 上 LaLa-Policy（LaLa-World 初始化）平均 97.7%，Cosmos Policy（Cosmos-Predict2 初始化）97.3%，CogVLA 97.4%，π0.5 96.9%；LaLa-Policy 在 Object 上达到 100.0%，Spatial 98.6% 略低于 π0.5 的 98.8%，Goal 上 97.2% 低于 π0.5 的 98.0%，Long 上 95.0% 低于 CogVLA 的 95.4%（Table 2）。RoboCasa 的 50 条人类演示设置中，LaLa-Policy 57.3%，Cosmos Policy 56.0%，Qwen3.5 初始化的 LaLa-Policy 56.8%，随机初始化 55.5%；300 条 MimicGen 演示设置中，LaLa-Policy 66.4%，Video Policy 66.0%，GR00T-N1.5 64.1%（Table 3）。推理时间方面，LaLa-Policy 在 LIBERO 上每条轨迹 0.86 秒、RoboCasa 上 2.12 秒，对比 Cosmos Policy 的 4.45 秒与 11.71 秒，分别约 5.2 倍与 5.5 倍加速（Table 4）。这些数字支持「有竞争力且更快」，但策略表的差距只有零点几个百分点，且没有误差棒。图 5 展示了策略在 LIBERO 与 RoboCasa 上的预测未来与真实执行对照。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-23/lalaworld_fig5.png"
+                      alt="图 5：LaLa-Policy 的预测未来与执行"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 7）：这张图展示 LaLa-Policy 在 LIBERO 和 RoboCasa 上执行任务时，真实观测与解码后的预测未来之间的对照。预测的未来对应动作块执行到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mo>+</mo><mi>N</mi></mrow><annotation encoding="application/x-tex">t+N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6984em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">t</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">N</span></span></span></span> 时的状态，而动作块由动作生成器根据预测器的隐藏状态生成。读者应从中理解两点：第一，策略确实在训练中被要求同时预测动作和未来表示，所以解码出的未来能看到机械臂运动和物体位置变化；第二，这些预测图不参与测试时的动作选择，视觉质量也明显低于真实观测，因为模型从未被训练去重建像素。这张图是「表示中包含未来信息」的定性证据，不是规划或控制的定量证据。</p>
+<p>回到「世界模型预训练是否真的帮到策略」这个问题，初始化对比给出的是方向性但不算强的信号：LIBERO 上 LaLa-World 初始化 97.7%、Qwen3.5 初始化 95.7%、随机初始化 94.1%；RoboCasa 50 演示上依次为 57.3%、56.8%、55.5%（Table 2、Table 3）。两端差距都只有一到两个百分点，且策略表没有标准误或训练种子。审稿人判断：由于 Appendix D.9 明确说预测的未来表示在测试时不参与动作选择，这里的收益更可能来自未来预测作为辅助训练信号对共享骨干的正则作用，而不是测试时的想象规划；图 5 能说明表示里含有未来信息，但不能单独证明这些信息被策略用于决策。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>先按证据类型把话说清楚。Table 1、论文 Fig. 4、论文 Fig. 5 的成功率与时间数字是原文事实；作者把提升归因于「语言接口让一个预测器跨域学习」和「潜空间预测比像素生成更适合规划」，是作者主张；我认为这些实验还不足以把语言接口与数据量、编码器选择分开，是审稿人判断；训练种子、失败率、完整的数据源消融论文没有报告，属于无法确认。</p>
+<p>最强的机制证据来自「模型是否真的在读语言」的诊断。作者定义了一个语言敏感性（language sensitivity）分数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi><mo stretchy="false">(</mo><mi>z</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">S(z)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.044em;">z</span><span class="mclose">)</span></span></span></span>：以「保持当前状态」为 0、精确预测目标表示为 1，衡量给定条件 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi></mrow><annotation encoding="application/x-tex">z</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.044em;">z</span></span></span></span> 时预测表示相对目标的准确度（Appendix C.3）。他们固定目标转移、只改条件：把数值描述换成定性描述、把方向词反转、把幅值词互换。方向反转后分数可能变负，因为预测会被推向相反方向；结果显示 Qwen3.5 骨干最接近这种预期模式，而只用控制数据训练时定性描述的分数会明显下降，加入图像&#x2F;视频数据后差距收窄（Appendix Fig. E）。更有说服力的是骨干对比：Nemotron-1B 的验证损失接近 Qwen3.5，但方向词反转后分数几乎不变，说明「预测损失低」不等于「模型遵循动作语义」（Appendix C.3、Appendix Fig. F）。ImageNet 变换检索是另一个干净的干预：同一张源图、256 个变换候选，模型要根据语言描述找回指定变换，LaLa-World 的 MRR（mean reciprocal rank，平均倒数排名）为 0.856，而直接用源表示或空语言条件只有 0.024 与 0.026（Table A）。这三组证据合起来，足以支持「预测器在使用条件语义」这一较窄的结论。</p>
+<p>但「语言接口带来跨域收益」的证据没有那么干净。Table C 比较了三种设置：预训练初始化 + 联合训练平均 60.2%，随机初始化 + 联合训练 55.6%，预训练初始化 + 单域训练 54.5%（六个基准的非加权平均）。这支持「联合训练 + 预训练初始化更好」，但单域模型只见过自己域的数据，联合模型见过全部数据；随机初始化则只隔离了语言模型预训练的作用，没有隔离语言接口本身。更麻烦的是，Table D 显示同一架构的预测器分别用不同编码器训练时，平均分可以从 47.7&#x2F;53.7 变到 63.0（双编码器），而 Table 1 的 LaLa-World 行允许每个基准选择不同视觉编码器（Table D 的 reference 行复现了 Table 1）。JEPA-WMs 与 DINO-WM 在 Table 1 里也按基准选择编码器，所以这不是 LaLa-World 相对基线的不公平；但它意味着「一个预测器跨所有域」至少要理解为按编码器分开的两个检查点，且编码器选择本身是影响分数的超参数。审稿人判断：这不会推翻「联合训练有效」的方向，但会让「语言接口是主要功臣」的因果解释变弱。</p>
+<p>图像&#x2F;视频数据的作用也没有被拆开。论文 Fig. 4 的对比同时改变了三件事：数据量（增加约 136 万条）、语言分布（视频字幕和编辑指令远比固定模板多样）、视觉覆盖（自然场景与图像变换）。Table F 的复述鲁棒性更像是在支持「语言分布」这一项，但平均性能的提升也可能来自更多数据或更好的视觉正则。论文没有报告单独加入 OpenVid、单独加入 OmniEdit、单独加入 ShareGPT 的消融，也没有报告「等量控制数据继续训练」的对照；因此无法判断 59.3→61.6 的 2.3 个百分点里，各因素各占多少。这是机制证据的主要缺口。</p>
+<p>策略路径的机制证据更薄。Table 2 和 Table 3 的初始化对比显示：LIBERO 上 LaLa-World 初始化 97.7%、Qwen3.5 初始化 95.7%、随机初始化 94.1%；RoboCasa 50 演示上分别是 57.3%、56.8%、55.5%（Table 2、Table 3）。方向一致，但差距很小，且没有误差棒；同时策略把视觉编码器从 DINO 换成了 SigLIP2，未来表示的预测头需要重新适配，真正迁移的主要是语言模型骨干。加上 Appendix D.9 明确说预测的未来表示不参与动作选择，策略的「世界模型预训练收益」目前只能算「有正向前兆」，不能算「机制已被隔离」。Appendix C.2 的 LLM actor 实验（Claude Opus 5、GPT-6 Astra 用 8–96 次世界模型调用代替 CEM 的 4,500–54,000 次）说明语言接口确实能让外部 LLM 与预测器交换「动作—代价」，但结果并不稳定：Claude Opus 5 在 Wall 上 100.0% 对 CEM 的 95.8%、在 RoboCasa-R 上 53.1% 对 40.6%，PointMaze 却只有 31.2% 对 56.2%；GPT-6 Astra 在 DROID 上 44.7% 高于 CEM 的 40.2%，RoboCasa-R 只有 17.4%（Table B）。这更像接口可行性的演示，而不是性能证据。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p>训练成本方面，论文报告世界模型在 8 张 H100 80GB 上训练 20 个 epoch、每个 epoch 约 100 万样本、全局批大小 512；策略微调同样在 8 张 H100 上，LIBERO 8 个 epoch、RoboCasa 50 演示 12 个 epoch、300 演示 3 个 epoch（Appendix D.3、D.8）。但论文没有报告总 GPU 小时、墙钟时间、能耗或费用；匹配比较里的 12 小时只是 RAEv2 对比实验的固定预算，不是完整训练成本。数据方面，Table G 的十个来源合计约 654 万条目标转移&#x2F;编辑对，其中图像&#x2F;视频约 136 万条；视频字幕由 Qwen3-VL-30B-A3B-Instruct 生成，这是一次额外的模型调用成本，论文没有报告其吞吐或费用。论文没有报告人工标注；控制数据的语言模板和 DROID 的动作描述都是规则生成的。</p>
+<p>规划成本不低。Table H 的 CEM 设置是每次规划 15 或 30 次迭代、每次 300 条候选、保留 10 或 30 条，单条轨迹的世界模型调用量在 4,500 到 54,000 次之间（Table B 括号内）；每条候选序列还要自回归预测 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi></mrow><annotation encoding="application/x-tex">H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span> 步，而 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi></mrow><annotation encoding="application/x-tex">H</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span></span></span></span> 最多为 6（Table H）。论文 Fig. 5(b) 报告了每条轨迹的平均规划时间，LaLa-World 比五步 RAEv2 快 13.9 倍；该图的时间轴以分钟计，说明这是分钟级规划，不是实时控制，而正文只给了相对加速，没有逐一列出绝对数值。策略推理快得多：每条轨迹 0.86 秒（LIBERO）和 2.12 秒（RoboCasa），比 Cosmos Policy 快 5.2–5.5 倍；论文没有说明测量硬件、是否包含模拟器步进，也没有给出端到端部署延迟（Table 4）。</p>
+<p>适用范围需要明确收缩。规划实验全部是短时域、低维动作、目标图像条件的任务：<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo>≤</mo><mn>6</mn></mrow><annotation encoding="application/x-tex">H\le 6</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8193em;vertical-align:-0.136em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">6</span></span></span></span>，动作维度多为 2–7 维，成功判据有些是作者自定义的（Rope&#x2F;Granular 的 Chamfer 距离阈值，Appendix D.4.1）；DROID 是离线动作分数，不在闭环中执行；RoboCasa 是零样本但仍是仿真。策略实验只在 LIBERO 和 RoboCasa 仿真器里做，没有真实机器人；论文在 Appendix B 把真实机器人评测列为未来工作。编码器冻结、只监督下一帧表示、没有奖励或价值预测，这些设计让方法难以直接迁移到需要长程推理或稀疏目标的任务。论文也没有报告失败案例分布、基础设施失败率或重试次数，因此无法判断系统在真实部署中的稳定性。</p>
+<p>综合来看，本文能支持的范围是：「在若干短程、低维、目标图像条件的仿真规划任务上，一个语言条件的潜空间预测器可以跨 7 个控制数据集和 3 个图像&#x2F;视频来源联合训练，平均表现优于按域训练的 LWM，并且在匹配条件下比 RAEv2 生成式世界模型更高效；同一个预训练模型可以作为仿真策略的初始化，取得与 Cosmos Policy 相近的成功率和更快的推理。」它不能支持「通用世界模型」「开放语言指令理解」「真实机器人部署」「长程规划」这些更大的结论。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：联合训练的收益与「更多数据、按基准选编码器」纠缠在一起"><a href="#质疑：联合训练的收益与「更多数据、按基准选编码器」纠缠在一起" class="headerlink" title="质疑：联合训练的收益与「更多数据、按基准选编码器」纠缠在一起"></a>质疑：联合训练的收益与「更多数据、按基准选编码器」纠缠在一起</h4><ul>
+<li><strong>原文依据</strong>：Table C 的联合训练 60.2% 对比单域训练 54.5%，但单域模型只见过本域数据；Table F 的「控制数据单独训练 59.3% → 全部数据 61.6%」同时增加了约 136 万条图像&#x2F;视频数据，没有等数据量对照；Table D 显示同一架构的预测器换编码器可从 47.7&#x2F;53.7 变到 63.0（双编码器），而 Table 1 的 LaLa-World 行允许每个基准选择不同视觉编码器（Table D 的 reference 行复现 Table 1；JEPA-WMs 与 DINO-WM 也按基准选编码器，因此这不是与基线的公平性问题）；论文没有报告按数据源拆分的消融，也没有报告「等量控制数据继续训练」的基线。</li>
+<li><strong>为什么重要</strong>：论文的核心主张是「语言接口让一个预测器跨域扩展」。如果收益主要来自更多数据、更大视觉覆盖或按基准挑编码器，那么语言接口的必要性就被削弱；这直接影响创新性和结论范围。</li>
+<li><strong>当前能够得出的判断</strong>：原文事实支持「联合训练的平均分更高」；作者主张「语言接口是原因」；审稿人判断是当前实验存在数据量与编码器选择的混杂，无法把语言接口的贡献单独量化。Table 1 的「单一预测器」至少是按编码器分开的两个检查点，严格说不是「一个模型」。</li>
+<li><strong>如何验证或补强</strong>：增加等数据量、等算力的对照：用相同总转移数只训练控制数据；为每个域训练同规模但数值动作条件的联合模型（共享骨干、按域动作头）；固定单一编码器报告全部基准；报告每个数据源单独加入的消融；在相同编码器和相同数据下比较语言条件与数值条件。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：策略结果在噪声范围内，未来预测不参与测试时决策"><a href="#质疑：策略结果在噪声范围内，未来预测不参与测试时决策" class="headerlink" title="质疑：策略结果在噪声范围内，未来预测不参与测试时决策"></a>质疑：策略结果在噪声范围内，未来预测不参与测试时决策</h4><ul>
+<li><strong>原文依据</strong>：Table 2 中 LaLa-Policy 97.7% 对 Cosmos Policy 97.3%、CogVLA 97.4%；Table 3 的 50 演示设置 57.3% 对 56.0%，300 演示设置 66.4% 对 Video Policy 66.0%；策略表没有标准误、置信区间或训练种子。Table 2&#x2F;3 的初始化对比是 97.7&#x2F;95.7&#x2F;94.1 与 57.3&#x2F;56.8&#x2F;55.5，差距只有 0.5–2.0 个百分点。Appendix D.9 明确说预测的未来表示不用于动作选择；Appendix D.6 显示策略把视觉编码器换成了 SigLIP2，预测头需要重新适配。</li>
+<li><strong>为什么重要</strong>：如果策略优势落在评测噪声内，「世界模型预训练对策略有用」就只是方向性前兆；如果未来预测只在训练时做辅助监督、测试时完全不参与决策，那么「LaLa-Policy 能预判未来」的说法容易被误读为测试时的想象规划。</li>
+<li><strong>当前能够得出的判断</strong>：现有数字支持「有竞争力且推理更快」，但没有证明「显著更好」；初始化收益方向一致，但幅度小且缺少方差信息。论文没有报告策略的训练种子或多种子重复，当前材料无法确认这些差异是否统计显著。</li>
+<li><strong>如何验证或补强</strong>：报告 3–5 个训练种子的均值与标准差；对 LIBERO&#x2F;RoboCasa 的逐任务结果做配对检验或 bootstrap；增加「预测未来但不使用」与「完全去掉未来预测」的消融，量化辅助损失的作用；在测试时尝试用预测的未来做 best-of-N 或模型预测控制，验证「预判」是否能转化为决策收益。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：规划评测范围窄、统计弱，部分基线设置不完全公平"><a href="#质疑：规划评测范围窄、统计弱，部分基线设置不完全公平" class="headerlink" title="质疑：规划评测范围窄、统计弱，部分基线设置不完全公平"></a>质疑：规划评测范围窄、统计弱，部分基线设置不完全公平</h4><ul>
+<li><strong>原文依据</strong>：Table H 显示规划时域只有 3–6 步，动作维度低，评测轨迹数为 12–96 条；CEM 设置随基准变化（15 或 30 次迭代、300 条候选、保留 10 或 30 条）；Rope&#x2F;Granular 使用作者自定义的 Chamfer 距离阈值；DROID 是离线动作分数，不在闭环中执行；IRIS、DreamerV3、TD-MPC2 被训练时去掉了奖励或任务信息（论文称沿用 DINO-WM 的设置），这与它们原本的设计不匹配，属于偏弱的基线；论文没有报告跨训练种子的方差或显著性检验，Table 1 的标准误统计单位也未说明。</li>
+<li><strong>为什么重要</strong>：短时域、低维、少量评测轨迹上的平均分，不能直接外推到长程操作或真实机器人；弱基线会放大「平均最高」的印象；自定义成功判据会降低与文献的可比性。</li>
+<li><strong>当前能够得出的判断</strong>：与 DINO-WM&#x2F;JEPA-WMs 的比较相对可信，因为使用相同数据和规划设置；与 IRIS&#x2F;DreamerV3&#x2F;TD-MPC2 的比较只能说明这些方法在「无奖励、目标图像条件」的改写下不适用，不能说明它们在本任务上的真实能力。短时域结论成立，长程结论无法确认。</li>
+<li><strong>如何验证或补强</strong>：增加更长时域（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>H</mi><mo>&gt;</mo><mn>10</mn></mrow><annotation encoding="application/x-tex">H&gt;10</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7224em;vertical-align:-0.0391em;"></span><span class="mord mathnormal" style="margin-right:0.0813em;">H</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">10</span></span></span></span>）和更高维动作的基准；报告至少 3 个训练种子的均值&#x2F;方差；对每个基线保留其原生训练信号（奖励、价值）做补充对比；使用社区统一成功判据；扩大评测轨迹数并给出置信区间；在真实机器人或闭环 DROID 上验证。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：latent-与-generative-的匹配比较只有单基线、单预算，「6×-13-9×」被选择性表述"><a href="#质疑：latent-与-generative-的匹配比较只有单基线、单预算，「6×-13-9×」被选择性表述" class="headerlink" title="质疑：latent 与 generative 的匹配比较只有单基线、单预算，「6×&#x2F;13.9×」被选择性表述"></a>质疑：latent 与 generative 的匹配比较只有单基线、单预算，「6×&#x2F;13.9×」被选择性表述</h4><ul>
+<li><strong>原文依据</strong>：§4.2 与论文 Fig. 5 只比较了 RAEv2 一个生成式基线；训练成本是 8 张 H100、12 小时的固定预算，6× 来自「LaLa-World 2 小时达到五步 RAEv2 12 小时水平」的时间到性能；13.9× 是相对五步 RAEv2，相对一步只有 2.9×；RAEv2 额外带一个冻结的 Qwen3-0.6B 文本编码器，而 LaLa-World 把语言理解放在预测器内部；两边的初始化来源不同（Qwen3.5-0.8B 对 ImageNet 预训练 DiT）；「first comparison under matched conditions」的首创性没有经过独立文献检索。</li>
+<li><strong>为什么重要</strong>：这些数字是论文效率和「latent 优于 generative」主张的核心。若只在一个基线、一个短预算、一个去噪步数下成立，结论的范围就应收缩；摘要写「comparable performance with 6× less training cost」，正文却报告更高的 59.4% 对 48.0%，叙述口径不一致，容易让读者误解。</li>
+<li><strong>当前能够得出的判断</strong>：在论文设定的匹配条件下，LaLa-World 的规划性能与时间优势是原文事实；但「潜空间世界模型普遍优于生成式世界模型」是作者主张，单基线、单预算不足以支持。13.9× 的标题数字对应五步去噪，若基线用一步则是 2.9×，应同时报告。</li>
+<li><strong>如何验证或补强</strong>：加入第二个生成式基线（如不同视频生成模型或不同去噪步数），报告相同算力下的完整曲线而非仅时间到匹配；对齐两边的预训练初始化（都用随机初始化或都用同等规模的预训练）；把文本编码器成本计入基线；报告多次训练的方差；把「first」改为「据我们所知」并给出文献检索范围。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：语言动作仍受模板和数值约束，「无数值规划」与语言泛化被夸大"><a href="#质疑：语言动作仍受模板和数值约束，「无数值规划」与语言泛化被夸大" class="headerlink" title="质疑：语言动作仍受模板和数值约束，「无数值规划」与语言泛化被夸大"></a>质疑：语言动作仍受模板和数值约束，「无数值规划」与语言泛化被夸大</h4><ul>
+<li><strong>原文依据</strong>：§3.1 的控制数据用固定模板生成，Appendix D.4.2 的动作聚合把子步求和后再语言化；MPC 中 CEM 始终在数值空间采样，语言只是条件，执行仍用数值（§4、Appendix D.4.3）；定性动作在 Push-T 上从 81.2% 跌到 4.2%，PointMaze 从 56.2% 跌到 47.9%（Table E）；复述模板会让只用控制数据的模型下降 6.8 个百分点（Table F）；Claude Opus 5 在 PointMaze 上只有 31.2%，低于 CEM 的 56.2%（Table B）。</li>
+<li><strong>为什么重要</strong>：标题和摘要的「natural language actions」暗示开放语言接口，但主实验的语言是模板化的数值描述；「没有数字也能规划」只在粗粒度任务上成立。若读者把模板语言当成开放指令理解，就会高估方法的泛化能力。</li>
+<li><strong>当前能够得出的判断</strong>：原文事实是「模板化语言 + 少量同义改写 + 三档定性描述」可以工作；作者主张是语言接口带来鲁棒性；审稿人判断是这离「自然语言动作」的开放语义还有距离，尤其是精细控制任务。真正的自由语言只出现在视频字幕和 LLM actor 的附录实验里，后者并不稳定。</li>
+<li><strong>如何验证或补强</strong>：用未在训练模板中出现的自由语言指令做规划评测；报告模板外措辞、语序变化、同义词替换的分层结果；在 Push-T 等精细任务上分析定性动作失败的原因（是幅值信息丢失还是语言不可分辨）；让 LLM actor 在全部基准上报告结果，而不是只挑部分域。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现现有潜空间世界模型的动作条件被数值动作空间绑住，视频和图像数据又缺少动作标注，导致 LWM 难以跨域、跨数据源扩展；因此提出 LaLa-World，用语言统一数值动作与视觉变化，用语言模型直接读取条件并预测冻结视觉编码器的下一帧表示，再把同一个预训练模型接到 MPC 规划和 LaLa-Policy 策略微调两条路径上。实验在 10 个短程规划基准和 LIBERO&#x2F;RoboCasa 两个仿真策略基准上表明：联合训练的预测器在五个仿真任务上平均 72.1%，高于 JEPA-WMs 的 64.6%；匹配比较中 59.4% 对 RAEv2 的 48.0%，并报告 2.9–13.9 倍的规划加速；LaLa-Policy 在 LIBERO 上 97.7%、RoboCasa 50 演示上 57.3%，推理快 5.2–5.5 倍。其中「语言条件确实影响预测」的证据较强（方向词反转、ImageNet 变换检索、骨干对比），但「联合训练的收益来自语言接口而非数据量与编码器选择」「策略初始化收益超出噪声」「长程与真实机器人可用」仍缺少充分支持。本文最有价值的部分是把「语言作为动作接口」从一个口号变成可训练、可规划、可微调策略的完整管线，并给出了 latent 与 generative 世界模型的匹配比较；最大的审稿风险是核心因果解释被数据量与评测选择混杂，以及策略收益的统计强度不足。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。论文明确区分了「数值动作条件的域绑定」与「视频数据缺少动作标注」两个瓶颈，并把方法边界限定在短程、目标图像条件的规划与仿真策略微调；§3.1 对数据格式的交代足够具体。</li>
+<li><strong>创新性证据</strong>：中。语言作为动作接口、语言模型直接做潜空间预测、同一模型接 MPC 与策略微调，是有辨识度的组合；但各组件（JEPA、Qwen、GR00T 动作头、Cosmos Policy 配方）都是已有的，创新主要是接口设计与系统集成，「首个匹配比较」的首创性未被独立验证。</li>
+<li><strong>方法可信度</strong>：中。架构、数据模板、训练超参和规划设置都交代得较完整，代码已公开；但语言接口与数据量的混杂、按基准选择编码器、冻结编码器与单步监督都限制了机制解释，策略路径还换了视觉编码器。</li>
+<li><strong>实验支持力度</strong>：中。规划基准覆盖 10 个任务，且有匹配的生成式基线、语言敏感性诊断和复述鲁棒性；但评测轨迹少、时域短、无跨种子方差，策略表差距小且无误差棒，部分基线被改写成不适合其原设计的设置。</li>
+<li><strong>可复现性</strong>：中。代码链接和项目页存在，数据来源（DROID、OpenVid、OmniEdit、ShareGPT、LIBERO、RoboCasa）与超参披露较全；但论文没有报告训练种子、GPU 小时、失败率和完整的数据源消融，策略的编码器替换与预测头适配也需要代码确认。</li>
+<li><strong>综合阅读价值</strong>：高。对世界模型、JEPA、机器人规划与策略学习的读者，本文提供了一个清晰的「语言作为共享接口」设计范例，既有匹配比较也有诚实的局限讨论；适合作为该方向的入门与批判性阅读材料，但不应把平均分当作通用能力的证明。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> LaLa-World：把自然语言当作动作接口，扩展潜空间世界模型</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-23 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-24 01:05:47
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/23/2610.27851v2_LaLa-World_Scaling_Latent_World_Models_with_Natural_Language_Actions/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Robot-Manipulation/">#Robot Manipulation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/World-Action-Models/">#World Action Models</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/World-Models/">#World Models</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Planning/">#Planning</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/JEPA/">#JEPA</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/23/2610.30181v1_Deep_Search_in_Real-World_Web_Environments/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">OpenDS-World：真实开放网络中的深度搜索基准</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/22/2610.17860v1_Socratic_Skill_Learning_Interleaving_Teaching_and_Practice_for_Transferable_Agent_Skills/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">苏格拉底式技能学习：教学与实践交替能否带来可迁移的智能体技能</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">LaLa-World：把自然语言当作动作接口，扩展潜空间世界模型</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%95%B0%E6%8D%AE%EF%BC%9A%E6%8A%8A%E5%8A%A8%E4%BD%9C%E4%B8%8E%E8%A7%86%E8%A7%89%E5%8F%98%E5%8C%96%E5%86%99%E6%88%90%E5%90%8C%E4%B8%80%E7%A7%8D%E6%9D%A1%E4%BB%B6"><span class="nav-text">3.1 数据：把动作与视觉变化写成同一种条件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%A8%A1%E5%9E%8B%EF%BC%9A%E5%86%BB%E7%BB%93%E7%BC%96%E7%A0%81%E5%99%A8-%E8%AF%AD%E8%A8%80%E6%A8%A1%E5%9E%8B%E9%A2%84%E6%B5%8B%E5%99%A8-%E6%BD%9C%E7%A9%BA%E9%97%B4%E6%8D%9F%E5%A4%B1"><span class="nav-text">3.2 模型：冻结编码器 + 语言模型预测器 + 潜空间损失</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E4%BD%BF%E7%94%A8%E8%B7%AF%E5%BE%84%E4%B8%80%EF%BC%9AMPC-%E5%9C%A8%E6%BD%9C%E7%A9%BA%E9%97%B4%E9%87%8C%E6%BB%9A%E5%8A%A8%E5%80%99%E9%80%89%E5%8A%A8%E4%BD%9C"><span class="nav-text">3.3 使用路径一：MPC 在潜空间里滚动候选动作</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E4%BD%BF%E7%94%A8%E8%B7%AF%E5%BE%84%E4%BA%8C%EF%BC%9A%E6%8A%8A%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B%E5%BE%AE%E8%B0%83%E6%88%90-LaLa-Policy"><span class="nav-text">3.4 使用路径二：把世界模型微调成 LaLa-Policy</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 182 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
