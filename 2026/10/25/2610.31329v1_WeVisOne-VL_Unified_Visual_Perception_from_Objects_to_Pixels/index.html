@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/25/2610.31329v1_wevisone-vl_unified_visual_perception_from_objects_to_pixels/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从对象到像素：WeVisOne-VL 用结构化 token 与 9.6M 解码器统一视觉感知">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/25/2610.31329v1_WeVisOne-VL_Unified_Visual_Perception_from_Objects_to_Pixels/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-25T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-25T06:52:59.961Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Image Segmentation">
+<meta property="article:tag" content="Object Detection">
+<meta property="article:tag" content="VLMs">
+<meta property="article:tag" content="Visual Grounding">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>从对象到像素：WeVisOne-VL 用结构化 token 与 9.6M 解码器统一视觉感知 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">219</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">186</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">从对象到像素：WeVisOne-VL 用结构化 token 与 9.6M 解码器统一视觉感知</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-25 12:00</span>
+        <span class="mobile">2026-10-25 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-25 14:52:59</span>
+            <span class="mobile">2026-10-25 14:52:59</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/VLMs/">VLMs</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Visual-Grounding/">Visual Grounding</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Object-Detection/">Object Detection</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Image-Segmentation/">Image Segmentation</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<ul>
+<li>论文：WeVisOne-VL: Unified Visual Perception from Objects to Pixels</li>
+<li>作者：Tianming Liang、Junyi Pan、Yuxi Li、Canmiao Fu、Zhipeng Huang、Chong Sun、Chen Li、Jing Lyu（Tianming Liang、Junyi Pan、Yuxi Li 为共同一作）</li>
+<li>机构：WeChat Vision, Tencent Inc.</li>
+<li>版本：arXiv 2610.31329v1（2026-10-22）</li>
+<li>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.31329" >https://arxiv.org/abs/2610.31329<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>arXiv HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.31329" >https://arxiv.org/html/2610.31329<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.31329" >https://huggingface.co/papers/2610.31329<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/Tencent/WeVisOne-VL" >https://github.com/Tencent/WeVisOne-VL<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>权重：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/collections/tencent/wevisone-vl" >https://huggingface.co/collections/tencent/wevisone-vl<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>项目页：<a class="link"   target="_blank" rel="noopener" href="https://tencent.github.io/WeVisOne-VL" >https://tencent.github.io/WeVisOne-VL<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+</ul>
+<p>标签：VLMs、Visual Grounding、Object Detection、Image Segmentation。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>WeVisOne-VL 试图用一套结构化的下一 token（next token）输出——框、点、掩码、alpha matte——把一个 2B&#x2F;4B 的 Qwen3-VL 从对象级定位扩展到像素级分割与抠图：每个实例在框后生成一个 <code>&lt;OBJ&gt;</code> token，其隐藏状态与预测框、多级 ViT 特征一起驱动约 9.6M 参数的共享像素解码器；数据侧用 WDE 把约 1 亿图像、约 36 亿框的检测&#x2F;指代&#x2F;掩码&#x2F;alpha 标注组织成同一实例监督，训练侧用三阶段 SFT 加混合任务 GRPO。论文在 30+ 基准上报告了有竞争力的数字，尤其在密集检测、计数、OCR、缺失目标拒绝和指代分割上；但全文没有消融，多个评测集出现在训练清单里，自建 WeRef-Bench&#x2F;WeRefMat 未公开，像素任务的 RL 又没有 mask&#x2F;alpha 奖励，因此“统一且全面领先”目前只能算有条件的经验结论，“为什么有效”的机制证据尚未建立。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>视觉感知系统至少要回答三个层次的问题：图里有什么、用户指的是哪一个、这个对象的边界和透明度到哪里。前两个是对象级任务（object-level tasks：目标检测、指代定位、计数、OCR、指向），第三个是像素级任务（pixel-level tasks：指代分割、图像抠图）。过去十年，检测&#x2F;分割&#x2F;抠图各有成熟专家模型：YOLO&#x2F;DETR 系列做检测，Grounding-DINO、SAM、SAM3 做开放词汇定位与分割，MODNet、Matte Anything、SAM2-Matting 做抠图；另一边，视觉语言模型（vision-language models, VLMs）用坐标 token 把框和点写进语言输出，Kosmos-2、Florence-2、Molmo&#x2F;PixMo、Rex-Omni、LocateAnything 把检测、指代、指向、OCR 统一成下一 token 预测。两条路线都能在各自基准上工作，但对象级和像素级通常由不同模型、不同数据管线完成。</p>
+<p>论文要解决的正是这种“分离”：一个 VLM 能不能在不挂接 SAM 之类大分割模型的前提下，同时输出框、点、掩码和 alpha matte，并在目标不存在时拒绝？现有做法大致三类。第一类是专家流水线：检测器、分割器、抠图器各自训练，语言理解与像素输出之间靠外接模块传递，身份和查询容易在阶段间丢失。第二类是带坐标 token 的 grounding VLM：Kosmos-2、Florence-2、Molmo&#x2F;PixMo、Rex-Omni、LocateAnything 把框&#x2F;点序列化，但通常不输出掩码，计数和 OCR 也常以直接答案而非实例集合的形式给出。第三类是分割 VLM：LISA 用 [SEG] token 接 SAM，GLaMM 交错文本与掩码，GSVA 支持多目标和拒绝，Text4Seg 把掩码序列化成文本，UniPixel 统一掩码与像素推理，Sa2VA 把 MLLM 与 SAM2 耦合，Youtu-VL 在统一自回归监督下训练视觉&#x2F;语言 token；这些方法把像素能力接进来了，但多数仍依赖一个较大的分割专家或较长的掩码序列。</p>
+<p>这些方法在哪些条件下不好？论文给出的现象是：通用 VLM 在密集&#x2F;小目标场景召回低（Table 2 中 Qwen3-VL-2B 在 Dense200 的 mean F1 只有 10.0，Qwen3-VL-4B 为 15.2），计数容易数错单位或把干扰物算进去（Table 4），OCR 既要识别又要给出紧框时误差大（Table 6），缺失目标时仍倾向输出框（Table 3 的 RefCOCOg-Rej 拒绝率：Qwen3-VL-2B 1.7、Qwen3-VL-4B 18.8、LocateAnything-3B 0.6）；分割模型在目标不存在时也常强行给掩码（Table 7 的 Ref-ZOM：GSVA-7B 拒绝率 41.9、UniPixel-7B 0.3、WeVisOne-VL-4B 86.0）。这些都是原文数字，说明“细粒度感知不可靠”不是空泛判断。</p>
+<p>作者对原因的解释是接口和数据的双重碎片化：对象级输出是离散 token，像素级输出是稠密掩码，两者没有共享的实例表示；检测&#x2F;指代&#x2F;分割&#x2F;抠图的标注又来自不同管线，同一个实例在不同任务里没有稳定身份。于是论文提出一个设计假设：如果所有任务都写成同一种结构化 token 序列，并让每个实例在框后生成一个 <code>&lt;OBJ&gt;</code> token，把该 token 的隐藏状态当作实例表示，再用一个共享的轻量解码器输出掩码&#x2F;alpha，那么对象级与像素级可以在一个 VLM 里统一，且不需要外接大分割模型。这个假设对应两个可检验的子问题：统一接口是否不牺牲各任务精度；共享的 9.6M 解码器是否足以匹配专家分割&#x2F;抠图模型。论文用 30+ 基准的结果支持前者的一部分，但没有用消融证明“统一接口&#x2F;共享解码器”本身是收益来源。</p>
+<p>需要区分三层：领域一般问题是“VLM 的细粒度定位与像素输出不可靠”；本文的具体问题是“如何在一个 2B&#x2F;4B VLM 内同时做检测、指代、计数、OCR、指向、指代分割和抠图，并保持缺失目标拒绝”；论文实际验证的是“在公开与自建基准上，这套结构化接口 + 轻量解码器 + WDE 数据 + 课程&#x2F;RL 流程能取得有竞争力的数字”。它没有解决开放世界推理、多轮交互、模糊指令、视频&#x2F;3D 感知；这些边界在 §8 也有自述。论文观察到了现象，但没有充分验证“碎片化接口是根本原因”这一因果解释——更准确地说，这是一个有数据支持的设计动机，而不是被对照实验隔离的结论。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的技术增量不是新的学习算法，而是“统一接口 + 共享轻量解码器 + 数据引擎 + 课程&#x2F;RL”的系统组合。以下三点分别对应数据、模型与训练；具体证据统一放在 §4。</p>
+<p>第一，结构化输出接口与 <code>&lt;OBJ&gt;</code> 桥。论文把检测、指代、指向、计数、OCR、分割&#x2F;抠图都写成同一套 next-token 序列：坐标用 <code>&lt;0&gt;</code>–<code>&lt;1000&gt;</code> 的专用 token，框是四个坐标、点是两个坐标，目标缺失时填 <code>None</code>；像素任务在框后额外生成 <code>&lt;OBJ&gt;</code>，其隐藏状态作为实例表示。与 Rex-Omni&#x2F;LocateAnything 只输出框&#x2F;点相比，这里多了像素输出；与 LISA 的 [SEG] token + SAM、Sa2VA 的 MLLM+SAM2 相比，这里不调用外部大分割模型，而是用一个共享的轻量解码器同时做分割与抠图，抠图再加一个 alpha 细化头。这是已有组件的新组合与工程实现，不是新的表示学习理论；它对应“对象级与像素级分离”的问题。</p>
+<p>第二，WDE 数据引擎。论文把类别概念与指代表达放进同一个知识图谱，用双检测器提案加 VLM 语义核验得到实例框，再用 SAM2 把框扩展成掩码，用 BiRefNet&#x2F;MatAnyone2 与专用 annotator 扩展成 alpha，并让同一实例的框、掩码、alpha 共享同一查询；难负样本、错误回流和定向采集再把模型失败转成下一轮数据。与常见的“检测数据 + 分割数据分别造”相比，它的增量是实例身份跨任务对齐和闭环回流；这属于数据构造与系统工程贡献，不是新模型。它对应“监督碎片化”的问题，但论文没有做数据源消融，所以增益无法单独归因于 WDE。</p>
+<p>第三，三阶段课程 SFT 加混合任务 GRPO。Stage 1 只训语言模型、建立任务格式与 <code>None</code> 拒绝；Stage 2 解冻视觉编码器、提高分辨率与密集目标上限；Stage 3 用大规模分割样本预热解码器，再以 1:1 交替 NTP 与像素损失联合训练，最后冻结 VLM 微调抠图。RL 先用 SFT 模型的不确定性筛选样本，再用 GRPO 优化完整结构化输出的框级 grounding reward。与 Rex-Omni 的 geometry-aware RL 相比，本文的差异是混合任务、不确定性筛选和统一接口；与普通 GRPO 相比，差异是任务混合与框级奖励。它对应“SFT 的 token 似然不直接优化任务质量”的问题；但论文没有 SFT-only 对照，RL 的独立贡献未被隔离。</p>
+<p>论文还提出 WeRef-Bench（中英指代查询）与 WeRefMat（语言提示抠图）两个自建评测，但它们属于内部基准，公开性与标注协议不足，本文不把它们当作方法创新，相关风险见 §5。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>先给直觉。假设“找出图里所有的狗并给出掩码”和“找出穿红衣服的人并发框”都能写成同一种序列：先输出查询文本，再输出坐标 token，再输出一个实例标记；那么模型就不需要为每个任务换一个输出头。对于像素任务，实例标记 <code>&lt;OBJ&gt;</code> 的隐藏状态此时已经“看过”图像、查询和前面的框，可以把它当作一个 learned instance query（可学习的实例查询）；再让一个小解码器以这个查询为条件，去多级 ViT 特征里取该实例的边界细节，就能输出掩码或 alpha。数据引擎负责让同一个实例在检测、指代、分割、抠图里保持同一身份；三阶段课程负责先把接口教会、再提高分辨率与密度、最后把 token 与像素接起来；RL 则用任务级奖励而不是 token 似然去修框、修重复和修幻觉。下面按数据、接口、模型、训练、推理的顺序展开。</p>
+<h3 id="3-1-数据引擎-WDE：从图像池到统一实例监督"><a href="#3-1-数据引擎-WDE：从图像池到统一实例监督" class="headerlink" title="3.1 数据引擎 WDE：从图像池到统一实例监督"></a>3.1 数据引擎 WDE：从图像池到统一实例监督</h3><p>WDE 的起点是一个图像池（GRIT、CC3M、LAION、SA-1B 及若干任务数据集），论文称其标注库存超过 1 亿图像、约 36 亿框（§2）。注意这是“标注库存”，不是去重后的训练图像数；各阶段实际样本数见 Table 9&#x2F;10。图 1 把这条数据流画成了一个闭环：语义发现决定采什么，定位与语义核验决定哪些实例被保留，实例对齐监督把框、掩码、alpha 挂到同一个查询上，训练后的错误审查再反过来修正采集与标注。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/wevisone_fig1.png"
+                      alt="图 1：WDE 数据引擎总览"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：WDE 不是四个独立模块，而是一条从图像池到统一监督、再回到采集与标注的闭环。左上角的类别概念和指代表达先汇入共享知识图谱，图谱再反过来指定要采集哪些图像和查询；中间阶段把同一查询下的检测&#x2F;指代提案送进两个定位专家，再由 VLM 做查询—实例语义核验，保留的实例框进入 SAM2 得到掩码；右下角的抠图支路在二值掩码上生成 alpha，并训练专用 annotator 回灌整个语料；底部的“训练—错误审查—数据修正”回路把模型失败重新分配到采集、难例或标注修正。读者应理解的关键是：检测框、指代框、分割掩码、alpha matte 始终挂在同一个实例和同一个查询上，这是后面统一 token 接口能成立的数据前提；同时，外部模型（SAM3、SAM2、Qwen3-VL、BiRefNet、MatAnyone2）承担了大量标注，人工只做 spot check。</p>
+<p>语义发现这一步产生两类查询。检测用 Tokenize Anything 发现类别概念；指代任务用 Qwen3-VL 生成包含属性、状态、动作、关系的指代表达。两者被组织进一个从 Wikipedia&#x2F;WordNet 初始化的共享知识图谱，图里存规范类别名、别名、分类关系和整体—部分关系；候选词先通过文本检索与视觉语言核验链接到已有节点，只有视觉证据稳定时才允许加入，规范化时合并等价类别但保留限定指代范围的描述约束（§2.1）。这个图谱同时指导定向采集：概念表示、图像领域、目标尺度、遮挡&#x2F;密集排列、易混类别和历史失败都会影响采样优先级（§2.1）。</p>
+<p>定位与语义核验分两条路。检测查询下，SAM3 和一个基于 DINO 架构的 in-house 开放词汇检测器并行产生候选，合并成候选池；Qwen3-VL 再判断每个区域是否匹配类别查询，完成选择、去重和冲突消解，保留的框既是检测监督，也是后续分割的目标定义（§2.2）。指代查询下，作者在 SAM3 Agent 框架里加入 Rex-Omni 作为第二个定位专家，两个模型给出候选区域，Qwen3-VL 按表达中的属性、状态、动作、关系逐项检查，并区分“被指代的目标”和“只作为上下文提到的物体”，同时判断表达指的是整体还是某个部件（§2.3）。被接受的表达会绑定到一个实例或一个目标集合，从而保留查询的选择约束。</p>
+<p>像素监督是在实例身份上“继承”的。每个定位到的实例用 SAM2 预测可见区域二值掩码，掩码继承生成它的框所属的查询；于是同一实例在同一查询下同时拥有框和掩码：类别查询的框监督检测、掩码监督类别条件分割；指代查询的框监督指代定位、掩码监督指代分割（§2.4）。作者对一部分标注做人工 spot check，检查框&#x2F;掩码是否绑定到正确实例、掩码是否准确，并记录每条标注的来源，以便追溯和重生成（§2.4）。这里的关键设计不是 SAM2 本身，而是“框—掩码—查询”三者不拆散；没有这层绑定，后面的 <code>&lt;OBJ&gt;</code> 就无法同时服务检测和分割。</p>
+<p>难例构造针对的是“查询语义”而不是单纯的目标检测。候选查询来自知识图谱里的易混概念、视觉相似类别、对描述条件的受控修改，以及观察到的模型失败；一个查询只有在图像中没有任何物体满足其全部条件时才算负样本，而且不能只根据查询或检测器输出判断——把“红车”改成“蓝车”并不意味着图里一定没有蓝车，检测器没返回也可能只是漏检（§2.5）。因此每个候选负样本都要对照整张图检查属性、动作、关系；如果发现其实有匹配目标，就送回正样本标注。难负样本的定义依赖当前模型：如果审查确认是负样本、模型却仍预测出目标区域，这个样本就成为 hard negative，带空目标集，只教模型拒绝、不引入任何框或像素目标；hard positive 则收集漏检、指代选错、拥挤&#x2F;遮挡下的困难定位，保留可靠标注（§2.5）。样本难度会随模型版本重新评估，采样重点也随之调整。</p>
+<p>抠图支路是 WDE 里最“重”的部分。对每个已有二值掩码的实例，作者在同一个 crop 上取两个 alpha 候选：BiRefNet 的软前景和 MatAnyone2 的 alpha matte；MatAnyone2 用膨胀&#x2F;腐蚀后的掩码初始化，把 crop 重复成短帧序列，取 warmup 后的最终预测；BiRefNet 没有实例提示，可能对应到别的物体或只覆盖目标的一部分，因此只用它的二值前景与掩码做空间一致性校验，不通过就回退到 MatAnyone2（要求与掩码的 IoU 足够高）或二值掩码本身（§2.6）。被接受的 alpha 会保留细结构、允许超出粗糙边界，但每条都记录来源，以便区分模型预测与二值回退。之后训练一个专用 matting annotator：冻结 SAM2.1-Base+ 分割骨干，加一个轻量 alpha 细化头，融合多尺度图像特征、每个解码阶段的 prompt-mask 引导和浅层 RGB 细节，用多尺度 L1&#x2F;Laplacian、前景&#x2F;背景监督和 prompt 一致性训练；最后把 annotator 应用到全部实例语料，预测替换初始标签，得到约 1.3 亿条 alpha 伪标签，且每条 alpha 仍挂在原实例描述和框上（§2.6、Table 10）。这一步把“二值掩码”扩展成“连续透明度”，同时不破坏语言 grounding 与抠图的实例对应。</p>
+<p>最后是反馈回路。每轮训练后，作者按概念、图像领域、目标尺度、遮挡、任务、失败类型组织模型错误，聚类去重后挑代表案例审查；审查要区分“模型预测错”和“监督错”：标注可靠就保留样本，可能提高采样权重或作为检索种子；标注有缺陷就更正&#x2F;重生成后再进入下一版数据。漏检引导额外采集与 hard positive 采样，指代混淆引导实例对比和更具描述性的查询，假阳性进入 hard negative 构造，框&#x2F;掩码&#x2F;跨任务关联的缺陷退回对应标注阶段；每条数据发布记录标注来源、暴露错误的模型版本和修订历史，未解决案例排除训练，原图与近重复图保持在同一个数据划分，固定监控集只用于内部回归，正式基准与训练及反馈驱动构造隔离（§2.7）。这段描述的是数据如何产生、如何回流，而不是模块清单；但人工核验比例、自动标注失败率、各外部模型的成本都没有报告，后文会把它作为可复现性问题。</p>
+<h3 id="3-2-统一任务格式：同一套-token，不同字段组合"><a href="#3-2-统一任务格式：同一套-token，不同字段组合" class="headerlink" title="3.2 统一任务格式：同一套 token，不同字段组合"></a>3.2 统一任务格式：同一套 token，不同字段组合</h3><p>模型把所有任务都写成结构化 next-token prediction（结构化下一 token 预测）。输入是一张图和一句指令；输出先给查询&#x2F;标签，再给坐标字段：框用 <code>[x0, y0, x1, y1]</code> 四个归一化坐标，点用 <code>[x0, y0]</code> 两个坐标，坐标由 <code>&lt;0&gt;</code>–<code>&lt;1000&gt;</code> 的专用 token 表示；目标不存在时坐标字段填 <code>None</code>（§3.1）。图 2 给出了七类任务的输入输出示例，读者可以从中看到“任务差异”主要落在字段和标签上，而不是换模型或换输出头。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/wevisone_fig2.png"
+                      alt="图 2：统一任务格式的输入输出示例"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 3）：同一个自回归接口用不同的字段组合覆盖检测、指代、指向、计数、OCR 和分割&#x2F;抠图。检测&#x2F;指代把查询写在 <code>&lt;ref&gt;</code> 里，后面跟一个或多个 <code>&lt;box&gt;</code>；指向任务用 <code>&lt;point&gt;</code> 和两个坐标；计数仍输出框，并在末尾给出总数；OCR 把要识别的文字本身放进 <code>&lt;ref&gt;</code>，从而把识别转成“以文本为类别的定位”；分割&#x2F;抠图在框后多生成一个 <code>&lt;OBJ&gt;</code>，这个 token 的隐藏状态就是像素解码器的实例条件。读者应看到的是输出格式的统一性：任务差异主要体现在字段和标签；坐标全部用专用 token 表示，目标不存在时填 <code>None</code>。这种写法让“拒绝”成为序列的一部分，而不是额外的分类头。</p>
+<p>检测可以在一个 <code>&lt;box&gt;</code> 字段里列出多个框；指代任务用 <code>&lt;ref&gt;</code> 保留原表达，框与表达一一对应；指向任务输出点而不是框，适合“交通灯”这类小目标；计数任务让模型先框出被计数的实例、再给总数，这样计数可以被框的质量约束；OCR 把转录文本当作类别标签，预测只有在文本完全匹配且框满足 IoU 阈值时才算对（§5.1.5）；分割&#x2F;抠图则在每个框后生成 <code>&lt;OBJ&gt;</code>，把“这个实例”交给解码器（§3.1、Fig. 3）。这套格式的代价是输出较长：一个框要 4 个坐标 token，一个点要 2 个，密集场景下响应会很长；收益是统一的接口、可解释的中间结果和显式的拒绝字段。论文没有给出完整的指令模板集合，也没有报告不同模板对结果的影响，这一点在复现时需要注意。</p>
+<h3 id="3-3-模型结构：VLM-生成-，轻量解码器把它变成像素"><a href="#3-3-模型结构：VLM-生成-，轻量解码器把它变成像素" class="headerlink" title="3.3 模型结构：VLM 生成 &lt;OBJ&gt;，轻量解码器把它变成像素"></a>3.3 模型结构：VLM 生成 <code>&lt;OBJ&gt;</code>，轻量解码器把它变成像素</h3><p>模型以 Qwen3-VL 为底座（2B&#x2F;4B 两个规模），视觉编码器与语言模型共享。给定图像和指令，VLM 先自回归生成 3.2 节的结构化响应；遇到像素任务时，每生成一个框就生成一个 <code>&lt;OBJ&gt;</code> token，解码器只为这个 token 工作（§3.2）。解码器拿三样东西：<code>&lt;OBJ&gt;</code> 的隐藏状态（实例内容）、它前面的预测框（空间先验）、Qwen3-VL 视觉编码器的多级 pre-merging 特征（外观与细节）。图 3 展示了这三路信息如何汇合；整个解码器（含 alpha 细化头）约 9.6M 参数，推理时不再调用 SAM 之类的外部大分割模型。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/wevisone_fig3.png"
+                      alt="图 3：轻量像素解码器结构"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 4）：上半部分是 VLM 自回归生成 <code>&lt;OBJ&gt;</code> 的过程；下半部分把这个 token 的隐藏状态、预测框和多级 ViT 特征送进像素解码器。视觉特征适配器先把多层 pre-merging 特征投影到统一维度并加上 2D&#x2F;层级位置编码，经过深度可分离卷积与 FFN 得到多级视觉记忆；框引导查询解码器用 <code>&lt;OBJ&gt;</code> 隐藏状态初始化内容查询、用框的 Fourier 编码初始化位置查询，再通过六层 deformable cross-attention 在框附近聚合特征；实例条件稠密预测把多级特征自顶向下融合，与浅层 RGB 特征相加得到像素特征，用实例查询生成动态卷积核，逐级上采样并细化出掩码；抠图分支共享同一套特征与查询，只多一个 alpha 细化头。读者应理解：实例的身份来自语言模型生成的 <code>&lt;OBJ&gt;</code>，空间先验来自它前面的框，细节来自 ViT 的浅层特征，三者缺一不可；分割与抠图共享解码器，因此 9.6M 参数不是两套模型。</p>
+<p>拆开看三个组件。第一，视觉特征适配器（visual feature adapter）从 ViT 的多个中间层取 pre-merging 特征，逐层线性投影到解码器维度，加上 2D 位置编码和可学习的层级嵌入，再经过 T 个“深度可分离卷积 + GELU + 逐点卷积 + LayerNorm + FFN”的块，最后把各层特征展平拼接成多级视觉记忆（§3.2.1）。论文没有在正文给出 T 的具体值（项目页写的是 4 层 pre-merging 特征）；这样做的理由是 patch merging 之后的特征会丢失细边界，而掩码&#x2F;alpha 恰恰依赖浅层细节。</p>
+<p>第二，框引导查询解码器（box-guided query decoder）沿用 Deformable DETR 的多尺度可变形注意力，但实例查询不是静态学习嵌入，而是由 VLM 输出实例化：内容查询是 <code>&lt;OBJ&gt;</code> 隐藏状态的线性映射，位置查询是预测框的 Fourier 编码经 MLP；六层块里，N 个实例查询先做自注意力（query&#x2F;key 用内容+位置，value 用内容），再做以参考框为中心的多尺度可变形交叉注意力，最后过 FFN（§3.2.2）。这样设计的直接作用是：每个实例只在自己的框附近取特征，既降低密集场景的歧义，也让实例之间的自注意力有机会抑制重复框；论文没有与“静态 query”或“只用框 ROI 特征”做对照，因此这部分是架构上的合理选择，而不是被实验证明的必要设计。</p>
+<p>第三，实例条件稠密预测（instance-conditioned dense prediction）先把多级特征自顶向下融合，得到高分辨率的像素特征；再把 1024×1024 输入图经两层 CNN 得到的浅层特征加进来，补回颜色、纹理、边缘；然后用实例查询经 MLP 生成动态卷积核和偏置，在像素特征上得到该实例的初始 mask logits；最后做三级上采样细化，每一级把上一级特征、图像、像素特征和上一级掩码拼接，用实例查询做通道级 scale&#x2F;shift，经残差卷积预测 logits 残差（§3.2.3）。分割输出 512×512 掩码，抠图微调时输出 1024×1024 alpha（Appendix B.2）。分割与抠图共享以上组件，抠图只多一个轻量 alpha 细化头，用于细边界和半透明像素（§3.2）。这套设计的关键假设是：<code>&lt;OBJ&gt;</code> 隐藏状态已经编码了“是哪个实例”，框提供了“在哪里”，多级特征提供了“边界长什么样”；三者组合可以替代一个独立的分割专家。论文没有做“去掉 <code>&lt;OBJ&gt;</code>，只用框 ROI 特征”的消融，所以这个假设目前只有架构图和定性结果支持。</p>
+<h3 id="3-4-训练：三阶段课程-SFT-与混合任务-GRPO"><a href="#3-4-训练：三阶段课程-SFT-与混合任务-GRPO" class="headerlink" title="3.4 训练：三阶段课程 SFT 与混合任务 GRPO"></a>3.4 训练：三阶段课程 SFT 与混合任务 GRPO</h3><p>训练分四段：三阶段 SFT，然后 RL。Stage 1 是任务对齐（task alignment）：从 Qwen3-VL 出发扩展词表，冻结视觉编码器和视觉—语言投影层，只训语言模型，用约 9,020 万样本、13,000 步，让模型学会不同任务的指令、结构化输出和 <code>None</code> 拒绝；这一阶段只用 next-token prediction（NTP），不激活像素解码器，视觉 token 数为 16–512，上下文长度 4,096，并且主要使用每类最多 50 个框&#x2F;点的样本，以避免极密集响应导致重复输出崩溃（§4.1、Table 9&#x2F;11）。Stage 2 是分辨率与密度扩展（resolution and density scaling）：解冻视觉编码器、投影层和语言模型，把最大视觉 token 提到 1,960、单响应最大框&#x2F;点数提到 500、上下文长度提到 8,192，用约 4,050 万样本、8,995 步，继续只做 NTP，目的是提高小目标和拥挤场景的召回（§4.1）。Stage 3 是 token–像素交替优化（alternating token–pixel optimization）：先用 SFT-S2 的 VLM 与随机初始化的解码器在 2.5 亿分割样本上联合训练 100,000 步，分割损失为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>20</mn><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">f</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">l</mi></mrow></msub><mo>+</mo><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">d</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">e</mi></mrow></msub></mrow><annotation encoding="application/x-tex">20\mathcal{L}_{\mathrm{focal}}+\mathcal{L}_{\mathrm{dice}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord">20</span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">focal</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">dice</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>；预热后只保留解码器权重和学到的 <code>&lt;OBJ&gt;</code> 嵌入，挂回原始 S2 checkpoint，再联合训练 9,062 步，NTP 与像素任务按 1:1 交替，联合损失为</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">j</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">n</mi><mi mathvariant="normal">t</mi></mrow></msub><mo>=</mo><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">N</mi><mi mathvariant="normal">T</mi><mi mathvariant="normal">P</mi></mrow></msub><mo>+</mo><mn>10</mn><mtext> </mtext><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">g</mi></mrow></msub><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">
+\mathcal{L}_{\mathrm{joint}}=\mathcal{L}_{\mathrm{NTP}}+10\,\mathcal{L}_{\mathrm{seg}}.
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">joint</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">NTP</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.9694em;vertical-align:-0.2861em;"></span><span class="mord">10</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight" style="margin-right:0.0139em;">seg</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mord">.</span></span></span></span></span>
+<p>这一阶段每个 GPU 的每个 packed sequence 随机抽 24 个 <code>&lt;OBJ&gt;</code> 送入解码器做分割，文本部分仍做完整 NTP；LLM 用 LoRA（r&#x3D;128、α&#x3D;256、dropout 0.05），token embedding 和输出头全量训练（§4.1、Appendix B.2、Table 11）。最后冻结 VLM，用约 1.3 亿抠图样本微调解码器 100,000 步，输出 1024×1024 alpha，损失由 L1、梯度、Laplacian 和 hard-pixel 项组成（论文给的系数是 200&#x2F;5&#x2F;50&#x2F;1，§4.1）。这一步把二值分割解码器特化成连续 alpha 预测器，但 VLM 不再更新，所以抠图能力主要来自解码器与 WDE 的 alpha 伪标签。</p>
+<p>RL 阶段先做不确定性筛选：用 SFT 模型对每个候选 prompt 采样一组响应并计算任务奖励，记组内均值和标准差为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>μ</mi><mi>x</mi></msub></mrow><annotation encoding="application/x-tex">\mu_x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">μ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">x</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>σ</mi><mi>x</mi></msub></mrow><annotation encoding="application/x-tex">\sigma_x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">σ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">x</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，按 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>U</mi><mo stretchy="false">(</mo><mi>x</mi><mo stretchy="false">)</mo><mo>=</mo><mn>4</mn><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><msub><mi>μ</mi><mi>x</mi></msub><mo stretchy="false">)</mo><msub><mi>σ</mi><mi>x</mi></msub></mrow><annotation encoding="application/x-tex">U(x)=4\mu_x(1-\mu_x)\sigma_x</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">U</span><span class="mopen">(</span><span class="mord mathnormal">x</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord">4</span><span class="mord"><span class="mord mathnormal">μ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">x</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">μ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">x</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">σ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.1514em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">x</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 选“模型有时成功、有时失败”的样本；这样选出的约 14 万条，再补上定向框监督和指向数据，得到 17.8 万条 RL 样本。任务分布是 44.0% 检测、20.8% 密集检测、17.5% 指代定位、7.9% OCR、5.8% 指代分割、4.0% 指向（§4.2、Appendix A.3）。GRPO 对每个 prompt 采样 8 条完整响应，把响应解析成预测框集合，按语义类别做一对一匈牙利匹配，奖励为</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>r</mi><mi>i</mi></msub><mo>=</mo><mfrac><mrow><mn>2</mn><munder><mo>∑</mo><mrow><mo stretchy="false">(</mo><mover accent="true"><mi>b</mi><mo>^</mo></mover><mo separator="true">,</mo><msup><mi>b</mi><mo>∗</mo></msup><mo stretchy="false">)</mo><mo>∈</mo><msub><mi mathvariant="script">M</mi><mi>i</mi></msub></mrow></munder><mrow><mi mathvariant="normal">I</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">U</mi></mrow><mo stretchy="false">(</mo><mover accent="true"><mi>b</mi><mo>^</mo></mover><mo separator="true">,</mo><msup><mi>b</mi><mo>∗</mo></msup><msup><mo stretchy="false">)</mo><mn>3</mn></msup></mrow><mrow><msub><mi>N</mi><mrow><mi mathvariant="normal">g</mi><mi mathvariant="normal">t</mi></mrow></msub><mo>+</mo><msub><mi>N</mi><mrow><mi mathvariant="normal">p</mi><mi mathvariant="normal">r</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">d</mi></mrow></msub></mrow></mfrac><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">
+r_i=\frac{2\sum_{(\hat b,b^*)\in\mathcal{M}_i}\mathrm{IoU}(\hat b,b^*)^3}{N_{\mathrm{gt}}+N_{\mathrm{pred}}}.
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0278em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.8207em;vertical-align:-0.9721em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8486em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">N</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">gt</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">N</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.109em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">pred</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.8907em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">2</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop"><span class="mop op-symbol small-op" style="position:relative;top:0em;">∑</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3743em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mopen mtight">(</span><span class="mord katex-accent mtight"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9579em;"><span style="top:-2.7em;"><span class="pstrut" style="height:2.7em;"></span><span class="mord mathnormal mtight">b</span></span><span style="top:-2.9634em;"><span class="pstrut" style="height:2.7em;"></span><span class="accent-body" style="left:-0.25em;"><span class="mord mtight">^</span></span></span></span></span></span></span><span class="mpunct mtight">,</span><span class="mord mtight"><span class="mord mathnormal mtight">b</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6183em;"><span style="top:-2.786em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mbin mtight">∗</span></span></span></span></span></span></span></span><span class="mclose mtight">)</span><span class="mrel mtight">∈</span><span class="mord mtight"><span class="mord mathcal mtight">M</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.5007em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm">IoU</span></span><span class="mopen">(</span><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.9579em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">b</span></span><span style="top:-3.2634em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.25em;"><span class="mord">^</span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">b</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6887em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">∗</span></span></span></span></span></span></span></span><span class="mclose"><span class="mclose">)</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.9721em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mord">.</span></span></span></span></span>
+<p>奖励对漏检和重复框都惩罚，IoU 取三次方以放大高 IoU 区间的定位改进；负样本只有在模型不预测任何对象时才得 1。关键限制是：分割和抠图的 RL 只用框级 grounding reward，不评估预测的掩码或 alpha；指代分割还要求框后必须生成 <code>&lt;OBJ&gt;</code>，否则该预测无效；OCR 用转录奖励；抠图甚至没有出现在 RL 任务分布里（§4.2、Appendix B.3）。换句话说，RL 直接优化的是“框得准不准、该不该拒绝、框后有没有 <code>&lt;OBJ&gt;</code>”，像素边界本身由 SFT&#x2F;解码器微调负责。</p>
+<h3 id="3-5-推理时发生什么"><a href="#3-5-推理时发生什么" class="headerlink" title="3.5 推理时发生什么"></a>3.5 推理时发生什么</h3><p>推理时输入图像和指令，模型用 greedy decoding、temperature 0，每张图最多 1,960 个视觉 token；VLM 自回归输出结构化响应，遇到框&#x2F;点就写坐标 token，遇到像素任务就生成 <code>&lt;OBJ&gt;</code>，解码器随即以该 token 的隐藏状态、框和多级 ViT 特征为条件输出掩码或 alpha。模型决定标签、框、点、转录文本、是否输出 <code>None</code> 以及 <code>&lt;OBJ&gt;</code> 的位置；解码器是一个固定的轻量模块，不参与语言决策；WDE 是离线数据流程，不在推理路径里。整个系统是单轮、无工具调用、无 CoT 的：论文明确说为了效率不训练思维链，当前也只支持单轮预测（§8）。这使推理路径简单，但也意味着模糊指令、多轮澄清和需要外部工具的场景不在覆盖范围内。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p>论文在 30+ 基准上评测五类对象级任务（检测、指代检测、计数、指向、OCR）和两类像素级任务（指代分割、抠图）。检测用 COCO、LVIS、Dense200、VisDrone，指标是 F1@IoU&#x3D;0.5、F1@IoU&#x3D;0.95 和 0.5–0.95 的平均（Mean）；其中 COCO&#x2F;LVIS 明确是零样本，Dense200 是 Rex-Omni 提出的 200 张人工标注密集图像基准，VisDrone 则出现在 Table 9 的训练清单里（Table 2 只声明 COCO&#x2F;LVIS 零样本）。指代检测用 RefCOCOg、HumanRef、Ref-Adv-s、PR-Bench、DVGBench、Ref-L4、RefCOCOg-Rej，以及自建 WeRef-Bench（2,880 条中英查询，含单目标、多目标、缺失目标），指标是 F1 Mean 与拒绝率（§5.1.2）。计数用 CountQA、PixMo-Count、CLOC、KubriCount、MixCount，指标是精确匹配（exact match）；指向用 PointBench、PixMo-Points 和检测派生的 COCO&#x2F;LVIS&#x2F;Dense200&#x2F;VisDrone，指标是 F1@Point；OCR 用 HierText、ICDAR2015、TotalText、SROIE，把转录文本当类别标签，指标是 F1@IoU；指代分割用 RefCOCO&#x2F;RefCOCO+&#x2F;RefCOCOg、ReasonSeg、Ref-ZOM，指标是 cIoU&#x2F;gIoU 与拒绝率；抠图用 P3M-500-NP、AM-2K、PPM-100 的 GT 框提示，以及自建 WeRefMat 的类别&#x2F;指代提示，指标是 MAD、MSE、Grad、Conn、SAD（越低越好，MAD&#x2F;MSE 乘 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mn>10</mn><mn>3</mn></msup></mrow><annotation encoding="application/x-tex">10^3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span></span></span></span></span></span></span></span>）（§5.1.3–5.1.7）。</p>
+<p>基线覆盖三类：专用模型 GroundingDINO-T、PP-OCRv5、Matte Anything、SAM2-Matting（SAM2.1-T&#x2F;B+、SAM3）；通用 VLM Qwen3-VL-2B&#x2F;4B&#x2F;8B Instruct、Qwen3.5-4B&#x2F;9B（开启 thinking）；VLM grounding 模型 Rex-Omni-3B、LocateAnything-3B；分割 VLM LISA-13B、GSVA-7B、LaSagnA-7B、Text4Seg-7B、VRS-HQ-7B、UniPixel-7B、Youtu-VL-4B（§5）。WeVisOne 用 greedy、无 CoT；Qwen3.5 基线开 thinking，推理 token 预算并不相同。论文没有报告训练种子、方差或置信区间，也没有把基线在这些评测集上做同分布微调；主表回答“各任务精度”，Table 9–11 回答数据与超参，全文没有消融小节回答“机制”。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p>以下数字均为 Table 2–8 的原文事实；比较对象和条件随文注明。</p>
+<p>检测。WeVisOne-VL-4B 在 COCO 的 mean F1 为 57.1，高于 LocateAnything-3B 的 54.7 和 Rex-Omni-3B 的 52.9；LVIS 为 55.3，高于 50.7；Dense200 为 71.3，高于 58.7；VisDrone 为 44.7，高于 39.9（Table 2）。提升在密集场景最大，但 VisDrone 是训练集之一，Dense200 不在 Table 9&#x2F;10 的训练清单里、论文也未说明其图像是否与训练语料重叠；在严格的 IoU&#x3D;0.95 列，COCO 只有 19.5，对 LocateAnything 的 19.3 仅高 0.2 个百分点，VisDrone 只有 3.9——相对提升存在，但绝对框质量仍低。2B 模型的 COCO mean 是 55.2、Dense200 61.4、VisDrone 40.4，说明收益不是只靠 4B 规模。指向任务上，4B 的 PointBench 为 71.9、PixMo-Points 74.7，高于 Rex-Omni 的 69.9&#x2F;72.9；但 2B 的 PointBench 只有 62.9，低于 Rex-Omni；Dense200 指向 87.0，低于 LocateAnything 的 87.6（Table 5）。</p>
+<p>指代检测。4B 在 RefCOCOg 的 val&#x2F;test 为 80.8&#x2F;81.8，高于 LocateAnything 的 76.7&#x2F;77.6；RefCOCOg-Rej 拒绝率 67.4，远高于 Qwen3-VL-4B 的 18.8 和 LocateAnything 的 0.6；PR-Bench 为 54.1&#x2F;52.6（Mean&#x2F;Rej），高于 Qwen3.5-9B 的 50.8&#x2F;8.3；HumanRef 80.7，略高于 Rex-Omni 的 79.9；Ref-Adv 50.5，高于 Qwen3.5-9B 的 47.3；DVG 45.2，高于 Qwen3-VL-8B 的 43.4；Ref-L4 78.1，高于 LocateAnything 的 74.3（Table 3）。WeRef-Bench 为 78.7&#x2F;96.4，但这是自建基准，不能与公开基准等同看待。值得注意：RefCOCOg、HumanRef 出现在训练清单（RefCOCOg 在 Table 9 的分割数据中，HumanRef-CoT 在指代数据中），而 Ref-Adv、DVG、Ref-L4 不在；后三者的增益只有 1.8–3.8 个百分点，远小于 WeRef-Bench 的 27 个百分点。2B 在 HumanRef 只有 77.4，低于 Rex-Omni 的 79.9，说明“领先”并不覆盖所有规模。</p>
+<p>计数与 OCR。4B 的 CountQA 57.1，高于 LocateAnything 的 52.4；PixMo-Count 93.7&#x2F;89.6，高于 88.7&#x2F;82.8；CLOC 28.2&#x2F;28.3，高于 22.8&#x2F;23.9；KubriCount 37.7&#x2F;40.1，高于 18.5&#x2F;22.4；MixCount 42.0&#x2F;40.4，高于 12.5&#x2F;15.2（Table 4）。MixCount 和 KubriCount 的增益很大，但这两个集合都在 Table 9 的计数训练数据里，CLOC&#x2F;PixMo 也在；只有 CountQA 是明显的域外集合，而它的增益是 4.7 个百分点。指标本身也有口径问题：检测输出模型用“预测框数”当计数，直接作答模型从文本抽数字，两者不是同一种误差结构（§5.1.3）。OCR 上，4B 的 HierText mean 39.0、ICDAR2015 47.8、TotalText 52.0、SROIE 68.1，高于 PP-OCRv5 的 30.5&#x2F;25.6&#x2F;25.7&#x2F;58.6，也高于 Rex-Omni 或 LocateAnything 的对应值（Table 6）；但 HierText&#x2F;ICDAR2015&#x2F;SROIE 在训练清单里，TotalText 不在，后者的 52.0 对 43.3 更能说明域外文本定位。所有 OCR 的 IoU&#x3D;0.95 分数都很低（HierText 5.3、ICDAR2015 2.3、TotalText 6.9、SROIE 7.3），紧框仍是弱项。</p>
+<p>指代分割。4B 在 RefCOCO 的 val&#x2F;testA&#x2F;testB 为 81.4&#x2F;84.5&#x2F;80.1，RefCOCO+ 为 76.5&#x2F;81.1&#x2F;72.8，RefCOCOg 为 77.7&#x2F;77.8；ReasonSeg 为 71.2&#x2F;66.8，高于 UniPixel-7B 的 60.5（val），Ref-ZOM 为 72.2 cIoU &#x2F; 86.0 Rej，高于 GSVA-7B 的 66.6&#x2F;41.9、UniPixel 的 62.9&#x2F;0.3、Youtu-VL-4B 的 61.0&#x2F;1.3（Table 7）。但 RefCOCO 系列本身在 Table 9 的分割训练数据里，且对最强的同规模统一模型 Youtu-VL-4B 的领先只有 0.3–2.5 cIoU；2B 在 RefCOCO val&#x2F;testA、RefCOCO+ 全部、RefCOCOg 上都低于 UniPixel-7B，说明“全面超过分割基线”只在 4B 上成立。Ref-ZOM 的拒绝率是这项任务里最有说服力的差异：现有模型几乎不拒绝，WeVisOne 能拒绝大部分缺失目标；但 2B 的 cIoU 73.4 反而高于 4B 的 72.2，而拒绝率只有 62.4，提示规模与拒绝行为并不单调。</p>
+<p>抠图。4B 在 P3M-500-NP 的 MAD 为 7.3，低于 SAM2-Matting（SAM3）的 15.4；AM-2K 为 5.0，低于 12.1；PPM-100 为 6.1，低于 SAM2.1-B+ 的 9.3（Table 8）。WeRefMat 的类别提示 MAD 为 16.4，远低于 SAM3 的 70.8 和 Qwen3.5-9B+SAM2-Matting 的 77.8；指代提示为 9.8，低于 Qwen3.5-9B+SAM2-Matting 的 22.4。这里有两个限制：AM-2K 与 P3M-10K 的 train 划分在训练清单里（P3M-500-NP 是 P3M-10K 的测试划分），PPM-100 不在；公开基准都用 GT 框提示，只测“给定框后的 alpha”，不测端到端定位；WeRefMat 是自建基准，规模、标注协议和是否公开都未报告。2B 在 P3M-500-NP（6.6）和 PPM-100（5.3）上反而优于 4B，进一步说明这些差距不宜按“规模越大越好”解读。</p>
+<p>总体看，4B 在多数报告列领先，但“30+ 基准全面领先”不成立：2B 在 RefCOCO 的 val&#x2F;testA、RefCOCO+ 与 RefCOCOg、HumanRef、PointBench 等列低于更大的基线；<a class="link"   href="mailto:&#x43;&#79;&#67;&#79;&#x40;&#48;&#x2e;&#x39;&#53;" >&#x43;&#79;&#67;&#79;&#x40;&#48;&#x2e;&#x39;&#53;<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 只高 0.2；Dense200 指向低于 LocateAnything；抠图存在 2B&gt;4B 的反例。论文没有方差或置信区间，小差距是否稳定无法判断。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>先把证据类型说清楚。Table 2–8 的分数是原文事实；作者把收益归因于“统一接口让对象&#x2F;像素共享实例表示”“WDE 的实例对齐与难例回流”“三阶段课程与 GRPO 提升定位&#x2F;拒绝”，是作者主张；我认为这些实验主要证明“这套系统在基准上有效”，没有证明“哪个组件为什么有效”，是审稿人判断；训练种子、消融、人工核验比例、RL 前后对比论文没有报告，属于无法确认。</p>
+<p>最直接的缺口是全文没有消融。论文没有报告：去掉 Stage 1&#x2F;2&#x2F;3 任一阶段会怎样；把 <code>&lt;OBJ&gt;</code> 隐藏状态换成框 ROI 特征或池化特征会怎样；把共享解码器换成 SAM&#x2F;SAM2 或更大的解码器会怎样；分割与抠图各用一套解码器会怎样；WDE 数据与公开数据按同量对比会怎样；GRPO 之前与之后的逐任务数字；不确定性筛选与随机筛选的对比；IoU 三次方奖励与普通 IoU 奖励的对比。没有这些对照，三阶段课程、<code>&lt;OBJ&gt;</code> 桥、9.6M 解码器和混合 RL 都只是“被描述的设计”，不是“被隔离的因果因素”。论文的定性图（Figs. 5–12）能说明模型在密集检测、缺失目标、计数单位、弯曲文字、发丝抠图等案例上行为更好，但定性例子不能替代组件消融。</p>
+<p>像素级与 RL 的关系尤其需要澄清。RL 任务分布里没有 matting，分割只占 5.8%，而且这两类任务的奖励都只看框，不看掩码&#x2F;alpha（§4.2、Appendix B.3）。因此抠图结果的提升不可能来自 RL 的像素奖励；指代分割即使参与 RL，RL 最多通过“把框放准、让框后生成 <code>&lt;OBJ&gt;</code>”间接影响掩码，不能直接改善边界。论文没有测量“RL 前后掩码 cIoU&#x2F;alpha MAD”的变化，也没有把 SFT-only 与 SFT+RL 分开报告。作者在 §1 说 on-policy 优化“有效提高定位精度、抑制重复&#x2F;幻觉预测”，但正文没有给出对应的前后数字；这是一个明确的主张，不是已被表格支持的结论。</p>
+<p>数据与算力也是替代解释。WeVisOne 的 SFT 用了约 9,020 万 + 4,050 万 + 4,180 万样本，分割预热 2.5 亿、抠图微调 1.3 亿，RL 17.8 万；基线多数是通用模型，没有在这些任务上做同分布微调，也没有匹配的数据&#x2F;算力预算。Table 2–8 的增益可能来自“更多、更对齐的监督”，而不一定是“统一接口”或“共享解码器”。论文没有做数据量匹配、基线的同数据微调或计算量对齐，因此无法排除这一解释。</p>
+<p>相对较强的证据是“域外行为”：ReasonSeg 不在训练清单里，4B 比 UniPixel-7B 高 10.7 gIoU；Ref-ZOM 不在训练清单里，拒绝率高 44.1 个百分点；PPM-100 不在训练清单里，MAD 低于 SAM2.1-B+ 3.2；CountQA 不在训练清单里，高 4.7 个百分点；TotalText 不在训练清单里，高 8.7 个百分点。这些数字支持“模型不是只记住训练集”，但它们仍然只说明“系统有效”，不能说明是 <code>&lt;OBJ&gt;</code>、WDE 还是课程&#x2F;RL 带来的。机制证据的整体判断是：效果证据较多，因果证据不足。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p>训练成本只给了 GPU 数量：SFT 128 张、RL 160 张（Appendix B.1），没有 GPU 小时、墙钟时间、能耗或费用。数据侧，WDE 的标注库存约 1 亿图像、36 亿框；SFT 三阶段样本约 9,020 万&#x2F;4,050 万&#x2F;4,180 万；分割预热 2.5 亿、抠图微调 1.3 亿；RL 17.8 万（Table 9&#x2F;10、§4.1）。这些数字说明数据规模很大，但没有说明各外部模型（SAM3、SAM2、Qwen3-VL、BiRefNet、MatAnyone2）的调用成本、人工 spot check 的比例和费用、自动标注失败率。论文也没有报告解码器预热&#x2F;抠图微调分别占多少算力；128&#x2F;160 张 GPU 是否覆盖这些阶段，文中没有逐项对应。</p>
+<p>推理成本同样没有量化。模型用 1,960 个视觉 token、greedy 解码；解码器约 9.6M 参数，但每个 <code>&lt;OBJ&gt;</code> 都要单独调用一次，密集场景最多 500 个框&#x2F;点，意味着最多 500 次解码器前向；分割输出 512×512、抠图 1024×1024。论文没有报告端到端时延、吞吐、显存或与 SAM2-Matting 流水线的速度对比，因此“轻量”“高效”只能理解为参数量小，不能理解为部署成本低。训练侧也没有推理 token 长度&#x2F;输出长度的统计，长响应在密集场景可能成为瓶颈。</p>
+<p>外部依赖与可复现性：代码、2B&#x2F;4B 权重、推理&#x2F;评测流水线和 Mask2Alpha 标注器已公开（项目页&#x2F;README，Apache 2.0）；WDE 训练数据、WeRef-Bench、WeRefMat 未见公开下载（截至当前材料）。论文给出了较完整的超参（Table 11）和数据表（Table 9&#x2F;10），但指令模板、RL 的 LoRA&#x2F;全量设置、人工核验协议、失败案例分布没有完整披露。整体可复现性属于“中等”：模型可以跑，数据引擎和两个自建基准难以独立复现。</p>
+<p>适用范围要收缩。论文只评测感知任务，没有报告通用 VQA&#x2F;MMMU&#x2F;MMBench 等通用能力；§8 自述“通用数据有限可能损伤通用能力、为效率不做 CoT、仅单轮预测、真实用户指令模糊”。它也没有视频、3D、多轮工具交互、真实部署实验。能支持的范围是：“在一个 2B&#x2F;4B VLM 内，结构化 token + 共享轻量解码器可以在检测、指代、计数、OCR、指向、指代分割、抠图上取得有竞争力的基准数字，并在缺失目标拒绝和部分域外任务上表现较好”；不能支持“通用视觉感知系统”“全面超过专家模型”“实时高效部署”。已改善的是密集&#x2F;小目标、计数、OCR 文本定位、拒绝、指代分割和语言提示抠图；仍未解决的是严格 IoU 下的紧框、通用能力保持、多轮&#x2F;模糊指令、端到端文本提示抠图的公开评测，以及成本透明度。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：没有消融，三阶段课程、-解码器与-GRPO-的作用都没有被隔离"><a href="#质疑：没有消融，三阶段课程、-解码器与-GRPO-的作用都没有被隔离" class="headerlink" title="质疑：没有消融，三阶段课程、&lt;OBJ&gt; 解码器与 GRPO 的作用都没有被隔离"></a>质疑：没有消融，三阶段课程、<code>&lt;OBJ&gt;</code> 解码器与 GRPO 的作用都没有被隔离</h4><ul>
+<li><strong>原文依据</strong>：全文没有 ablation 小节，Table 2–8 只报告最终模型；§4.1 描述了三阶段课程，但没有去掉任一阶段的对照；§3.2 的 <code>&lt;OBJ&gt;</code> 桥没有“换成框 ROI&#x2F;池化特征”的对照；§3.3 的共享解码器没有“换成 SAM&#x2F;SAM2 或更大解码器”的对照；§4.2&#x2F;Appendix B.3 明确说分割与抠图的 RL 只用框级奖励，掩码&#x2F;alpha 不参与奖励；RL 任务分布中没有 matting，分割只占 5.8%；§1 声称 RL 提高定位、抑制重复&#x2F;幻觉，但没有 RL 前后的逐任务数字。</li>
+<li><strong>为什么重要</strong>：论文的核心卖点是“统一接口 + 共享轻量解码器 + 课程&#x2F;RL”，不是单个任务上的一个模型。如果这些组件的贡献没有被隔离，读者无法判断收益来自 <code>&lt;OBJ&gt;</code> 表示、更多数据、WDE 标注还是 RL；“像素级能力也由 RL 提升”更不能成立，因为像素任务没有像素奖励。这影响创新性、机制解释和结论范围。</li>
+<li><strong>当前能够得出的判断</strong>：现有证据支持“这套系统在基准上有效”，不支持“三阶段课程&#x2F;共享解码器&#x2F;GRPO 各自为什么有效”。抠图提升不可能来自 RL 的 alpha 奖励；分割即使参与 RL，也只能通过框先验和 <code>&lt;OBJ&gt;</code> 生成间接影响掩码。作者关于 RL 抑制重复&#x2F;幻觉的说法是主张，不是已报告的结果。机制层面属于证据不足。</li>
+<li><strong>如何验证或补强</strong>：报告 SFT-only 与 SFT+RL 的逐任务对比；逐一去掉 Stage 1&#x2F;2&#x2F;3；把 <code>&lt;OBJ&gt;</code> 隐藏状态替换为框 ROI 特征、CLIP 特征或池化特征；把共享解码器替换为 SAM&#x2F;SAM2 或同参数量但独立的分割&#x2F;抠图解码器；加入 mask&#x2F;alpha 奖励或明确声明 RL 只优化框；报告 RL 前后重复框率、空预测率、幻觉率；对 WDE 数据源、难负样本、错误回流分别做消融。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：“30-基准领先”的比较口径不齐，域内评测与规模错位会放大优势"><a href="#质疑：“30-基准领先”的比较口径不齐，域内评测与规模错位会放大优势" class="headerlink" title="质疑：“30+ 基准领先”的比较口径不齐，域内评测与规模错位会放大优势"></a>质疑：“30+ 基准领先”的比较口径不齐，域内评测与规模错位会放大优势</h4><ul>
+<li><strong>原文依据</strong>：Table 9&#x2F;10 的训练清单直接包含 VisDrone、CLOC、MixCount、KubriCount、PixMo、HierText、ICDAR2015、SROIE、RefCOCO&#x2F;RefCOCO+&#x2F;RefCOCOg、AM-2K、P3M-10K 的 train 划分等评测相关数据；Table 2 只声明 COCO&#x2F;LVIS 为零样本，其他任务没有逐项说明；多数基线是通用模型，没有在这些集合上做同分布微调；WeVisOne 是 2B&#x2F;4B，基线含 8B&#x2F;9B；Qwen3.5 基线开 thinking，WeVisOne 用 greedy、无 CoT；计数指标混合“预测框数”和“直接数字答案”；Table 2 的专用检测器只有 GroundingDINO-T，没有 SAM3 或更新一代开放词汇检测器；Table 3&#x2F;7&#x2F;8 的多数小差距没有方差或置信区间。</li>
+<li><strong>为什么重要</strong>：论文的标题式主张是“across over 30 benchmarks, leading performance”。如果很多评测集是训练分布内、基线是零样本、模型规模&#x2F;推理预算不同，那么“领先”就不能直接归因于方法；如果专用基线只选了一个较旧的 GroundingDINO-T，“超过专家系统”也不够有说服力。这影响实验公平性和结论范围。</li>
+<li><strong>当前能够得出的判断</strong>：4B 在多数报告列领先是原文事实；但“全面领先”不成立：2B 在 RefCOCO 的 val&#x2F;testA、RefCOCO+ 与 RefCOCOg 上低于 UniPixel-7B，在 HumanRef 低于 Rex-Omni，在 PointBench 低于 Rex-Omni；<a class="link"   href="mailto:&#67;&#79;&#x43;&#x4f;&#x40;&#48;&#x2e;&#x39;&#x35;" >&#67;&#79;&#x43;&#x4f;&#x40;&#48;&#x2e;&#x39;&#x35;<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a> 只高 0.2；Dense200 指向低于 LocateAnything。域内评测（VisDrone、MixCount、KubriCount、SROIE、RefCOCOg 分割等）与域外评测（ReasonSeg、Ref-ZOM、PPM-100、CountQA、TotalText）的增益幅度差异明显，说明域内适配可能贡献了一部分分数，但论文没有拆分。没有方差，无法判断小差距是否稳定。</li>
+<li><strong>如何验证或补强</strong>：逐基准标注 zero-shot&#x2F;in-domain，并给出训练&#x2F;评测划分；在相同数据上微调 Qwen3-VL&#x2F;Rex-Omni&#x2F;LocateAnything 作为同分布基线；匹配模型规模（2B 对 2B&#x2F;3B，4B 对 4B&#x2F;8B）和推理预算（统一 CoT&#x2F;无 CoT、视觉 token 数）；把计数协议统一为“框集合”或“直接答案”中的一种；报告 3–5 个训练种子的均值和置信区间；加入 SAM3 检测、DINO-X 等更强专用基线；把 2B 与 4B 的主张分开写。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：WeRef-Bench-与-WeRefMat-是内部基准，公开性和标注协议不足"><a href="#质疑：WeRef-Bench-与-WeRefMat-是内部基准，公开性和标注协议不足" class="headerlink" title="质疑：WeRef-Bench 与 WeRefMat 是内部基准，公开性和标注协议不足"></a>质疑：WeRef-Bench 与 WeRefMat 是内部基准，公开性和标注协议不足</h4><ul>
+<li><strong>原文依据</strong>：§5.1.2 只说明 WeRef-Bench 是 in-house benchmark，包含 2,880 条中英查询，覆盖单目标、多目标、缺失目标；没有图像数、标注指南、标注者数量、一致性、负查询构造方式、训练&#x2F;评测隔离说明；§5.1.7 只说明 WeRefMat 是 in-house benchmark，用类别&#x2F;指代提示，没有规模、来源、是否合成、是否人工核验；项目页&#x2F;README 提供代码、权重、推理&#x2F;评测流水线和 Mask2Alpha，但没有 WeRef-Bench&#x2F;WeRefMat 的下载链接（截至当前材料）。Table 3&#x2F;8 中这两个基准的领先幅度最大（WeRef-Bench 78.7&#x2F;96.4 对 LocateAnything 51.7&#x2F;73.0；WeRefMat 类别 16.4 对 SAM3 70.8，指代 9.8 对 Qwen3.5-9B+SAM2 22.4）。</li>
+<li><strong>为什么重要</strong>：这两个基准承载了“多目标&#x2F;缺失目标拒绝”和“语言提示抠图”的最强主张；如果协议不公开、未独立核验，读者无法判断它们是否比公开基准更难、是否存在与 WDE 同源的标注偏好、是否被用于训练&#x2F;反馈。自建基准本身不是问题，但“内部”+“未发布”+“巨大领先”三者叠在一起，会显著削弱结论的可信度。</li>
+<li><strong>当前能够得出的判断</strong>：这些数字是原文事实，但基准效度与泛化性无法确认；WeRef-Bench 的 96.4 拒绝率和 WeRefMat 的 9.8 MAD 不能直接外推到公开场景。公开的 RefCOCOg-Rej（67.4 对 0.6）和 Ref-ZOM（86.0 对 41.9）确实独立支持“拒绝更好”，所以拒绝能力不是只靠自建基准；但 WeRefMat 的语言提示抠图没有公开对照，结论更弱。</li>
+<li><strong>如何验证或补强</strong>：公开两个基准的图像 ID&#x2F;查询、标注指南、负查询构造、标注者一致性和训练&#x2F;评测划分；说明它们是否进入 WDE 或反馈回路；报告按语言（中&#x2F;英）、目标数（单&#x2F;多&#x2F;缺失）、类别&#x2F;指代的分层结果；与公开的文本提示抠图基准（若有）对比；对掩码&#x2F;alpha 做人眼评估或与 GT 的边界误差分层分析。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：WDE-依赖外部模型与自动伪标签，人工核验比例、失败率和数据独立性未披露"><a href="#质疑：WDE-依赖外部模型与自动伪标签，人工核验比例、失败率和数据独立性未披露" class="headerlink" title="质疑：WDE 依赖外部模型与自动伪标签，人工核验比例、失败率和数据独立性未披露"></a>质疑：WDE 依赖外部模型与自动伪标签，人工核验比例、失败率和数据独立性未披露</h4><ul>
+<li><strong>原文依据</strong>：§2 的标注链路使用 Tokenize Anything、Qwen3-VL、SAM3、in-house DINO-style 检测器、Rex-Omni、SAM2、BiRefNet、MatAnyone2；§2.4 只说“manually spot-check a subset”，没有比例、抽样方式、一致性或错误率；§2.6 的 alpha 伪标签来自 BiRefNet&#x2F;MatAnyone2 与专用 annotator 的回灌，约 1.3 亿条；§2.7 的难例与错误回流没有量化收益；WDE 数据未公开；Qwen3-VL 同时是学生模型的底座和 WDE 的指代表达生成&#x2F;语义核验模型。</li>
+<li><strong>为什么重要</strong>：WDE 是论文的核心贡献之一；如果自动标签有系统性偏差，或与 Qwen3-VL 的先验同源，模型的高分可能部分来自“学会了标注器的偏好”，而不是真实感知能力。没有人工核验比例&#x2F;失败率&#x2F;成本，也无法判断数据质量与可复现性。Qwen3-VL 既生成&#x2F;验证标签又被用作底座，存在循环性风险；论文没有做独立性分析。</li>
+<li><strong>当前能够得出的判断</strong>：WDE 的流程描述详细、逻辑自洽，但质量与独立性无法确认；外部模型依赖和伪标签规模很大，人工只做 spot check，当前材料不能证明标签精度足以支撑“1 亿图像&#x2F;36 亿框”的监督。数据引擎对最终性能的贡献也没有与公开数据做同量对照。循环性是合理的审稿人担忧，但论文没有证据证明它实际造成了偏差。</li>
+<li><strong>如何验证或补强</strong>：报告人工核验的样本量、分层精度&#x2F;召回、标注者一致性、自动标注失败率和成本；发布数据卡或一个可复现子集；用非 Qwen3-VL 的独立模型做语义核验并比较；做 WDE vs 公开数据的等量消融；量化 hard negative&#x2F;错误回流带来的增益；报告标签噪声对最终指标的影响。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：成本、效率与通用能力没有量化，“统一-VLM”可能以通用能力为代价"><a href="#质疑：成本、效率与通用能力没有量化，“统一-VLM”可能以通用能力为代价" class="headerlink" title="质疑：成本、效率与通用能力没有量化，“统一 VLM”可能以通用能力为代价"></a>质疑：成本、效率与通用能力没有量化，“统一 VLM”可能以通用能力为代价</h4><ul>
+<li><strong>原文依据</strong>：训练只报告 128&#x2F;160 张 GPU，没有 GPU 小时、能耗或费用；推理只报告 1,960 visual tokens、greedy，没有时延&#x2F;吞吐&#x2F;显存；解码器虽然只有 9.6M 参数，但每个 <code>&lt;OBJ&gt;</code> 调用一次，密集场景最多 500 个框&#x2F;点，成本未测；没有通用 VQA&#x2F;MMMU&#x2F;MMBench 等通用能力评测；§8 自述通用数据有限可能损伤通用能力、无 CoT、单轮、真实指令模糊；Fig. 13 的 grounded caption 只有定性展示，没有定量评测。</li>
+<li><strong>为什么重要</strong>：论文把模型定位为“unified”“efficient”“practical”，但只用感知基准证明；如果通用能力下降、密集场景推理变慢，实际部署价值会打折扣。没有成本数据，读者无法判断 9.6M 解码器相对 SAM 流水线是否真的更省；没有通用能力数据，也无法判断“统一”是否只是“感知任务统一”。</li>
+<li><strong>当前能够得出的判断</strong>：参数量上解码器确实小，但端到端成本未知；通用能力未评测，不能假设与底座持平；论文的局限性自述是诚实的，但没有量化。按现有证据，“高效”只能谨慎理解为“解码器参数少”，“统一”只能理解为“感知任务接口统一”。</li>
+<li><strong>如何验证或补强</strong>：报告标准硬件上的端到端时延、吞吐、显存，分别测单目标&#x2F;密集场景，并与 SAM2-Matting&#x2F;两阶段流水线对比；报告 GPU 小时&#x2F;费用；在 MMMU、MMBench、DocVQA 等通用基准上与 Qwen3-VL 底座对比；测试多轮、模糊指令和拒答校准；给出失败案例分布。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现现有 VLM 在细粒度定位、计数、OCR 和缺失目标拒绝上不可靠，而对象级与像素级感知通常由分离的模型和数据管线完成；因此提出 WeVisOne-VL，用统一的结构化 next-token 接口表达框、点、掩码和 alpha，用 <code>&lt;OBJ&gt;</code> token 的隐藏状态、预测框和多级 ViT 特征驱动一个约 9.6M 参数的共享像素解码器，并用 WDE 的实例对齐标注、三阶段课程 SFT 和混合任务 GRPO 训练 2B&#x2F;4B 模型。实验在 30+ 基准上表明：4B 在多数报告列有竞争力，密集检测（Dense200 71.3 对 58.7）、计数（MixCount 42.0 对 12.5）、OCR（SROIE 68.1 对 58.6）、缺失目标拒绝（RefCOCOg-Rej 67.4 对 0.6）和指代分割（ReasonSeg 71.2 对 60.5）都有明显数字；其中“拒绝”和部分域外任务（ReasonSeg、Ref-ZOM、PPM-100、CountQA、TotalText）证据较强，但“三阶段课程&#x2F;共享解码器&#x2F;GRPO 各自为什么有效”“30+ 基准全面领先”“自建基准上的巨大优势”仍缺少充分支持。本文最有价值的部分是把“对象到像素”的统一感知做成了一条可训练、可推理、可开源的完整工程管线，并给出了数据引擎与轻量解码器的具体设计；最大的审稿风险是核心机制没有消融、评测口径与训练分布纠缠，以及像素级 RL 的奖励与主张不匹配。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。论文明确区分对象级与像素级任务，指出统一接口、实例身份和缺失目标拒绝三个具体问题，方法边界（单轮、无 CoT、感知任务）在 §8 也有交代；不足是把“碎片化接口是根本原因”当成设计前提，没有用实验证明因果关系。</li>
+<li><strong>创新性证据</strong>：中。统一结构化接口、<code>&lt;OBJ&gt;</code> 桥、共享 9.6M 解码器、WDE 实例对齐和混合任务 GRPO 是有辨识度的系统组合；但各组件（坐标 token、DETR 式解码器、SAM2 掩码、GRPO、课程 SFT）都是已有技术，论文没有明确声称“首个”，也没有用消融证明组合的必要性。</li>
+<li><strong>方法可信度</strong>：中。架构、数据流、损失、超参和数据量交代得较细，代码&#x2F;权重已公开；但 <code>&lt;OBJ&gt;</code> 表示、共享解码器、三阶段课程和 RL 都没有替换&#x2F;移除实验，WDE 依赖外部模型与伪标签且人工核验比例未披露，方法可信度受可复现性与循环性风险限制。</li>
+<li><strong>实验支持力度</strong>：中。基准覆盖广，4B 在多个任务上有明显优势，且给出了域外任务和拒绝率的结果；但训练清单包含多个评测集、基线多为零样本、2B&#x2F;4B 与 8B&#x2F;9B 规模不齐、计数指标口径混合、没有方差&#x2F;置信区间，自建基准未公开，因此“全面领先”被高估。</li>
+<li><strong>可复现性</strong>：中。2B&#x2F;4B 权重、推理&#x2F;评测代码、Mask2Alpha 标注器和详细超参已公开；但 WDE 训练数据、WeRef-Bench、WeRefMat 未公开，人工核验协议、指令模板、RL 的 LoRA&#x2F;全量设置和失败率缺失，完整复现数据引擎与自建基准较困难。</li>
+<li><strong>综合阅读价值</strong>：高。对做 VLM grounding、统一感知、数据引擎和轻量解码器的读者，本文提供了一个完整的系统范例，图片和表格也能帮助理解“对象到像素”的接口设计；适合作为工程与批判性阅读材料，但不应把基准平均分当作通用感知能力的证明，也不应把像素级收益归因于 RL。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> 从对象到像素：WeVisOne-VL 用结构化 token 与 9.6M 解码器统一视觉感知</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-25 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-25 14:52:59
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/25/2610.31329v1_WeVisOne-VL_Unified_Visual_Perception_from_Objects_to_Pixels/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/VLMs/">#VLMs</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Visual-Grounding/">#Visual Grounding</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Object-Detection/">#Object Detection</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Image-Segmentation/">#Image Segmentation</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/25/2610.30949v1_IQuest-Q1_Advancing_Foundation_Capabilities_for_Agentic_CLI_Systems/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">IQuest-Q1：把命令行当作智能体主界面的 320B 稀疏 MoE 基座</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/25/2610.30320v1_Self-Distilling_Future_Video_Representations_for_World_Action_Models/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">从一步噪声中蒸馏未来：FRED 用自蒸馏改进世界动作模型的未来表征</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">从对象到像素：WeVisOne-VL 用结构化 token 与 9.6M 解码器统一视觉感知</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E6%95%B0%E6%8D%AE%E5%BC%95%E6%93%8E-WDE%EF%BC%9A%E4%BB%8E%E5%9B%BE%E5%83%8F%E6%B1%A0%E5%88%B0%E7%BB%9F%E4%B8%80%E5%AE%9E%E4%BE%8B%E7%9B%91%E7%9D%A3"><span class="nav-text">3.1 数据引擎 WDE：从图像池到统一实例监督</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E7%BB%9F%E4%B8%80%E4%BB%BB%E5%8A%A1%E6%A0%BC%E5%BC%8F%EF%BC%9A%E5%90%8C%E4%B8%80%E5%A5%97-token%EF%BC%8C%E4%B8%8D%E5%90%8C%E5%AD%97%E6%AE%B5%E7%BB%84%E5%90%88"><span class="nav-text">3.2 统一任务格式：同一套 token，不同字段组合</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E6%A8%A1%E5%9E%8B%E7%BB%93%E6%9E%84%EF%BC%9AVLM-%E7%94%9F%E6%88%90-%EF%BC%8C%E8%BD%BB%E9%87%8F%E8%A7%A3%E7%A0%81%E5%99%A8%E6%8A%8A%E5%AE%83%E5%8F%98%E6%88%90%E5%83%8F%E7%B4%A0"><span class="nav-text">3.3 模型结构：VLM 生成 &lt;OBJ&gt;，轻量解码器把它变成像素</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E8%AE%AD%E7%BB%83%EF%BC%9A%E4%B8%89%E9%98%B6%E6%AE%B5%E8%AF%BE%E7%A8%8B-SFT-%E4%B8%8E%E6%B7%B7%E5%90%88%E4%BB%BB%E5%8A%A1-GRPO"><span class="nav-text">3.4 训练：三阶段课程 SFT 与混合任务 GRPO</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-%E6%8E%A8%E7%90%86%E6%97%B6%E5%8F%91%E7%94%9F%E4%BB%80%E4%B9%88"><span class="nav-text">3.5 推理时发生什么</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 186 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/25/2610.30949v1_iquest-q1_advancing_foundation_capabilities_for_agentic_cli_systems/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="IQuest-Q1：把命令行当作智能体主界面的 320B 稀疏 MoE 基座">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/25/2610.30949v1_IQuest-Q1_Advancing_Foundation_Capabilities_for_Agentic_CLI_Systems/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-25T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-25T06:52:59.960Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Coding Agents">
+<meta property="article:tag" content="MoE">
+<meta property="article:tag" content="Model Merging">
+<meta property="article:tag" content="Multi-Teacher Distillation">
+<meta property="article:tag" content="Post-Training">
+<meta property="article:tag" content="Terminal Agents">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>IQuest-Q1：把命令行当作智能体主界面的 320B 稀疏 MoE 基座 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">219</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">186</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">IQuest-Q1：把命令行当作智能体主界面的 320B 稀疏 MoE 基座</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-25 12:00</span>
+        <span class="mobile">2026-10-25 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-25 14:52:59</span>
+            <span class="mobile">2026-10-25 14:52:59</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Post-Training/">Post-Training</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Coding-Agents/">Coding Agents</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Multi-Teacher-Distillation/">Multi-Teacher Distillation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/MoE/">MoE</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Model-Merging/">Model Merging</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Terminal-Agents/">Terminal Agents</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<ul>
+<li><p>论文：IQuest-Q1: Advancing Foundation Capabilities for Agentic CLI Systems</p>
+</li>
+<li><p>作者：IQuest Research（集体作者）</p>
+</li>
+<li><p>机构：IQuest Research</p>
+</li>
+<li><p>版本：arXiv 2610.30949v1（2026-10-22）</p>
+</li>
+<li><p>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.30949" >https://arxiv.org/abs/2610.30949<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>arXiv HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.30949" >https://arxiv.org/html/2610.30949<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.30949" >https://huggingface.co/papers/2610.30949<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></p>
+</li>
+<li><p>代码&#x2F;权重：论文称开源模型权重，但正文与 HTML 未给出官方仓库或权重链接（具体发布渠道待核实）</p>
+</li>
+</ul>
+<p>标签：MoE、Coding Agents、Terminal Agents、Post-Training、Multi-Teacher Distillation、Model Merging。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>IQuest-Q1 想解决的是通用大模型在长程、跨 scaffold 的真实命令行任务中不够专、不够稳的问题；作者用 320B 总参数、15B 激活的稀疏 MoE，配合两段预训练课程、中期训练、两阶段 SFT、领域 RL、四教师 on-policy 蒸馏与模型合并，构建一个面向 CLI 的开源智能体基座。论文在自报的 20 余个基准上给出了有竞争力的数字（如 DeepSWE v1.1 64.6、CyberGym 84.5、Toolathlon-Verified 75.0），但缺少组件消融、评测协议与基线并不完全对齐，human-on-the-loop RSI 也只有一次内部案例，因此「能力从何而来」和「相对闭源前沿的全面性」都还不能算被证明。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>论文没有单列「问题定义」节，以下根据 §1、§5、§6.2 与 Limitations 归纳。背景是：基于大语言模型的 agent 不再只生成回答，而是通过多轮推理、行动与环境交互完成任务；在各类环境里，命令行接口（command-line interface，CLI）又是模型访问文件、执行代码、调用工具和操作外部系统最通用的接口之一（§1）。因此，作者把「更强的 CLI 能力」当作构建更强 agentic model 的前提，并希望做一个在软件工程、通用任务执行、长程推理和安全场景上都能用的开源基座（§1）。</p>
+<p>现有做法大致是两条路。第一条是用通用大模型加一个 agent scaffold（运行框架&#x2F;脚手架，例如 Claude Code、Codex、OpenCode），由 scaffold 负责工具定义、上下文管理、命令执行与结果回传；第二条是在通用模型上做 SFT、RL 或蒸馏，把某个 scaffold 上的任务轨迹压进模型。作者认为这些做法在真实 CLI 场景下仍有明显缺口：长程任务需要多轮调试和验证，模型容易漏掉约束、重复失败尝试或留下未解决的问题；换一个 scaffold 或工具 schema，模型的表现会明显波动；真实工程环境还有仓库、依赖、权限和沙箱等系统复杂度（§6.2、Limitations）。论文用 Terminal-Bench 3.0&#x2F;4.0 的低分、以及一次内部任务中因工具名和参数不匹配产生的 35 次 tool-call 错误来支撑这一判断（§5.4、§6.2）。</p>
+<p>需要区分三层。领域一般问题是「如何让语言模型在长程、可执行的 CLI 环境里稳定完成工程任务」；本文实际解决的具体子问题是「如何从零训练一个 320B&#x2F;15B 的稀疏 MoE，并让预训练、中期训练与后训练的数据分布逐步对齐 CLI 交互，同时覆盖多个 scaffold 和版本」；它顺带提出一个内部 CLI 体验基准和一次人机协作的模型迭代案例，但这两件事并不是同一个问题。论文没有提出新的失败模式理论，也没有用受控实验证明「通用模型失败的原因就是 CLI 数据不足」；它观察到现象，给出的原因解释主要是作者主张。</p>
+<p>作者给出的原因可以概括为四点：CLI 相关的数据与工具调用格式在通用预训练中占比不足；训练数据偏向单一 tool-call schema，导致跨 scaffold 时 schema 不匹配；大模型在长上下文和高稀疏 MoE 下的训练稳定性限制了 scaling；不同能力分散在多个专家模型里，需要一次合并或蒸馏才能得到一个统一模型（§1、§2.2、§6.2）。这些解释与后文的设计一一对应，但论文没有逐条做因果验证。最终要验证的核心假设是：以 CLI 为中心的多阶段课程、稳定的架构与优化器、多 scaffold 的 RL 与多教师蒸馏，能让一个开源 MoE 在 coding、通用 agentic 与 CLI 交互三类任务上达到有竞争力的水平；此外，human-on-the-loop 的模型开发流程可以缩短后续迭代周期。前一个假设有大量自报基准数字，后一个假设只有一个案例。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>如果把「创新」定义为新算法，本文的增量有限；如果把它定义为「把已有组件组织成可训练、可评测的 320B CLI 基座」，增量是实质的。论文明确借用了 SplitNorm、Muon、μP、MTP、GRPO、MOPD、EAGLE-3 等已有工作，真正的差异主要在数据课程、跨 scaffold 的后训练组织方式，以及把这些东西跑在一个 320B&#x2F;15B 模型上的系统实现。以下四点分别对应数据、模型、后训练和开发流程；证据统一放在 §4。</p>
+<p>第一，CLI 中心的多阶段训练课程。预训练先用多样语料建立语言与知识，再在第二阶段把代码比例从 40% 提高到 70%；中期训练加入 agentic 轨迹、QA 与长上下文（32K→128K→512K）；后训练再用任务合成、真实环境和验证式 agentic 微调把分布推向 CLI。与「在通用基座上直接做 SFT」相比，这套课程让工具调用格式和长程交互更早进入训练；与 Kimi K3、DeepSeek-V4 等同样强调 agentic 后训练的路线相比，本文的差异主要是 CLI 聚焦和跨 scaffold 覆盖，而不是新的训练目标（§1、§3、§4.2）。</p>
+<p>第二，面向稳定 scaling 的架构与优化器组合。模型使用混合 GQA&#x2F;SWA 注意力、query-aware sink、QKNorm&#x2F;QKNorm Clip、Partial RoPE、首层 dense MLP 与 Stable SplitNorm，并用 Muon + μP 做优化和超参迁移。作者报告在与 Qwen3-MoE 风格、相同数据的受控对比中取得 1.93× 的 scaling efficiency，并给出 572B 激活参数 &#x2F; 12T 总参数的 Critical Model Size 外推。这里多数组件是已有的，新的部分是组合方式、规模与稳定性分析；论文没有把收益拆到单个组件（§2.1、§2.2、§4.3）。</p>
+<p>第三，多 scaffold、多版本的后训练与能力合并。SFT 之后，作者在 Claude Code、Codex 等不同 scaffold 及其版本上做领域 RL，再用四个冻结专家（agentic UX、multi-harness、long-horizon、general）做 multi-teacher on-policy distillation（MOPD，多教师同策略蒸馏），最后用 residual model merging 把不同阶段和专家分支的 checkpoint 合入一个模型。MOPD 本身来自已有工作，本文的增量是把它放到跨 scaffold&#x2F;version 的设置里，并配套异步教师执行与按需权重加载（§4.4–§4.7、§4.3）。</p>
+<p>第四，human-on-the-loop 的模型开发流程。作者让一个基于 IQuest-Q1 的 agent 追踪工具调用失败、诊断训练数据中的 schema 偏置、提出清洗与增强方案，再由人类专家审批训练实验。这个流程被描述为通向 recursive self-improvement（RSI，递归自我改进）的路径；但论文只报告了一次内部迭代，没有与人类工程师单独工作的对照，也没有跨迭代的量化闭环（§6.2、§4.3）。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>整体直觉是：与其在推理时不断给通用模型加 scaffold，不如把 scaffold 里的交互模式提前写进训练分布。模型看到的输入是「用户指令 + 工具定义 + 环境观察」，输出是「工具调用&#x2F;命令 + 自然语言」，环境执行后再把结果作为下一轮观察；预训练负责语言与世界知识，中期训练负责把 agentic 轨迹、长上下文和工具格式灌进去，后训练负责在可验证的任务上把行为校正到「能完成任务」而不是「像在完成任务」。图 1 给出了这条主线的三段式结构。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/iquest_fig1.png"
+                      alt="图 1：训练 pipeline 总览"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：这张图把训练主线画成三段：预训练使用 web、code、STEM 等多样数据，并在架构侧强调稳定高效扩展；中期训练加入 agentic&#x2F;reasoning 数据（QA、知识、agent 轨迹）并扩展上下文；SFT 阶段把任务合成、真实环境和验证式 agentic 微调接上。箭头表示 checkpoint 逐段传递；后训练的 RL、四教师 MOPD 与模型合并细节在论文 Fig. 6（本报告图 3）展开。读者应把它理解为一条数据分布逐步向 CLI 交互靠拢的课程，而不是端到端一次训练。</p>
+<h3 id="3-1-输入、输出与训练阶段"><a href="#3-1-输入、输出与训练阶段" class="headerlink" title="3.1 输入、输出与训练阶段"></a>3.1 输入、输出与训练阶段</h3><p>训练样本的基本单位是一条多轮轨迹：系统提示与工具 schema、用户任务、模型发出的 tool call 或 shell 命令、环境返回的观察，循环直到模型给出最终答案。模型只负责生成文本与工具调用；命令的实际执行、沙箱隔离、网络限制、文件系统状态和 verifier 判定都由外部 harness 控制。训练时只对模型生成的 assistant token（包括 tool-call token）计算损失，用户指令和工具观察被 mask 掉（§4.3）。推理时模型仍然输出同一种格式，因此需要一个能解析 IQuest 专用 tool-call 格式的 serving parser 和兼容的 agent harness；这也是作者在 Limitations 中明确承认的部署约束。</p>
+<p>论文把第一阶段称为预训练，但没有说明模型是否从某个公开基座初始化；按全文叙述，这里理解为从零预训练（这是分析者推断，论文未明确写出初始化方式）。预训练和中期训练合计 29T tokens（§3.1）；后训练包括两阶段 SFT（240B+ 与 50B+ tokens）、领域 RL、MOPD 和模型合并（§4.3–§4.6）。三个阶段解决的不是同一个问题：预训练决定知识上限，中期训练决定长上下文与 agentic 格式的覆盖，后训练决定任务成功率与跨 scaffold 的鲁棒性。论文没有给出三个阶段各自的 token 配比和算力，因此无法判断哪一段对最终榜单贡献最大。</p>
+<h3 id="3-2-模型架构：混合注意力-稀疏-MoE-稳定化设计"><a href="#3-2-模型架构：混合注意力-稀疏-MoE-稳定化设计" class="headerlink" title="3.2 模型架构：混合注意力 + 稀疏 MoE + 稳定化设计"></a>3.2 模型架构：混合注意力 + 稀疏 MoE + 稳定化设计</h3><p>模型是 88 层、隐藏维度 3,072 的稀疏 MoE：每个 MoE 层 256 个 routed experts，每 token 激活 8 个，专家中间维度 1,536；注意力有 48 个 query head 和 8 个 KV head，每个 head 维度 128；词表 160,000，输入 embedding 与输出权重不共享（Table 1）。第一层用 dense FFN（中间维度 12,288）替代 MoE 路由，作者给出的理由是缓解最早层的专家负载不均；其余层才是稀疏 MoE。这个细节很重要：它说明「320B 总参数、15B 激活」是一个平均意义上的稀疏度，首层 FFN 和注意力部分不参与 MoE 稀疏化。</p>
+<p>注意力采用混合设计：最前两层和最后两层用 full attention（FA，全注意力），中间按 3 层 sliding window attention（SWA，滑动窗口注意力）+ 1 层 FA 重复，窗口大小 4,096；Partial RoPE 只作用于每个 head 的 32 个维度，SWA 与 FA 的 RoPE base 分别为 10,000 和 1,000,000（Table 1、§3.2）。这样做的直觉是：局部窗口承担大多数 token 的廉价交互，少量全局层负责跨段信息；Partial RoPE 则把位置信息限制在一部分维度，减少长上下文外推时的扰动。每个注意力模块还带一个 query-aware sink token，为多余的注意力权重提供不影响输出的去处；QKNorm 控制 query&#x2F;key 的尺度，QKNorm Clip 把仿射参数上限压到 10，防止训练中出现过大的缩放（§2.1、§3.2）。图 2 把这些组件放在一张架构图里。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/iquest_fig2.png"
+                      alt="图 2：整体架构与混合注意力"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 3）：从左下输入 embedding 进入首个 Transformer block（dense FFN + full attention），随后是 N× 重复块（3 层 SWA + sparse MoE 与 1 层 full attention + sparse MoE 交替），再经顶部一个 full attention + sparse MoE 块接 LM head。右侧放大 attention：Q&#x2F;K 投影后分别做 QNorm&#x2F;KNorm、Partial RoPE，再进入 scaled dot-product attention；额外的 sink K 与 zero V 给多余注意力一个不影响输出的去处，最后 O projection。左侧的 RMSNorm 位置体现 Stable SplitNorm：attention 前归一化、FFN 的残差路径保持未归一化，attention 输出再加 RMSNorm。读者应理解这是「局部窗口为主、全局层兜底」的混合注意力，加上 MoE 的稀疏激活，共同决定 15B&#x2F;token 的计算路径。</p>
+<p>稳定化设计的核心是 Stable SplitNorm。传统 Pre-Norm 在残差流上逐层累积未归一化的方差，深层残差更新的相对贡献会变小；SplitNorm 把注意力子层前的残差流归一化、FFN 的残差路径保持未归一化，试图同时拿到 Pre-Norm 的稳定性和 Post-Norm 的深度利用。作者在此基础上加了两处修改：attention 输出先做 RMSNorm 再回加，首层再用 SandwichNorm 稳定残差流入口，合起来称为 Stable SplitNorm（§2.1）。需要说明的是，SplitNorm 本身来自先前工作，本文的增量是这两处稳定化修改；论文没有单独报告「去掉 attention 输出 RMSNorm」或「去掉首层 SandwichNorm」的对照。</p>
+<p>优化器方面，Muon 用于除 token embedding、LM head、归一化参数和 MoE router 之外的所有参数，其余用 Adam；Muon momentum 为 0.95，正交化更新按 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>0.2</mn><msqrt><mrow><mi>max</mi><mo>⁡</mo><mo stretchy="false">(</mo><mi>m</mi><mo separator="true">,</mo><mi>n</mi><mo stretchy="false">)</mo></mrow></msqrt></mrow><annotation encoding="application/x-tex">0.2\sqrt{\max(m,n)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1.24em;vertical-align:-0.305em;"></span><span class="mord">0.2</span><span class="mord sqrt"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.935em;"><span class="svg-align" style="top:-3.2em;"><span class="pstrut" style="height:3.2em;"></span><span class="mord" style="padding-left:1em;"><span class="mop">max</span><span class="mopen">(</span><span class="mord mathnormal">m</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">n</span><span class="mclose">)</span></span></span><span style="top:-2.895em;"><span class="pstrut" style="height:3.2em;"></span><span class="hide-tail" style="min-width:1.02em;height:1.28em;"><svg xmlns="http://www.w3.org/2000/svg" width="400em" height="1.28em" viewBox="0 0 400000 1296" preserveAspectRatio="xMinYMin slice"><path d="M263,681c0.7,0,18,39.7,52,119
+c34,79.3,68.167,158.7,102.5,238c34.3,79.3,51.8,119.3,52.5,120
+c340,-704.7,510.7,-1060.3,512,-1067
+l0 -0
+c4.7,-7.3,11,-11,19,-11
+H40000v40H1012.3
+s-271.3,567,-271.3,567c-38.7,80.7,-84,175,-136,283c-52,108,-89.167,185.3,-111.5,232
+c-22.3,46.7,-33.8,70.3,-34.5,71c-4.7,4.7,-12.3,7,-23,7s-12,-1,-12,-1
+s-109,-253,-109,-253c-72.7,-168,-109.3,-252,-110,-252c-10.7,8,-22,16.7,-34,26
+c-22,17.3,-33.3,26,-34,26s-26,-26,-26,-26s76,-59,76,-59s76,-60,76,-60z
+M1001 80h400000v40h-400000z"/></svg></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.305em;"><span></span></span></span></span></span></span></span></span> 缩放，weight decay 为 0.1（§3.2）。μP 参数化用于宽度方向的 learning-rate transfer；作者在一个隐藏宽度 896、18 层的 proxy 上搜学习率，再零样本迁移到目标模型，并报告在 4× 宽度和 4× 深度范围内可迁移（§2.1、Table 3、论文 Fig. 9）。学习率采用 warmup-stable-decay：升到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>6</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>4</mn></mrow></msup></mrow><annotation encoding="application/x-tex">6\times10^{-4}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">6</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span></span></span></span> 后在 Stage 1 保持，Stage 2 末降到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>4</mn></mrow></msup></mrow><annotation encoding="application/x-tex">2\times10^{-4}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">2</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">4</span></span></span></span></span></span></span></span></span></span></span></span>，中期训练末降到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>6</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">6\times10^{-5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">6</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span>（§3.2）。这些数字说明作者确实在做大模型训练，但「μP 迁移在 4× 范围内成立」是优化器层面的证据，不等于下游 agent 能力也按同样比例扩展。</p>
+<p>多 token 预测（multi-token prediction，MTP）方面，预训练时加两个 MTP 层，损失权重 0.3；训练结束后把第一层改造成递归 drafter，用于 speculative decoding（投机解码），第二层在专门阶段丢弃。推理时复用同一个 MTP 层做多步递归起草，并把它的注意力换成更小窗口的 SWA，以固定参数预算延长预测跨度（§2.1、Table 1、论文 Fig. 11）。这是一个推理加速设计，不改变主模型的输出分布；论文没有报告 draft 接受率或端到端加速比。</p>
+<h3 id="3-3-预训练与中期训练：把数据分布推向-CLI"><a href="#3-3-预训练与中期训练：把数据分布推向-CLI" class="headerlink" title="3.3 预训练与中期训练：把数据分布推向 CLI"></a>3.3 预训练与中期训练：把数据分布推向 CLI</h3><p>预训练数据来自网页、公开 GitHub 代码、书籍、论文、新闻和领域材料，代码部分强调编程语言、模态和任务粒度的多样性；统一处理管线包括清洗、质量过滤、精确去重和模糊去重（§3.1）。Stage 1 用多样语料建立基础语言能力，Stage 2 逐步提高代码和 STEM 比例，作者设计了一个四阶段管线，把代码数据占比从 40% 提高到 70%（§3.1）。这一步的动机很直接：CLI 任务既需要自然语言理解，也需要代码、仓库和科学知识；但论文没有给出各来源的 token 数、采样权重、去重阈值，也没有说明是否对评测集做了污染检查。</p>
+<p>中期训练把三类数据混在一起：高质量自然语料、QA 对和 agentic 轨迹；数据用适配中期训练的 chat template 组织，保留推理与工具调用相关的特殊 token（§3.3.1）。与常见后训练不同，这里的 loss mask 是 token 级的：作者直接指定哪些 token 参与损失，而不是按角色（user&#x2F;assistant&#x2F;tool）整段 mask，从而可以在一条样本里只监督选定的片段（§3.3.1）。上下文长度按 32K、128K、512K 三阶段扩展，使用变长序列打包；全局注意力的 RoPE base 从 500,000 提到 1,000,000，SWA 的 4,096 窗口和 10,000 base 保持不变（§3.3.1）。学习率在三阶段共用一条 cosine decay，阶段切换时只重置优化器状态，不重新 warmup（§3.3.1）。</p>
+<p>agentic 数据的构造是中期训练的关键。作者以选定的轨迹作为行为锚点，同时用预训练文档扩展技术与任务覆盖；从兼容的代码仓库构造可执行、容器化的实例，再用 agent 在每个实例上 rollout，保留有效且完整的轨迹（§3.3.2）。论文称这个过程产出超过一百万个实例，但没有给出任务类型分布、成功率、平均轮数、容器启动成本，也没有说明这些实例与评测基准的重叠程度。预训练和中期训练的评价使用 held-out agent 轨迹上的 bits-per-byte（BPB）以及「原子能力」分解评估，前者衡量模型对专家轨迹的似然，后者把长程行为拆成可单独测的能力；论文没有报告这两项的具体数值（§3.4）。</p>
+<h3 id="3-4-后训练：SFT、领域-RL、MOPD-与模型合并"><a href="#3-4-后训练：SFT、领域-RL、MOPD-与模型合并" class="headerlink" title="3.4 后训练：SFT、领域 RL、MOPD 与模型合并"></a>3.4 后训练：SFT、领域 RL、MOPD 与模型合并</h3><p>后训练的第一步是任务合成。作者把任务分成 general、reasoning、coding 三类：general 从 RapidAPI、Smithery 的 API&#x2F;MCP server、公开技能和 workspace 文件出发，按 Standard Occupational Classification 覆盖职业并做 solve-then-refine；reasoning 用文档驱动的管线，从概念清单扩展到科学主题、检索与筛选文档、再生成带参考答案的任务；coding 从 GitHub 仓库和工业数据构造可执行环境，使用 Claude Code、Codex 等多个版本的 harness，任务查询来自 PR、issue、仓库知识图谱、文档和清洗后的使用日志（§4.1）。coding 任务的 verifier 由 agent 写的测试、适配后的仓库测试和文档行为检查组成；一个 agent-judge 循环检查可执行性、泄漏、指令&#x2F;参考解&#x2F;环境&#x2F;verifier 的一致性，要求参考解通过、no-op 解失败，并用 rubric 审查轨迹是否作弊（§4.1）。</p>
+<p>第二步是防 reward hacking（奖励黑客）。作者从三个层面保护环境：准备阶段清理 Git 历史、移除可能泄漏解的文件、隔离任务环境；执行阶段限制网络与敏感文件访问、在执行前拦截工具调用、用观察到的 hacking 行为更新阻断规则；轨迹审计阶段用规则和 LLM judge 检查命令、工具输出与提交解，确认作弊的轨迹从训练中剔除（§4.2）。对 SWE 类任务只保留 base commit 之前的 Git 历史，并在 Claude Code、Codex、OpenCode 中用 hook 阻断取回已有解；Terminal-Bench 在不需要时删除 Git 历史；ProgramBench 则用只含编译好的 oracle 和任务文档的新容器（§4.2）。这些措施说明作者意识到 agentic 训练中「环境泄漏」会直接污染 SFT 与 RL，但论文没有报告拦截规则命中率、误杀率或被剔除轨迹的比例。</p>
+<p>第三步是两阶段 SFT。模型从中期 checkpoint 初始化，优化 assistant 响应（含 tool-call token）的自回归交叉熵，mask 用户指令与工具观察；Stage 1 用 240B+ tokens、学习率 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>5</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">5\times10^{-5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">5</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span>，Stage 2 用 50B+ tokens、学习率 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1.5</mn><mo>×</mo><msup><mn>10</mn><mrow><mo>−</mo><mn>5</mn></mrow></msup></mrow><annotation encoding="application/x-tex">1.5\times10^{-5}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">1.5</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">×</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord">1</span><span class="mord"><span class="mord">0</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">5</span></span></span></span></span></span></span></span></span></span></span></span>，各自做 cosine decay，多条样本打包并用 attention mask 防止跨样本注意（§4.3）。论文没有说明两个阶段的数据构成差异，也没有解释为什么模型合并从 SFT Stage 1 出发、而 MOPD 学生从 Stage 2 初始化；这两个选择对后文的能力合并很关键，但当前材料无法确认其理由。</p>
+<p>第四步是领域 RL。每个 episode 指定任务域、harness 及其版本、环境和 evaluator；策略在不同 harness 中交互，只看到公开指令、工具和执行反馈，参考解与隐藏检查保持隔离。GRPO 在固定 harness&#x2F;evaluator 版本下比较同一任务的多次 rollout，采样时平衡 domain–harness 组合并保留回归案例（§4.4）。奖励由独立 verifier 判定最终正确性；长轨迹的辅助 segment reward 只奖励可测量的进展，惩罚多余计算、约束违反和 reward hacking；模型生成的诊断必须有执行记录作证据。失败会先归因：策略造成的错误进入学习信号，与环境&#x2F;harness 有关的故障被 mask，evaluator 故障则阻断该样本；token 级更新通过 Token-In, Token-Out（TITO）管线使用记录的 rollout 概率（§4.4）。论文没有给出 RL 的任务数、rollout 预算、奖励权重或训练 token 量。</p>
+<p>第五步是 MOPD。学生从 SFT Stage 2 初始化，四个冻结教师分别负责 agentic 用户体验、multi-harness、long-horizon 和 general agentic 能力。对每个任务，学生先自己 rollout，得到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span> 条轨迹；再按任务域 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">d_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 选择对应教师 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>q</mi><msub><mi>d</mi><mi>i</mi></msub></msub></mrow><annotation encoding="application/x-tex">q_{d_i}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6807em;vertical-align:-0.2501em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2501em;"><span></span></span></span></span></span></span></span></span></span>，由教师对学生生成的每个 token 打分。设 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>p</mi><mi>k</mi></msub></mrow><annotation encoding="application/x-tex">p_k</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 为当前学生策略，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>q</mi><msub><mi>d</mi><mi>i</mi></msub></msub></mrow><annotation encoding="application/x-tex">q_{d_i}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6807em;vertical-align:-0.2501em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2501em;"><span></span></span></span></span></span></span></span></span></span> 为任务域 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>d</mi><mi>i</mi></msub></mrow><annotation encoding="application/x-tex">d_i</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 对应的冻结教师，得到截断的对数比率优势：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mover accent="true"><mi>a</mi><mo>~</mo></mover><mrow><mi>i</mi><mo separator="true">,</mo><mi>t</mi></mrow></msub><mo>=</mo><mi mathvariant="normal">clip</mi><mo>⁡</mo><mtext> ⁣</mtext><mrow><mo fence="true">(</mo><mi>log</mi><mo>⁡</mo><mfrac><mrow><msub><mi>q</mi><msub><mi>d</mi><mi>i</mi></msub></msub><mo stretchy="false">(</mo><msub><mi>y</mi><mrow><mi>i</mi><mo separator="true">,</mo><mi>t</mi></mrow></msub><mo>∣</mo><msub><mi>h</mi><mrow><mi>i</mi><mo separator="true">,</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo></mrow><mrow><msub><mi>p</mi><mi>k</mi></msub><mo stretchy="false">(</mo><msub><mi>y</mi><mrow><mi>i</mi><mo separator="true">,</mo><mi>t</mi></mrow></msub><mo>∣</mo><msub><mi>h</mi><mrow><mi>i</mi><mo separator="true">,</mo><mi>t</mi></mrow></msub><mo stretchy="false">)</mo></mrow></mfrac><mo separator="true">,</mo><mo>−</mo><mi>c</mi><mo separator="true">,</mo><mi>c</mi><mo fence="true">)</mo></mrow><mo separator="true">,</mo><mspace width="2em"/><mi>c</mi><mo>&gt;</mo><mn>0.</mn></mrow><annotation encoding="application/x-tex">
+\tilde{a}_{i,t}=\operatorname{clip}\!\left(\log\frac{q_{d_i}(y_{i,t}\mid h_{i,t})}{p_k(y_{i,t}\mid h_{i,t})},-c,c\right),\qquad c&gt;0 .
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.954em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord katex-accent"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6679em;"><span style="top:-3em;"><span class="pstrut" style="height:3em;"></span><span class="mord mathnormal">a</span></span><span style="top:-3.35em;"><span class="pstrut" style="height:3em;"></span><span class="accent-body" style="left:-0.25em;"><span class="mord">~</span></span></span></span></span></span></span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:2.4221em;vertical-align:-0.9721em;"></span><span class="mop"><span class="mord mathrm">clip</span></span><span class="mspace" style="margin-right:-0.1667em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;"><span class="delimsizing size3">(</span></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.427em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0315em;">k</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3281em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2501em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mpunct mtight">,</span><span class="mord mathnormal mtight">t</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.9721em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">−</span><span class="mord mathnormal">c</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">c</span><span class="mclose delimcenter" style="top:0em;"><span class="delimsizing size3">)</span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">c</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">&gt;</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.</span></span></span></span></span>
+<p>这个优势的含义是：如果教师比当前学生更倾向于生成这个 token，就给它正权重；反之给负权重，再用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">[</mo><mo>−</mo><mi>c</mi><mo separator="true">,</mo><mi>c</mi><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">[-c,c]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[</span><span class="mord">−</span><span class="mord mathnormal">c</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathnormal">c</span><span class="mclose">]</span></span></span></span> 截断控制方差。作者用 reverse-KL 风格的、按长度归一化的 surrogate 来更新学生，只对模型生成的 token（含 tool-call token）计算损失，指令和工具观察只作为上下文；重复的 rollout 会被 mask 掉（§4.5）。这仍然是一种 on-policy 蒸馏：数据由学生自己产生，教师只提供 token 级信号，因此能覆盖学生实际会走到的状态，而不是只模仿教师的离线轨迹。</p>
+<p>第六步是模型合并。作者从 SFT Stage 1 出发，在训练过程中穿插 residual model merging：每次合并先计算某个 checkpoint 相对指定 reference checkpoint 的参数增量，按预设权重和全局 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="normal">ℓ</mi><mn>2</mn></msub></mrow><annotation encoding="application/x-tex">\ell_2</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord">ℓ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 范数校准后加回 reference，最终把专家分支和 MOPD checkpoint 合入 IQuest-Q1（§4.6）。这相当于在参数空间做「按范数归一化的任务向量相加」，目的是缓解不同阶段&#x2F;专家之间的参数冲突；但论文没有给出合并权重、reference 的选择规则，也没有报告单独去掉合并后的结果。图 3 把后训练的四个环节串在一起。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/iquest_fig3.png"
+                      alt="图 3：后训练 pipeline"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 6）：SFT Stage 1 产出参考 checkpoint，Stage 2 继续微调并初始化 MOPD 学生；四个冻结专家（agentic UX、multi-harness、long-horizon、general）按任务域对学生的 on-policy rollout 逐 token 打分，形成 token-level advantage；另一条线从 SFT Stage 1 出发，做跨阶段&#x2F;跨专家分支的 residual model merging，最后把专家与 MOPD checkpoint 合入 IQuest-Q1。底部时间轴标出 SFT、Domain SFT+RL、MOPD、Output 四段。关键点是：蒸馏的数据由学生自己产生，教师只提供 token 级信号；合并则是在参数空间把不同阶段的增量按 reference checkpoint 校准后相加。</p>
+<h3 id="3-5-基础设施与推理：长上下文、异步教师与工具格式"><a href="#3-5-基础设施与推理：长上下文、异步教师与工具格式" class="headerlink" title="3.5 基础设施与推理：长上下文、异步教师与工具格式"></a>3.5 基础设施与推理：长上下文、异步教师与工具格式</h3><p>训练基础设施要解决两个瓶颈。第一个是长上下文下的负载均衡：序列打包用 best-fit 策略，在全局打乱的数据流上维护一个最多 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>2</mn><mi>B</mi><mi>S</mi></mrow><annotation encoding="application/x-tex">2BS</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord">2</span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span> tokens 的有限前瞻窗口（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>B</mi></mrow><annotation encoding="application/x-tex">B</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0502em;">B</span></span></span></span> 为全局 batch，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>S</mi></mrow><annotation encoding="application/x-tex">S</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.0576em;">S</span></span></span></span> 为序列长度），当前窗口装不下的样本会带到下一轮并优先处理；打包后的序列还会跨 data-parallel replica 重排，以 micro-batch 粒度平衡文档长度差异带来的计算不均（§2.3）。第二个是上下文并行：full attention 用 ring-based K&#x2F;V exchange；SWA 只交换所需的 halo，并把交换与前后向计算重叠。每个 rank 先用自己的本地 K&#x2F;V 算出内部 query 的完整输出，以及边界 query 的部分输出和对应的 Log-Sum-Exp（LSE，对数求和指数）统计；halo 到达后再算边界 query 的补集，并用 LSE 重新归一化合并两部分（§2.3、论文 Fig. 10）。这样边界 query 不必等远端 K&#x2F;V 到齐就能开始计算，同时保持滑动窗口的语义。</p>
+<p>后训练运行时是另一套系统。它要在一个训练 run 里支持多个 harness 和版本：每个实例指定 scaffold、任务环境和 verifier，运行时在隔离沙箱中执行对应配置，保留工具编排、上下文管理和交互流程，并把不同 API 协议映射到统一的 policy 接口（§4.7）。rollout 与训练的一致性靠 TITO：在模型服务边界保留 session 级 prefix tree，复用跨轮次、跨分支的 token 历史，返回 scaffold 期望的结构化响应，并在序列结束时把轨迹、奖励和 token mask 一起保留（§4.7）。MOPD 用全异步训练：周期性同步学生参数、显式控制样本 staleness，教师前向与训练引擎走同一条执行路径以减少 log-prob 偏差；教师权重存在分布式存储里按需加载，只把当前教师需要的 shard 放进 GPU，并在当前前向中预取下一个教师的权重（§4.7）。这套设计让四个教师不必各自常驻一份 GPU 副本，但代价是存储、IO 和调度复杂度。</p>
+<p>最后是人机回路的开发流程。作者把 IQuest-Q1 接入内部模型开发基础设施，让 agent 通过统一接口读取训练与评测记录、定位失败、提出数据清洗或配置修改；人类专家审批关键决策与昂贵实验，并控制哪些改动进入后续迭代（§6.2）。论文给出的一次案例是：agent 追踪 6,054 次工具调用、定位 35 次 schema 相关错误，发现训练数据偏向单一 tool-call schema 且部分工具定义与调用参数不一致，提出清洗与增强方案；审批后用 2.35B tokens、938.7 GPU hours 训练新 checkpoint，并在 held-out 与熟悉 schema 上评估。这个流程把模型用于改进下一代模型，而不是推理时的 agent loop；论文只给一次案例，没有把它与人类工程师的独立诊断做对照，因此「RSI」在这里是流程愿景，不是已被验证的闭环。</p>
+<p>推理阶段，模型输出 IQuest 专用格式的 tool call，必须配兼容的 serving parser 和 agent harness 才能被结构化执行；模型是纯文本输入，没有原生图像、音频或视频能力（Limitations）。递归 MTP 用于投机解码，长上下文训练扩展到 512K；论文没有报告推理吞吐、首 token 延迟、draft 接受率或不同 harness 下的平均工具调用次数，因此无法判断这些系统设计在真实部署中的性价比。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p>评测覆盖两类能力。Coding agent 包括 DeepSWE v1.1、SWE-bench Multilingual、SWE-Bench Pro、NL2Repo-Bench、ProgramBench、CyberGym、SkillsBench、Terminal-Bench 2.1&#x2F;3.0&#x2F;4.0、PaperBench、LiveCodeBench v6 和内部的 IQuest-CLIBench；通用能力包括 GPQA Diamond、Humanity’s Last Exam（HLE，无工具&#x2F;有工具）、GDPval、APEX-Agents v1.1、Toolathlon-Verified、MCP-Atlas、Claw-Eval、AutomationBench、JobBench、Agents’ Last Exam、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>τ</mi><mn>3</mn></msup></mrow><annotation encoding="application/x-tex">\tau^3</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8141em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.8141em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span></span></span></span></span></span></span></span>-Banking、BrowseComp、WideSearch、HealthBench Professional、IMOAnswerBench-Verified 和 CritPt（§5.1）。指标是各基准的 pass rate 或官方分数；Table 2 说明所有模型报告「最高可用 reasoning effort」，ProgramBench 报 raw pass rate，PaperBench 用 CodeDev 设置（Table 2 表注）。</p>
+<p>基线包括闭源的 Claude Opus 5、GPT-5.6 Sol，以及开源的 GLM-5.3-Flash、DeepSeek-V4-Flash-0731、Tencent Hy3、MiniMax M3（§5.2）。评测协议不是统一的：有公开分数就直接用公开分数，没有才由作者按对应 benchmark setup 跑；agentic coding 任务中，DeepSWE 用 mini-SWE-agent，PaperBench 用 BasicAgent，其余任务用 Claude Code；通用 agentic 任务中，搜索类与 HLE 用内部 harness，其余用 benchmark 自带 harness（§5.3）。运行时限制分别为 CyberGym&#x2F;ProgramBench 6 小时、Terminal-Bench 2.1 8 小时、Terminal-Bench 3.0&#x2F;4.0 10 小时、PaperBench 12 小时（§5.3）。这意味着「同表比较」并不等于「同 scaffold、同预算、同提示」；尤其当一部分数字来自公开榜单、另一部分来自作者自测时，差距的归因需要谨慎。</p>
+<p>图 4 展示了 coding-agent 任务库的构造方式，能帮助读者理解这些分数背后的任务形态。它把领域与子领域展开成矩阵，列分别是环境、verifier 和构造方式；例如软件工程用 repo container 与 repo tests，终端工作流用 sandbox + data 与 agent-written tests，前端&#x2F;游戏用 browser&#x2F;3D runtime 与 rubric&#x2F;LLM judge，网络安全用 service snapshot 与 differential run。点表示该组合被使用，颜色区分领域。读者应看到：任务不是单一 SWE-Bench 风格，而是覆盖终端、前端、代码理解、仓库生成、安全和专业技能；验证手段也随领域变化，从可执行测试到 rubric&#x2F;LLM judge 不等。这解释了为什么后文分数在不同基准上波动很大，也说明「平均能力」很难用一个数字概括。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/iquest_fig4.png"
+                      alt="图 4：coding-agent 任务实例与环境"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 5）：这张矩阵把 coding-agent 任务库按领域&#x2F;子领域展开，横向是环境（repo container、sandbox + data、browser、3D game runtime、service snapshot 等）、verifier（repo tests、agent-written tests、differential run、rubric checks、LLM judge、no verifier）与构造方式（from scratch、derived、imported）。每个点表示该领域使用了对应的环境或验证手段。读者应理解：同一个「coding agent」标签下，任务的可执行性、验证强度和领域知识差异很大；这也是为什么论文要用多 harness、多 verifier 的后训练，而不能只靠单一 SWE 数据。</p>
+<p>主实验回答「整体在哪些基准上有竞争力」；附录 A 只补充预训练稳定性、μP scaling、halo exchange 和递归 MTP 的实现细节；论文没有专门的消融实验回答「移除某个组件会怎样」。因此 §4.3 的机制证据主要来自架构层面的受控对比和稳定性分析，而不是后训练各组件的拆解。这一点在阅读 Table 2 时需要记住：它是一张能力快照，不是一张因果表。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p>先看整体。图 5 把 8 个代表性基准画成柱状图：DeepSWE v1.1、NL2Repo、CyberGym、Terminal-Bench 2.1 属于 coding&#x2F;terminal，JobBench、Agents’ Last Exam、HLE、IQuest-CLIBench 属于通用 agentic 与 CLI 体验。IQuest-Q1 在 DeepSWE 上 64.6，低于 DeepSeek-V4.1-Flash 的 74.2、Claude Opus 5 的 73.7 和 GLM-5.3 的 66.9；在 CyberGym 上 84.5，低于 DeepSeek-V4.1-Flash 的 88.1；在 Terminal-Bench 2.1 上 83.2，低于 Claude 的 89.1、Hy4-preview 的 85.4 和 GLM-5.3-Flash 的 84.3；在 JobBench 上 55.7，低于 Claude 的 65.7 和 GLM-5.3 的 61.4；在 HLE 上 39.2，低于 Hy4-preview 的 43.4 和 GLM-5.3-Flash 的 39.9；在 IQuest-CLIBench 上 53.7，低于 GPT-5.6 Sol 的 58.5 和 Claude 的 58.2。图内还出现了 DeepSeek-V4.1-Flash、DeepSeek-V4-Pro、Hy4-preview 等 Table 2 没有的模型，以及图内标为 GLM-5.3（Table 2 为 GLM-5.3-Flash）的条目；Table 2 列的是 GLM-5.3-Flash、DS-V4-Flash-0731、Hy3、MiniMax M3 等；两套结果的基线集合并不一致，图注所说的 V4-Flash&#x2F;Pro 与图内标签也未完全对应。因此这张图适合看相对位置，不适合与 Table 2 逐项对差值。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/iquest_fig5.png"
+                      alt="图 5：8 个基准的总览"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 1）：这张图把 IQuest-Q1 与多个基线放在 8 个代表性基准上并列，前四组偏 coding&#x2F;terminal，后四组偏通用 agentic 与内部 CLI 体验。柱状图只给单点分数，没有误差条；图内基线与 Table 2 并不完全相同，且 HLE 明确是无工具设置，IQuest-CLIBench 是作者内部基准。读图时应关注 IQuest 在哪些组接近或超过开源基线、在哪些组仍落后于 Claude&#x2F;GPT，而不是把每根柱子的差值当作严格可比的效应量。</p>
+<p>再看 Table 2 中相对开源基线较强的部分。DeepSWE v1.1 上 IQuest-Q1 为 64.6，高于 GLM-5.3-Flash 的 63.4 和 DeepSeek-V4-Flash-0731 的 54.4，但低于 Claude Opus 5 的 73.7 与 GPT-5.6 Sol 的 73.0；NL2Repo-Bench 上 63.0，高于 GLM 的 56.3 与 DeepSeek 的 54.2，仍低于 Claude 的 75.3；CyberGym 上 84.5，高于 GLM 的 81.6、GPT 的 83.6 和 DeepSeek 的 76.7；AutomationBench 上 52.7，高于 Claude 的 50.3、GLM 的 48.8、GPT 的 45.8，是 Table 2 中少数超过 Claude 的通用 agentic 项目（Table 2）。这些数字支持「在开源模型队列里有竞争力，部分任务超过同代开源基线」，但不支持「全面领先」。</p>
+<p>相对较弱的部分同样清楚。SWE-Bench Pro 上 IQuest 为 57.5，只比 DeepSeek-V4-Flash-0731 的 57.3 高 0.2，低于 GLM-5.3-Flash 的 59.4 和 Claude Opus 5 的 79.2；Terminal-Bench 2.1 为 83.2，只比 DeepSeek 的 82.7 高 0.5，低于 GLM 的 84.3 和 Claude 的 89.1；到更长的 Terminal-Bench 3.0&#x2F;4.0，分数分别只有 17.9&#x2F;22.7，而 Claude 为 42.7&#x2F;53.9、GPT 为 34.6&#x2F;37.3、GLM 为 30.0&#x2F;32.8（Table 2）。这说明模型在中短程终端任务上已接近开源基线，但在更长程、更开放的终端工作流上仍有明显差距；论文标题里的「CLI capabilities」不能理解为「长程 CLI 已解决」。</p>
+<p>通用能力方面，Toolathlon-Verified 为 75.0，高于 DeepSeek 的 70.3，但低于 GLM 的 78.4 与 Claude 的 80.6；Claw-Eval 为 77.1，高于 DeepSeek 的 68.8 和 GLM 的 74.2，低于 Claude 的 79.6；JobBench 为 55.7，低于 Claude 的 65.7，高于 GLM 的 49.7 和 GPT 的 45.4；APEX-Agents 1.1 为 50.9，低于 Claude 的 65.8 和 GLM 的 52.8；BrowseComp 为 85.5，高于 DeepSeek 的 78.0、Hy3 的 84.2，低于 Claude 的 90.8 和 GPT 的 90.4；WideSearch 为 81.8，低于 GPT 的 86.3 和 Claude 的 84.0（Table 2）。推理类 GPQA Diamond 为 93.3，与 Claude 的 93.4、GPT 的 94.6 接近；IMOAnswerBench-Verified 为 93.0，与 DeepSeek 的 92.8 基本持平；HLE 无工具 39.2、有工具 55.7，明显低于 Claude 的 54.9&#x2F;60.9 和 GPT 的 49.5&#x2F;60.2（Table 2）。这些结果说明它的通用推理不弱，但「专家级难题」和「专业工作流」仍是短板。</p>
+<p>最后是 CLI 体验。IQuest-CLIBench 为 53.7，高于 DeepSeek 的 51.5 和 GLM 的 49.5，但低于 GPT 的 58.5 与 Claude 的 58.2（Table 2）。这个基准本身是作者内部的、script-driven 用户模拟，用执行轨迹和环境状态不变量评分（§5.1），无法独立复核；即便按作者自己的数字，模型也没有在该基准上领先前沿闭源模型。因此「optimized CLI interaction experience」更像是一个设计目标，而不是已经被外部证据确认的优势。论文没有报告任何基准的方差、置信区间或随机种子，Table 2 的多数开源基线还带有「作者自测」星号；在这样的条件下，几个百分点的差距不应被当作稳定结论。此外，论文只给出一个 320B&#x2F;15B 模型的结果，没有不同参数规模的下游对比；§2.2 的 1.93× 也不是在最终模型规模上测的，因此无法判断这些结论是否随规模变化。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>先把证据类型分开。Table 2 与图 5 的分数是原文事实；作者把提升归因于 CLI 中心课程、Stable SplitNorm&#x2F;Muon&#x2F;μP、多 scaffold RL、MOPD 和模型合并，是作者主张；我认为这些实验还不足以把总榜提升归因到某个组件，是审稿人判断；各后训练组件的消融、训练种子、总算力和数据配比属于论文未报告，当前材料无法确认。下面的机制证据主要是三类：架构层面的受控 scaling 对比、学习率稳定性分析，以及定性的 CLI 案例。</p>
+<p>图 6 先解释作者如何定义「稳定」。在附录 A 中，作者对学习率做网格搜索，把训练损失轨迹分成 stable、warning、collapsed 三类：stable 持续下降；warning 先反弹再恢复；collapsed 反弹后维持高损失。<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">e</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\eta_{\rm safe}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">η</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">safe</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 定义为被判定为 stable 的最大学习率，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">t</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\eta_{\rm opt}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">η</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">opt</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 是在固定预算下优化效率最高的学习率；两者之比的对数 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mi>N</mi></msub><mo>=</mo><mi>log</mi><mo>⁡</mo><mo stretchy="false">(</mo><msub><mi>η</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">e</mi></mrow></msub><mi mathvariant="normal">/</mi><msub><mi>η</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">t</mi></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">H_N=\log(\eta_{\rm safe}/\eta_{\rm opt})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0813em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mop">lo<span style="margin-right:0.0139em;">g</span></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">η</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">safe</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord">/</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">η</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">opt</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span> 就是稳定裕度，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>H</mi><mi>N</mi></msub><mo>≤</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">H_N\le 0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0813em;">H</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:-0.0813em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">≤</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span> 表示优化已被稳定性约束（§2.2、Appendix A）。图 6 展示的是这三类轨迹的代表曲线，而不是某个组件的消融：它证明作者有一套可操作的分类标准，但不能证明 Stable SplitNorm、Muon 或 μP 中哪一个扩大了稳定区间。</p>
+<p><img src="/images/dailypaper/2026-10-25/iquest_fig6.png" alt="图 6：stable/warning/collapsed 三种训练状态"></p>
+<p><strong>图 6</strong>（论文 Fig. 8）：三条 LM loss 曲线分别对应 stable、warning、collapsed 三种训练状态；稳定曲线单调下降，警告曲线在约 250 步反弹后恢复，崩溃曲线反弹后维持高 loss。论文把最大稳定学习率定义为 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">e</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\eta_{\rm safe}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">η</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">safe</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>，并用它和 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">t</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\eta_{\rm opt}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">η</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">opt</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 的比值定义稳定裕度；这张图是分类标准的示例，不是组件消融。它说明作者为什么强调「宽稳定区间」，但不能单独证明 Stable SplitNorm&#x2F;Muon&#x2F;μP 中哪一个带来了该区间。</p>
+<p>最接近受控实验的是 §2.2 的 scaling efficiency 对比：作者按 Qwen3-30B-A3B 的配置构造一个 Qwen3-MoE 风格基线，用相同训练数据比较，报告 IQuest-Q1 在相同训练 FLOPs 下训练交叉熵更低，整体 scaling efficiency 高 1.93×，也就是达到同样训练损失只需约 52% 的算力（§2.2、论文 Fig. 4a）。这个对比有价值，因为它控制了数据和训练预算；但它比较的是「整套 IQuest 设计」与「Qwen3-MoE 风格基线」，差异同时包含混合注意力、query-aware sink、QKNorm&#x2F;Clip、Partial RoPE、首层 dense MLP、Stable SplitNorm、Muon 和 μP。论文没有做 leave-one-out 消融，因此不能把 1.93× 归给 Stable SplitNorm，也不能证明 Muon + μP 是必要的。作者说这是「cumulative benefit」，这个措辞是准确的；但如果读者把它理解成「Stable SplitNorm 带来 1.93×」，就超出了原文。</p>
+<p>稳定性方面，作者报告在测量尺度上 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mrow><mi mathvariant="normal">s</mi><mi mathvariant="normal">a</mi><mi mathvariant="normal">f</mi><mi mathvariant="normal">e</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\eta_{\rm safe}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">η</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">safe</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 始终高于 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>η</mi><mrow><mi mathvariant="normal">o</mi><mi mathvariant="normal">p</mi><mi mathvariant="normal">t</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\eta_{\rm opt}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">η</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">opt</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span>，并外推 Critical Model Size 约为 572B 激活参数 &#x2F; 12T 总参数，说明在当前 recipe 下还有 scaling 余量（§2.2、论文 Fig. 4b）。μP 的证据是：在一个 896 宽、18 层的 proxy 上选学习率，零样本迁移到目标模型；在 4× 宽度和 4× 深度范围内，最优学习率保持一致（§2.1、Table 3、论文 Fig. 9）。这些是优化器层面的证据，能支持「训练稳定、超参可迁移」，但论文没有把这些稳定性指标与下游 benchmark 提升做相关分析，也没有证明 572B 的外推在真实 572B 模型上成立。572B 是外推值，不是实测模型。</p>
+<p>后训练组件的机制证据更薄。MOPD 只报告了最终模型，没有报告「不用 MOPD」「只用单个教师」「换教师组合」「去掉 reverse-KL&#x2F;clip」的对照；模型合并没有报告「不合并」「只合并 SFT 阶段」「改变 ℓ2 校准」的对照；两阶段 SFT 没有报告「只做 Stage 1」「只做 Stage 2」的对照；预训练的两阶段课程没有报告「Stage 2 不提高代码比例」的对照；长上下文扩展没有报告 32K&#x2F;128K&#x2F;512K 各阶段的 agent 能力对照；多 scaffold&#x2F;version 的 RL 也没有按 scaffold 拆分的对照，无法判断跨 scaffold 训练是否真的比单 scaffold 更稳。论文也没有给出 RL 的任务数、rollout 数和奖励权重，因此无法判断 RL 与 MOPD 各自贡献多少。按现有材料，只能说「整套后训练流程产出了一个有竞争力的模型」，不能说「MOPD 或模型合并是有效的」。</p>
+<p>定性证据方面，论文 Fig. 7 展示了模型从自然语言规格生成交互式前端应用（游戏世界、场景编辑、科学可视化），用 §6.3 报告了三天防御性安全部署中专家借助模型产出 30 份漏洞报告、经同行复核并负责任披露。这些例子说明模型能完成真实工件和真实安全分析，但它们没有对照组、没有成功率、没有用户研究，不能替代对「CLI 交互体验」的定量评估。§6.2 的 RSI 案例同样是一次性的：agent 追踪 6,054 次工具调用，定位到训练数据偏向单一 tool-call schema、部分记录的工具定义与调用参数不一致，提出清洗与增强方案；人类专家审批后，用 2.35B tokens、938.7 GPU hours 训练新 checkpoint，并在 held-out schema 与熟悉 schema 上评估。论文没有报告这个 checkpoint 相对基线的具体提升，也没有与「人类工程师独立完成同样诊断」做对照，因此它证明的是「agent 可以参与一次数据诊断与训练实验」，不是「递归自我改进已经形成闭环」。</p>
+<p>综合起来，本文的效果证据（benchmark 分数）比机制证据强。Table 2 覆盖广、与闭源&#x2F;开源基线并列，能支持「这是一个有竞争力的开源 agentic 模型」；但 1.93× 是整套架构的对比，稳定性分析是优化器层面的，MOPD&#x2F;合并&#x2F;课程&#x2F;长上下文都没有消融。数据质量与规模、SFT 的 290B+ tokens、四个教师模型、不同 harness 的评测预算，都是可能解释总榜提升的替代因素，当前实验无法把它们与论文强调的机制分开。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p>训练成本方面，论文报告预训练 + 中期训练共 29T tokens，SFT 两阶段 240B+ 与 50B+ tokens；没有报告 GPU 型号、数量、总 GPU 小时、能耗或费用，也没有报告 RL 与 MOPD 的 token 量&#x2F;rollout 量（§3.1、§4.3–§4.5）。唯一给出的算力数字是 RSI 那次实验的 938.7 GPU hours（§6.2），它只是后训练中的一个小实验，不能代表总成本。数据方面，预训练来源是网页、GitHub、书籍、论文、新闻和领域材料；中期训练有超过一百万个容器化实例；后训练使用 RapidAPI、Smithery 的 API&#x2F;MCP server、公开技能、GitHub 仓库、工业数据和清洗后的使用日志（§3.1、§3.3.2、§4.1）。论文没有给出各来源的 token 数、采样比例、许可证、去重阈值，也没有说明如何检查评测集污染；工业数据和内部 CLIBench 也不公开。</p>
+<p>推理与系统成本方面，模型是纯文本、需要专用 tool-call parser 和兼容 harness；长上下文训练扩展到 512K，但论文没有报告推理延迟、吞吐、显存占用或不同 harness 下的平均工具调用次数（Limitations）。递归 MTP 和异步教师加载是为效率设计，但前者没有 draft 接受率&#x2F;加速比，后者没有 GPU 副本数、存储 IO 或调度开销的量化。后训练运行时要在同一 run 中支持多个 scaffold&#x2F;version、隔离沙箱、verifier、TITO prefix tree 和四个教师的按需权重加载，系统复杂度明显高于单 harness SFT；论文没有报告这些基础设施的故障率或运维成本。人工方面，任务合成主要靠 agent 和规则，RSI 案例中有人类专家审批关键决策，但没有标注工时或人力成本。</p>
+<p>适用范围应收缩为：在论文自报的 coding-agent、通用 agentic 与推理基准上，IQuest-Q1 在开源模型中具有竞争力，在 CyberGym、NL2Repo、DeepSWE、AutomationBench 等任务上超过同代开源基线；但它仍明显落后于 Claude Opus 5&#x2F;GPT-5.6 的多个项目（SWE-Bench Pro、Terminal-Bench 3.0&#x2F;4.0、HLE、APEX-Agents、JobBench、BrowseComp），在长程终端任务上尤其明显。它不能支持「通用 CLI 已解决」「跨所有 scaffold 稳定」「真实工程环境可无人监督」这些更大的结论。作者自己在 Limitations 中也承认：输出可能错误、代码需要测试复核、工具调用依赖专用 parser&#x2F;harness、真实 CLI 任务仍需人工监督。这些限制与报告的数字并不矛盾，但会显著缩小读者对「开箱即用的 CLI agent」的预期。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><h4 id="质疑：总榜提升无法归因到论文强调的任何单个组件"><a href="#质疑：总榜提升无法归因到论文强调的任何单个组件" class="headerlink" title="质疑：总榜提升无法归因到论文强调的任何单个组件"></a>质疑：总榜提升无法归因到论文强调的任何单个组件</h4><ul>
+<li><strong>原文依据</strong>：§2.2 的 1.93× scaling efficiency 是「整套 IQuest 设计」对「Qwen3-MoE 风格基线」的对比，差异同时包含混合注意力、sink、QKNorm&#x2F;Clip、Partial RoPE、首层 dense MLP、Stable SplitNorm、Muon 与 μP；Appendix A 只给出学习率稳定性分类、μP scaling 与基础设施细节；论文没有对 Stable SplitNorm、Muon、μP、两阶段预训练课程、32K→512K 长上下文、两阶段 SFT、领域 RL、MOPD、模型合并中的任何一个报告 leave-one-out 或替换实验。SFT 两阶段只给了 240B+&#x2F;50B+ token 数和学习率，没有说明数据差异（§4.3）；MOPD 只给了最终结果（§4.5）；合并只给了方法描述（§4.6）。</li>
+<li><strong>为什么重要</strong>：本文的卖点是「CLI 中心的多阶段 pipeline」和「稳定 scaling 的架构组合」。如果这些组件中的大多数可以被替换而不影响结果，那么论文的核心贡献就从「方法」退化为「用大量数据和算力训练了一个大模型」；如果某个组件是关键，读者需要知道是哪一个，才能复用或批评。</li>
+<li><strong>当前能够得出的判断</strong>：原文事实是模型在多个基准上有竞争力，架构对比在相同数据下优于 Qwen3-MoE 风格基线；作者主张这是多组件累积收益；审稿人判断是当前实验没有隔离任何后训练组件，也没有把架构收益拆开，因此不能把总榜提升归因于 Stable SplitNorm、MOPD 或模型合并。替代解释（数据质量&#x2F;规模、SFT token 量、教师模型、评测 harness）没有被排除。</li>
+<li><strong>如何验证或补强</strong>：在 proxy 规模上做受控消融：逐个去掉 Stable SplitNorm 的 RMSNorm&#x2F;SandwichNorm、把 Muon 换成 AdamW、关闭 μP、把混合注意力换成全注意力、只做单阶段 SFT、去掉 MOPD、去掉合并、固定 32K 上下文；在相同 token&#x2F;FLOP 预算下报告训练损失与下游 agent 分数；对 MOPD 比较单教师&#x2F;多教师&#x2F;无教师，对合并比较不同权重与 ℓ2 校准；报告至少 3 个训练种子的方差。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：评测协议不统一，图与表的基线集合不一致，且没有方差"><a href="#质疑：评测协议不统一，图与表的基线集合不一致，且没有方差" class="headerlink" title="质疑：评测协议不统一，图与表的基线集合不一致，且没有方差"></a>质疑：评测协议不统一，图与表的基线集合不一致，且没有方差</h4><ul>
+<li><strong>原文依据</strong>：§5.3 明确说「有公开分数就用公开分数，否则按对应 benchmark setup 自测」；DeepSWE 用 mini-SWE-agent、PaperBench 用 BasicAgent、其余 coding 任务用 Claude Code，通用 agentic 搜索与 HLE 用内部 harness；运行时限制因基准而异（6&#x2F;8&#x2F;10&#x2F;12 小时）；Table 2 中多个开源基线带「作者自测」星号，并注明「最高可用 reasoning effort」。图 5（论文 Fig. 1）出现 DeepSeek-V4.1-Flash、DeepSeek-V4-Pro、Hy4-preview 等 Table 2 没有的模型，以及图内标为 GLM-5.3（Table 2 为 GLM-5.3-Flash）的条目；Table 2 列的是 GLM-5.3-Flash、DS-V4-Flash-0731、Hy3、MiniMax M3；图注说 V4-Flash&#x2F;Pro 对应 0731&#x2F;0813 发布，但图内标签并不完全对应。IQuest-CLIBench 是 proprietary built-in benchmark，用 script-driven 用户模拟与环境状态不变量评分，无法独立复核（§5.1、Table 2）。所有结果都没有置信区间、标准差或随机种子。</li>
+<li><strong>为什么重要</strong>：论文的核心主张是「相对同代模型有竞争力」。如果不同模型使用不同 scaffold、不同工具预算、不同提示、不同评分来源，几个百分点的差距可能来自协议而不是能力；图与表的基线集合不一致，会让读者无法判断哪一套是主结果；内部基准不可复核，则「CLI 体验优化」无法被外部验证。</li>
+<li><strong>当前能够得出的判断</strong>：原文事实是作者报告了这些分数；作者主张 IQuest 在多个基准上有竞争力；审稿人判断是这些数字只能作为「作者自报的能力快照」，不能作为严格的横向比较。尤其是 IQuest-CLIBench 上 IQuest 53.7 低于 GPT 58.5 与 Claude 58.2，这与「优化 CLI 体验」的叙事并不一致。当前材料无法确认基线是否在相同预算下运行，也无法确认图 5 与 Table 2 的差异是版本更新还是选择性展示。</li>
+<li><strong>如何验证或补强</strong>：公开每个基准的 harness、系统提示、工具定义、预算、评分脚本和运行日志；让所有模型在同一 scaffold&#x2F;同一预算下重跑，至少报告 3 个种子的均值与标准差；把 Fig. 1 与 Table 2 的基线集合对齐并说明版本；公开 IQuest-CLIBench 或把它从主结论中移除；对差距小于 1 个百分点的项目（SWE-Bench Pro、Terminal-Bench 2.1、IMO）做显著性检验。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：数据与算力披露不足，权重-代码链接缺失，复现性弱"><a href="#质疑：数据与算力披露不足，权重-代码链接缺失，复现性弱" class="headerlink" title="质疑：数据与算力披露不足，权重&#x2F;代码链接缺失，复现性弱"></a>质疑：数据与算力披露不足，权重&#x2F;代码链接缺失，复现性弱</h4><ul>
+<li><strong>原文依据</strong>：§3.1 只给出来源类别、代码比例 40%→70% 和预训练+中期 29T tokens，没有各来源 token 数、采样权重、去重阈值、许可证或评测集污染检查；§3.3.2 只说超过一百万个容器化实例，没有任务分布、成功率、平均轮数；§4.3–§4.5 没有 RL&#x2F;MOPD 的 token 量与 rollout 预算；全文没有主训练 GPU 型号&#x2F;数量&#x2F;总小时，只有 RSI 实验的 938.7 GPU hours（§6.2）。Abstract、§1 贡献和 Limitations 都说「release model weights &#x2F; deployment configurations &#x2F; agent-integration instructions」，但正文与 HTML 均未给出官方仓库或权重链接。</li>
+<li><strong>为什么重要</strong>：这是一篇以「开源模型」为卖点的技术报告。没有权重链接，读者无法验证模型是否真的存在、是否与论文数字一致；没有数据配比和污染检查，无法判断 benchmark 分数是否被训练数据污染；没有总算力，无法判断与基线是否在同一预算下比较。可复现性是这类报告的核心信誉来源。</li>
+<li><strong>当前能够得出的判断</strong>：方法描述足以让读者理解 pipeline，但不足以复现；「open-source &#x2F; release weights」目前是作者声明，不是可核对的 artifact。数据配比与算力属于论文未报告，当前材料无法确认；也不能排除训练数据与评测集重叠的可能。论文没有义务公开所有工业数据，但至少应给出可复现的权重、评测代码和数据卡。</li>
+<li><strong>如何验证或补强</strong>：发布模型权重、推理&#x2F;训练代码、tokenizer、chat template 与 tool-call parser；提供数据卡（来源、许可证、token 数、采样比例、去重与污染审计）；报告主训练总算力与硬件配置；给出 checkpoint 的哈希与评测脚本；对内部数据说明不可公开的原因，并提供可公开的替代子集。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：human-on-the-loop-RSI-只有一次案例，未证明相对人类工程师的增益"><a href="#质疑：human-on-the-loop-RSI-只有一次案例，未证明相对人类工程师的增益" class="headerlink" title="质疑：human-on-the-loop RSI 只有一次案例，未证明相对人类工程师的增益"></a>质疑：human-on-the-loop RSI 只有一次案例，未证明相对人类工程师的增益</h4><ul>
+<li><strong>原文依据</strong>：§6.2 只描述了一次内部迭代：agent 在一个长程任务中看到 35 次 tool-call 错误，追踪 6,054 次工具调用，发现训练数据偏向单一 schema、部分记录的工具定义与调用参数不一致，提出清洗与增强方案；人类专家审批后，用 2.35B tokens、938.7 GPU hours 训练新 checkpoint，并在 held-out schema 与熟悉 schema 上评估。论文没有报告新 checkpoint 相对旧模型的具体分数、没有人类工程师独立完成同样诊断的对照、没有跨多次迭代的量化闭环，也没有统计 agent 提案被拒绝或失败的比例。Abstract 与 §1 却把它描述为「a practical pathway towards recursive self-improvement」「accelerate subsequent model iterations」。</li>
+<li><strong>为什么重要</strong>：RSI 是本文三个贡献之一，也是一个很强的主张。一次案例最多说明「agent 可以参与数据诊断与训练实验」，不能说明「模型生成的改进可以加速后续迭代」，更不能说明「递归」已经形成。若把一次内部 demo 写成 RSI 路径，会高估论文的方法论贡献。</li>
+<li><strong>当前能够得出的判断</strong>：原文事实是这次迭代确实发生了，且有人类审批与 held-out schema 评估；作者主张它展示了 RSI 的潜力；审稿人判断是这只是一个 case study，缺少对照、重复和闭环指标。论文没有证明 agent 的介入比人类工程师更有效，也没有证明后续迭代因此变快。</li>
+<li><strong>如何验证或补强</strong>：预注册多轮迭代的指标（诊断时间、实验次数、GPU 小时、最终 checkpoint 分数）；设置「人类工程师独立诊断」与「agent 辅助」的对照；记录 agent 提案的接受&#x2F;拒绝率、失败模式和人类修正量；报告每一轮相对上一轮的增益，而不是只展示一次成功案例；如果目标真是 RSI，至少需要两到三轮闭环，且每轮都由上一轮模型参与。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：安全与真实-CLI-部署的证据是定性的，作者自述局限未被量化"><a href="#质疑：安全与真实-CLI-部署的证据是定性的，作者自述局限未被量化" class="headerlink" title="质疑：安全与真实 CLI 部署的证据是定性的，作者自述局限未被量化"></a>质疑：安全与真实 CLI 部署的证据是定性的，作者自述局限未被量化</h4><ul>
+<li><strong>原文依据</strong>：CyberGym 84.5 衡量的是在大型开源代码库中复现和验证真实漏洞的能力（§6.3）；三天防御性部署中，人类安全专家借助模型产出 30 份漏洞报告，全部由同行独立验证，影响开源项目的发现被负责任披露（§6.3）。论文没有报告漏洞报告的精确率&#x2F;召回率、误报率、专家节省的时间、模型在攻击性任务上的拒答率或红队结果，也没有说明开放权重后的滥用防护。Limitations 承认：纯文本输入、输出可能错误、工具调用依赖专用 parser&#x2F;harness、真实 CLI 任务可能需要人工监督、模型仍会漏约束&#x2F;重复失败&#x2F;留下未解决问题。</li>
+<li><strong>为什么重要</strong>：这是一篇要开放权重的网络安全能力模型。防御性部署案例能说明有用性，但不能说明安全性；没有误报率与红队评估，读者无法判断模型在真实安全流程中的可靠性，也无法判断开放权重后的风险是否被充分管理。真实 CLI 任务的失败率同样影响「agentic foundation model」的部署预期。</li>
+<li><strong>当前能够得出的判断</strong>：原文事实是模型在 CyberGym 上得分较高，且有一次三天部署与 30 份报告；作者主张它对防御性安全有实质帮助；审稿人判断是这些证据是定性的，缺少精确率、召回率、失败率和红队数据。开放权重下的 dual-use 风险没有被量化，论文的安全讨论相对于能力展示明显偏薄。</li>
+<li><strong>如何验证或补强</strong>：报告漏洞报告的精确率&#x2F;召回率与专家复核结果，区分模型独立发现与人类引导的贡献；做红队评估与滥用测试，说明拒答&#x2F;监控&#x2F;许可策略；在真实 CLI 任务上报告失败率、人工接管率与平均修复时间；如果开放权重，提供负责任使用指南与漏洞披露流程。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者认为通用模型在长程、跨 scaffold 的真实 CLI 任务中不够专、不够稳，因此提出 IQuest-Q1：用 320B&#x2F;15B 的稀疏 MoE、混合注意力与 Stable SplitNorm&#x2F;Muon&#x2F;μP 做稳定预训练，用 29T tokens 的两段课程和中期训练把 agentic 轨迹与长上下文灌进去，再用两阶段 SFT、领域 RL、四教师 MOPD 和模型合并把多个专家能力合成一个模型。实验在 20 余个自报基准上表明，它在 DeepSWE v1.1（64.6）、NL2Repo（63.0）、CyberGym（84.5）、AutomationBench（52.7）等项目上超过同代开源基线，但在 SWE-Bench Pro（57.5）、Terminal-Bench 3.0&#x2F;4.0（17.9&#x2F;22.7）、HLE（39.2&#x2F;55.7）、APEX-Agents（50.9）、JobBench（55.7）与 IQuest-CLIBench（53.7）上仍落后于 Claude Opus 5&#x2F;GPT-5.6；其中「模型在多个 agentic 基准上有竞争力」的证据较强，「各组件为何有效」「CLI 体验是否真的优化」「RSI 是否成立」仍缺少充分支持。本文最有价值的部分是把一个 320B CLI 基座的完整训练管线、数据合成、后训练与基础设施摊开给读者看；最大的审稿风险是缺少组件消融、评测协议不齐、数据&#x2F;算力不透明，以及把一次内部案例写成 RSI 路径。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：中。CLI 作为通用接口、长程&#x2F;跨 scaffold&#x2F;真实环境三类困难交代得清楚，具体子问题（训练一个 CLI 中心的开源 MoE）也能辨认；但作者没有用受控研究证明通用模型失败的根本原因，RSI 的定义也偏宽，领域一般问题与本文实际解决的子问题需要读者自己拆开。</li>
+<li><strong>创新性证据</strong>：中。320B&#x2F;15B 规模、混合注意力与 Stable SplitNorm&#x2F;Muon&#x2F;μP 的组合、跨 scaffold 后训练与四教师 MOPD 是有辨识度的系统工作；但 SplitNorm、Muon、μP、MTP、GRPO、MOPD、EAGLE-3 都是已有组件，论文没有消融证明组合的必要性，也没有独立文献检索支持「首次」。</li>
+<li><strong>方法可信度</strong>：中。架构、优化器、数据阶段、SFT&#x2F;RL&#x2F;MOPD&#x2F;合并流程交代得较细，训练稳定性分析也有可操作的定义；但数据配比、总算力、RL 细节、两阶段 SFT 的差异缺失，后训练组件没有隔离，机制解释主要停留在「整套 pipeline 有效」。</li>
+<li><strong>实验支持力度</strong>：中。覆盖 20 余个基准，与闭源&#x2F;开源基线并列，能说明模型在开源队列中的位置；但结果多为作者自报，harness&#x2F;预算&#x2F;评分来源不统一，图与表基线集合不一致，没有方差或置信区间，内部 CLIBench 不可复核。</li>
+<li><strong>可复现性</strong>：弱。论文没有给出代码&#x2F;权重链接，没有数据卡、数据配比、污染检查和主训练算力；只有架构、部分超参和训练阶段可复现，无法从论文重建模型或复核榜单。</li>
+<li><strong>综合阅读价值</strong>：中。作为现代 agentic foundation model 的工程管线与基准全景图，本文对理解「预训练→中期→SFT→RL→蒸馏→合并」很有帮助；但作为机制论文，它的消融与可复现性不足，适合批判性阅读，不宜把 Table 2 当作通用 CLI 能力的证明。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> IQuest-Q1：把命令行当作智能体主界面的 320B 稀疏 MoE 基座</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-25 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-25 14:52:59
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/25/2610.30949v1_IQuest-Q1_Advancing_Foundation_Capabilities_for_Agentic_CLI_Systems/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Post-Training/">#Post-Training</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Coding-Agents/">#Coding Agents</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Multi-Teacher-Distillation/">#Multi-Teacher Distillation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/MoE/">#MoE</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Model-Merging/">#Model Merging</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Terminal-Agents/">#Terminal Agents</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/25/2610.24464v1_Learning_to_Compose_Recursive_Self-Improvement_of_Shared_Executable_Stacks_for_Zero-Shot_Long-Horizon_Robot_Manipulation/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">修共享栈而不是修单程序：Recursia 的长程机器人组合自改进</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/25/2610.31329v1_WeVisOne-VL_Unified_Visual_Perception_from_Objects_to_Pixels/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">从对象到像素：WeVisOne-VL 用结构化 token 与 9.6M 解码器统一视觉感知</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">IQuest-Q1：把命令行当作智能体主界面的 320B 稀疏 MoE 基座</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-%E8%BE%93%E5%85%A5%E3%80%81%E8%BE%93%E5%87%BA%E4%B8%8E%E8%AE%AD%E7%BB%83%E9%98%B6%E6%AE%B5"><span class="nav-text">3.1 输入、输出与训练阶段</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E6%A8%A1%E5%9E%8B%E6%9E%B6%E6%9E%84%EF%BC%9A%E6%B7%B7%E5%90%88%E6%B3%A8%E6%84%8F%E5%8A%9B-%E7%A8%80%E7%96%8F-MoE-%E7%A8%B3%E5%AE%9A%E5%8C%96%E8%AE%BE%E8%AE%A1"><span class="nav-text">3.2 模型架构：混合注意力 + 稀疏 MoE + 稳定化设计</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E9%A2%84%E8%AE%AD%E7%BB%83%E4%B8%8E%E4%B8%AD%E6%9C%9F%E8%AE%AD%E7%BB%83%EF%BC%9A%E6%8A%8A%E6%95%B0%E6%8D%AE%E5%88%86%E5%B8%83%E6%8E%A8%E5%90%91-CLI"><span class="nav-text">3.3 预训练与中期训练：把数据分布推向 CLI</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-4-%E5%90%8E%E8%AE%AD%E7%BB%83%EF%BC%9ASFT%E3%80%81%E9%A2%86%E5%9F%9F-RL%E3%80%81MOPD-%E4%B8%8E%E6%A8%A1%E5%9E%8B%E5%90%88%E5%B9%B6"><span class="nav-text">3.4 后训练：SFT、领域 RL、MOPD 与模型合并</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-5-%E5%9F%BA%E7%A1%80%E8%AE%BE%E6%96%BD%E4%B8%8E%E6%8E%A8%E7%90%86%EF%BC%9A%E9%95%BF%E4%B8%8A%E4%B8%8B%E6%96%87%E3%80%81%E5%BC%82%E6%AD%A5%E6%95%99%E5%B8%88%E4%B8%8E%E5%B7%A5%E5%85%B7%E6%A0%BC%E5%BC%8F"><span class="nav-text">3.5 基础设施与推理：长上下文、异步教师与工具格式</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 186 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>

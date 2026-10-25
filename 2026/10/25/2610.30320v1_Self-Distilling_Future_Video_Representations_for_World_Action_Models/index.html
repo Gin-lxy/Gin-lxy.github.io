@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="keywords" content="GIn, GIn&#39;s notebook, 学习笔记, 随笔">
+    
+    
+    <meta name="author" content="GIn">
+    
+    <!-- Completely eliminate flash of wrong theme -->
+    <script>
+        (function() {
+            const THEME_KEY = "REDEFINE-THEME-STATUS";
+            const DARK = "dark", LIGHT = "light";
+            
+            // Get preferred theme
+            function getTheme() {
+                try {
+                    const saved = localStorage.getItem(THEME_KEY);
+                    if (saved) {
+                        const { isDark } = JSON.parse(saved);
+                        return isDark ? DARK : LIGHT;
+                    }
+                } catch (e) {}
+                
+                return matchMedia("(prefers-color-scheme: dark)").matches ? DARK : LIGHT;
+            }
+            
+            // Apply theme to document
+            function applyTheme(theme) {
+                const isDark = theme === DARK;
+                const root = document.documentElement;
+                
+                // Set classes for compatibility
+                root.classList.add(theme);
+                root.classList.remove(isDark ? LIGHT : DARK);
+                root.style.colorScheme = theme;
+            }
+            
+            // Initial application
+            const theme = getTheme();
+            applyTheme(theme);
+            
+            // Listen for system preference changes
+            matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ({ matches }) => {
+                // Only update if using system preference (no localStorage entry)
+                if (!localStorage.getItem(THEME_KEY)) {
+                    applyTheme(matches ? DARK : LIGHT);
+                }
+            });
+            
+            // Set body classes ASAP (before DOMContentLoaded)
+            (function() {
+                const addBodyClass = () => {
+                    const b = document.body;
+                    if (!b) return false;
+                    b.classList.add(theme + "-mode");
+                    return true;
+                };
+
+                // Try immediately
+                if (addBodyClass()) return;
+
+                // Observe until body exists
+                const mo = new MutationObserver(() => {
+                    if (addBodyClass()) mo.disconnect();
+                });
+                mo.observe(document.documentElement, { childList: true, subtree: true });
+            })();
+        })();
+    </script>
+    
+    <!-- preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    
+    <!--- Seo Part-->
+    
+    <link rel="canonical" href="https://gin-lxy.github.io/2026/10/25/2610.30320v1_self-distilling_future_video_representations_for_world_action_models/"/>
+    <meta name="robots" content="index,follow">
+    <meta name="googlebot" content="index,follow">
+    <meta name="revisit-after" content="1 days">
+    
+    
+        
+        <meta name="description" content="GIn&#39;s notebook">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从一步噪声中蒸馏未来：FRED 用自蒸馏改进世界动作模型的未来表征">
+<meta property="og:url" content="https://gin-lxy.github.io/2026/10/25/2610.30320v1_Self-Distilling_Future_Video_Representations_for_World_Action_Models/index.html">
+<meta property="og:site_name" content="GIn&#39;s notebook">
+<meta property="og:description" content="GIn&#39;s notebook">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+<meta property="article:published_time" content="2026-10-25T04:00:00.000Z">
+<meta property="article:modified_time" content="2026-10-25T06:52:59.959Z">
+<meta property="article:author" content="GIn">
+<meta property="article:tag" content="Cross-Embodiment Transfer">
+<meta property="article:tag" content="Robot Manipulation">
+<meta property="article:tag" content="Self-Distillation">
+<meta property="article:tag" content="Video Diffusion">
+<meta property="article:tag" content="World Action Models">
+<meta property="article:tag" content="Zero-Shot Generalization">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://gin-lxy.github.io/images/redefine-og.webp">
+    
+    
+    <!--- Icon Part-->
+    <link rel="icon" type="image/png" href="/images/favicon.png" sizes="192x192">
+    <link rel="apple-touch-icon" sizes="180x180" href="/images/favicon.png">
+    <meta name="theme-color" content="#8f7ff4">
+    <link rel="shortcut icon" href="/images/favicon.png">
+    <!--- Page Info-->
+    
+    <title>从一步噪声中蒸馏未来：FRED 用自蒸馏改进世界动作模型的未来表征 | GIn</title>
+
+    
+<link rel="stylesheet" href="/fonts/Chillax/chillax.css">
+
+
+    <!--- Inject Part-->
+    
+        
+            
+    
+            
+    
+            
+                
+                    <link rel="stylesheet" href="/css/codeblock.css">
+                
+    
+
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    
+        
+<link rel="stylesheet" href="/css/build/tailwind.css">
+
+    
+
+    
+<link rel="stylesheet" href="/fonts/GeistMono/geist-mono.css">
+
+    
+<link rel="stylesheet" href="/fonts/Geist/geist.css">
+
+    <!--- Font Part-->
+    
+    
+    
+    
+    
+    
+
+    <script id="hexo-configurations">
+    window.config = {"hostname":"gin-lxy.github.io","root":"/","language":"zh-CN","path":"search.xml"};
+    window.theme = {"articles":{"style":{"font_size":"16px","line_height":1.5,"image_border_radius":"14px","image_alignment":"center","image_caption":false,"link_icon":true,"delete_mask":false,"title_alignment":"left","headings_top_spacing":{"h1":"3.2rem","h2":"2.4rem","h3":"1.9rem","h4":"1.6rem","h5":"1.4rem","h6":"1.3rem"}},"word_count":{"enable":true,"count":true,"min2read":true},"author_label":{"enable":true,"auto":false,"list":[]},"code_block":{"copy":true,"style":"simple","highlight_theme":{"light":"github","dark":"vs2015"},"font":{"enable":false,"family":null,"url":null}},"toc":{"enable":true,"max_depth":3,"number":false,"expand":true,"init_open":true},"copyright":true,"lazyload":true,"pangu_js":false,"recommendation":{"enable":false,"title":"推荐阅读","limit":3,"mobile_limit":2,"placeholder":"/images/wallhaven-wqery6-light.webp","skip_dirs":[]}},"colors":{"primary":"#8f7ff4","secondary":"#8587a7","default_mode":"light"},"global":{"fonts":{"chinese":{"enable":false,"family":null,"url":null},"english":{"enable":false,"family":null,"url":null},"title":{"enable":false,"family":null,"url":null}},"content_max_width":"1000px","sidebar_width":"210px","hover":{"shadow":true,"scale":false},"scroll_progress":{"bar":false,"percentage":true},"website_counter":{"url":"","enable":false,"site_pv":false,"site_uv":false,"post_pv":false},"single_page":true,"preloader":{"enable":false,"custom_message":null},"side_tools":{"gear_rotation":true,"auto_expand":false},"open_graph":{"enable":true,"image":"/images/redefine-og.webp","description":"GIn's notebook"},"google_analytics":{"enable":false,"id":null}},"home_banner":{"enable":true,"style":"fixed","image":{"light":"/images/wallhaven-wqery6-light.webp","dark":"/images/wallhaven-wqery6-dark.webp"},"title":"GIn's notebook","subtitle":{"text":["The world is my oyster."],"hitokoto":{"enable":false,"show_author":false,"api":"https://v1.hitokoto.cn"},"typing_speed":100,"backing_speed":80,"starting_delay":500,"backing_delay":1500,"loop":true,"smart_backspace":true},"text_color":{"light":"#fff","dark":"#d1d1b6"},"text_style":{"title_size":"2.8rem","subtitle_size":"1.5rem","line_height":1.2},"custom_font":{"enable":false,"family":null,"url":null},"social_links":{"enable":false,"style":"default","links":[],"qrs":[]}},"plugins":{"feed":{"enable":false},"aplayer":{"enable":false,"type":"fixed","audios":[{"name":null,"artist":null,"url":null,"cover":null,"lrc":null}]},"mermaid":{"enable":false,"version":"11.4.1","theme":{"light":"default","dark":"dark"}}},"version":"2.9.0","navbar":{"auto_hide":false,"color":{"left":"#f78736","right":"#367df7","transparency":35},"width":{"home":"1200px","pages":"1000px"},"links":{"Home":{"path":"/","icon":"fa-regular fa-house"},"Archives":{"path":"/archives","icon":"fa-regular fa-archive"},"Categories":{"path":"/categories","icon":"fa-regular fa-folder"},"Tags":{"path":"/tags","icon":"fa-regular fa-tags"},"About":{"path":"/about","icon":"fa-regular fa-user"}},"search":{"enable":true,"preload":true}},"page_templates":{"friends_column":2,"tags_style":"blur","masonry":{"batch_size":12,"initial_batch_size":24}},"home":{"sidebar":{"enable":true,"position":"left","first_item":"menu","announcement":null,"show_on_mobile":true,"links":{"home":{"path":"/","icon":"fa-regular fa-house"},"archives":{"path":"/archives","icon":"fa-regular fa-archive"},"categories":{"path":"/categories","icon":"fa-regular fa-folder"},"tags":{"path":"/tags","icon":"fa-regular fa-tags"},"about":{"path":"/about","icon":"fa-regular fa-user"}}},"article_date_format":"auto","excerpt_length":200,"categories":{"enable":true,"limit":3},"tags":{"enable":true,"limit":3}},"footer":{"runtime":true,"icon":"<i class=\"fa-solid fa-heart fa-beat\" style=\"--fa-animation-duration: 0.5s; color: #f54545\"></i>","start":"2023/10/10 00:00:00","statistics":true,"customize":null,"icp":{"enable":false,"number":null,"url":null}},"footerStart":"2023/10/10 00:00:00","mermaid":{"style":{"light":"default","dark":"dark"}}};
+    window.lang_ago = {"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"};
+    window.i18n = {"search":"站内搜索您需要的内容...","toc":"目录","prev":"上一页","next":"下一页","prev_posts":"上一篇","next_posts":"下一篇","page":"第 %d 页","recent_posts":"最新文章","share":"分享","powered_by":"由 %s 驱动","theme":"主题","rss_feed":"RSS Feed","category":"分类","categories":"分类","tag":"标签","tags":"标签","post":"文章","posts":"文章","tagcloud":"标签云","comment":"评论","comments":"评论","top":"置顶","sticky":"置顶","go-back-home":"回到首页","masonry_loading":"照片加载中...","image_viewer":"图片查看器","close":"关闭","exif":{"title":"EXIF","cards":{"camera":"相机","lens":"镜头","exposure":"曝光","other":"其他"},"fields":{"make":"品牌","model":"机型","date_taken":"拍摄时间","lens_model":"镜头","focal_length":"焦距","focus_mode":"对焦模式","shutter":"快门","aperture":"光圈","iso":"感光度","exposure_program":"曝光程序","exposure_compensation":"曝光补偿","metering_mode":"测光模式","flash":"闪光灯","white_balance":"白平衡","latitude":"纬度","longitude":"经度","altitude":"海拔"},"status":{"loading":"加载中...","no_exif":"无 EXIF 信息","library_missing":"EXIF 库未加载","image_source_missing":"图片地址不可用","unavailable":"EXIF 不可用（可能被 CORS 阻止或缺少元数据）","flag_unavailable":"EXIF 不可用"}},"home":"首页","archive":"归档","archives":"归档","about":"关于","links":"链接","link":"链接","friends":"友情链接","friend":"友情链接","timeline":"时间轴","shuoshuo":"说说","bookmarks":"书签","site_uv":"访问人数","site_pv":"总访问量","read_more":"阅读全文","wordcount":"字","min2read":"分钟","changelog":"更新日志","status":"状态","runtime":"博客已运行","days":"天","hours":"小时","minutes":"分钟","seconds":"秒","optimized_by":"并由 Evan 进行优化","rights":"版权所有","site_posts":"共撰写了 %s 篇文章","site_wordcount":"共 %s 字","copyright":{"title":"标题","author":"作者","link":"链接","create_time":"创建于","update_time":"更新于","license_title":"版权声明","license_content":"本文章采用 %s 进行许可。","all_rights_reserved":"版权所有 &#169 %s，禁止转载。","public_domain":"本文为公有领域作品，可自由转载、引用。"},"ago":{"second":"%s 秒前","minute":"%s 分钟前","hour":"%s 小时前","day":"%s 天前","week":"%s 周前","month":"%s 个月前","year":"%s 年前"},"create_time":"创建","update_time":"更新","expired":"这篇文章最后更新于 %s 天前，内容可能已经过时。"};
+    window.data = {"masonry":false};
+  </script>
+    
+    <!--- Fontawesome Part-->
+    
+<link rel="stylesheet" href="/fontawesome/fontawesome.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/brands.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/solid.min.css">
+
+    
+<link rel="stylesheet" href="/fontawesome/regular.min.css">
+
+    
+    
+    
+    
+<meta name="generator" content="Hexo 8.0.0"><link rel="stylesheet" href="/css/katex/katex.min.css"></head>
+
+
+<body>
+	<div class="progress-bar-container">
+	
+
+	
+	<span class="pjax-progress-bar"></span>
+	<!--        <span class="swup-progress-icon">-->
+	<!--            <i class="fa-solid fa-circle-notch fa-spin"></i>-->
+	<!--        </span>-->
+	
+</div>
+
+<main class="page-container" id="swup">
+
+	
+
+	<div class="main-content-container flex flex-col justify-between min-h-dvh">
+		<div class="main-content-header">
+			<header class="navbar-container px-6 md:px-12">
+    <div class="navbar-content transition-navbar ">
+        <div class="left">
+            
+            <a class="logo-title" href="/">
+                
+                GIn&#39;s notebook
+                
+            </a>
+        </div>
+
+        <div class="right">
+            <!-- PC -->
+            <div class="desktop">
+                <ul class="navbar-list">
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/"
+                                        >
+                                    <i class="fa-regular fa-house fa-fw"></i>
+                                    首页
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/archives"
+                                        >
+                                    <i class="fa-regular fa-archive fa-fw"></i>
+                                    归档
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/categories"
+                                        >
+                                    <i class="fa-regular fa-folder fa-fw"></i>
+                                    分类
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/tags"
+                                        >
+                                    <i class="fa-regular fa-tags fa-fw"></i>
+                                    标签
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                        
+                            
+
+                            <li class="navbar-item">
+                                <!-- Menu -->
+                                <a class=""
+                                   href="/about"
+                                        >
+                                    <i class="fa-regular fa-user fa-fw"></i>
+                                    关于
+                                    
+                                </a>
+
+                                <!-- Submenu -->
+                                
+                            </li>
+                    
+                    
+                        <li class="navbar-item search search-popup-trigger">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </li>
+                    
+                </ul>
+            </div>
+            <!-- Mobile -->
+            <div class="mobile">
+                
+                    <div class="icon-item search search-popup-trigger"><i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                
+                <div class="icon-item navbar-bar">
+                    <div class="navbar-bar-middle"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile sheet -->
+    <div class="navbar-drawer h-dvh w-full absolute top-0 left-0 bg-background-color flex flex-col justify-between">
+        <ul class="drawer-navbar-list flex flex-col px-4 justify-center items-start">
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/"
+                        >
+                            <span>
+                                首页
+                            </span>
+                            
+                                <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/archives"
+                        >
+                            <span>
+                                归档
+                            </span>
+                            
+                                <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/categories"
+                        >
+                            <span>
+                                分类
+                            </span>
+                            
+                                <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/tags"
+                        >
+                            <span>
+                                标签
+                            </span>
+                            
+                                <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+                
+                    
+
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full "
+                           href="/about"
+                        >
+                            <span>
+                                关于
+                            </span>
+                            
+                                <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                            
+                        </a>
+                        
+
+                        
+                    </li>
+            
+
+            
+            
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/"
+                        >
+                            <span>首页</span>
+                            <i class="fa-regular fa-house fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/archives"
+                        >
+                            <span>归档</span>
+                            <i class="fa-regular fa-archive fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/categories"
+                        >
+                            <span>分类</span>
+                            <i class="fa-regular fa-folder fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/tags"
+                        >
+                            <span>标签</span>
+                            <i class="fa-regular fa-tags fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+                    
+                    <li class="drawer-navbar-item text-base my-1.5 flex flex-col w-full">
+                        <a class="py-1.5 px-2 flex flex-row items-center justify-between gap-1 hover:!text-primary active:!text-primary text-2xl font-semibold group border-b border-border-color hover:border-primary w-full active"
+                           href="/about"
+                        >
+                            <span>关于</span>
+                            <i class="fa-regular fa-user fa-sm fa-fw"></i>
+                        </a>
+                    </li>
+                
+            
+        </ul>
+
+        <div class="statistics flex justify-around my-2.5">
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/tags">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">219</div>
+        <div class="label text-third-text-color text-sm">标签</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/categories">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">4</div>
+        <div class="label text-third-text-color text-sm">分类</div>
+    </a>
+    <a class="item tag-count-item flex flex-col justify-center items-center w-20" href="/archives">
+        <div class="number text-2xl sm:text-xl text-second-text-color font-semibold">186</div>
+        <div class="label text-third-text-color text-sm">文章</div>
+    </a>
+</div>
+    </div>
+
+    <div class="window-mask"></div>
+
+</header>
+
+
+		</div>
+
+		<div class="main-content-body transition-fade-up">
+			
+
+			<div class="main-content">
+				<div class="post-page-container flex relative justify-between box-border w-full h-full">
+	<div class="article-content-container">
+
+		<div class="article-title relative w-full">
+			
+			<div class="w-full flex items-center pt-6 justify-start">
+				<h1 class="article-title-regular text-second-text-color tracking-tight text-4xl md:text-6xl font-semibold px-2 sm:px-6 md:px-8 py-3">从一步噪声中蒸馏未来：FRED 用自蒸馏改进世界动作模型的未来表征</h1>
+			</div>
+			
+		</div>
+
+		
+		<div class="article-header flex flex-row gap-2 items-center px-2 sm:px-6 md:px-8">
+			<div class="avatar w-[46px] h-[46px] shrink-0 rounded-medium border border-border-color p-px">
+				<img src="/images/avatar.jpg">
+			</div>
+			<div class="info flex flex-col justify-between">
+				<div class="author flex items-center">
+					<span class="name text-default-text-color text-lg font-semibold">GIn</span>
+					
+					<span class="author-label ml-1.5 text-xs px-2 py-0.5 rounded-small text-third-text-color border border-shadow-color-1">Lv6</span>
+					
+				</div>
+				<div class="meta-info">
+					<div class="article-meta-info">
+    <span class="article-date article-meta-item">
+        <i class="fa-regular fa-pen-fancy"></i>&nbsp;
+        <span class="desktop">2026-10-25 12:00</span>
+        <span class="mobile">2026-10-25 12:00</span>
+        <span class="hover-info">创建</span>
+    </span>
+    
+        <span class="article-date article-meta-item">
+            <i class="fa-regular fa-wrench"></i>&nbsp;
+            <span class="desktop">2026-10-25 14:52:59</span>
+            <span class="mobile">2026-10-25 14:52:59</span>
+            <span class="hover-info">更新</span>
+        </span>
+    
+
+    
+        <span class="article-categories article-meta-item">
+            <i class="fa-regular fa-folders"></i>&nbsp;
+            <ul>
+                
+                
+                    
+                        
+                        <li>
+                            <a href="/categories/daily-paper/">daily paper</a>&nbsp;
+                        </li>
+                    
+                    
+                
+            </ul>
+        </span>
+    
+    
+        <span class="article-tags article-meta-item">
+            <i class="fa-regular fa-tags"></i>&nbsp;
+            <ul>
+                
+                    <li>
+                        <a href="/tags/Robot-Manipulation/">Robot Manipulation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Cross-Embodiment-Transfer/">Cross-Embodiment Transfer</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/World-Action-Models/">World Action Models</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Self-Distillation/">Self-Distillation</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Video-Diffusion/">Video Diffusion</a>&nbsp;
+                    </li>
+                
+                    <li>
+                        | <a href="/tags/Zero-Shot-Generalization/">Zero-Shot Generalization</a>&nbsp;
+                    </li>
+                
+            </ul>
+        </span>
+    
+
+    
+    
+    
+    
+</div>
+
+				</div>
+			</div>
+		</div>
+		
+
+		
+
+
+		<div class="article-content markdown-body px-2 sm:px-6 md:px-8 pb-8">
+			<ul>
+<li>论文：Self-Distilling Future Video Representations for World Action Models</li>
+<li>作者：Huiwon Jang、Suhyeok Jang、Hyeonmo Kang、Seungku Kim、Jinwoo Shin、Sihyun Yu（Huiwon Jang、Suhyeok Jang 为共同一作）</li>
+<li>机构：RLWRLD；KAIST</li>
+<li>版本：arXiv 2610.30320v1（2026-10-21）</li>
+<li>官方原文：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/abs/2610.30320" >https://arxiv.org/abs/2610.30320<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>arXiv HTML：<a class="link"   target="_blank" rel="noopener" href="https://arxiv.org/html/2610.30320" >https://arxiv.org/html/2610.30320<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>Hugging Face：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/papers/2610.30320" >https://huggingface.co/papers/2610.30320<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>项目页：<a class="link"   target="_blank" rel="noopener" href="https://huiwon-jang.github.io/FRED/" >https://huiwon-jang.github.io/FRED/<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>代码：<a class="link"   target="_blank" rel="noopener" href="https://github.com/suhyeok-jang/FRED/" >https://github.com/suhyeok-jang/FRED/<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+<li>模型：<a class="link"   target="_blank" rel="noopener" href="https://huggingface.co/FRED-AGI-LAB/models" >https://huggingface.co/FRED-AGI-LAB/models<i class="fa-solid fa-arrow-up-right ml-[0.2em] font-light align-text-top text-[0.7em] link-icon"></i></a></li>
+</ul>
+<p>标签：World Action Models、Self-Distillation、Robot Manipulation、Video Diffusion、Cross-Embodiment Transfer、Zero-Shot Generalization。</p>
+<h2 id="0-一句话结论"><a href="#0-一句话结论" class="headerlink" title="0. 一句话结论"></a>0. 一句话结论</h2><p>FRED 针对单步世界动作模型（World Action Model，WAM）中动作解码器（action decoder）只消费视频扩散模型（video diffusion model，VDM）从纯噪声一次前向所得中间表征 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 的接口，把 VDM 显式当作未来表征（future representation）生成器：用指数滑动平均（Exponential Moving Average，EMA）教师（teacher）从带噪真实未来观测提取同层目标，让学生（student）从当前观测、指令和 4 帧历史预测该目标，并用停止梯度（stop-grad）把动作损失挡在视频骨干之外。论文在 DROID→新环境的零样本（zero-shot）真机与 OpenArm 人机共训上报告了大幅提升（14B 长程（long-horizon）61.7→81.7、分布外（OOD）10.4→52.1；人机迁移 50.0% 对最强竞争方法 19.4%），但每任务仅 12 次试验、无种子或置信区间，且 14B 只对比 DreamZero，因此证据足以支持「在这套真机设置下有效」，尚不足以支持普遍的因果结论。</p>
+<h2 id="1-论文具体想解决什么问题？"><a href="#1-论文具体想解决什么问题？" class="headerlink" title="1. 论文具体想解决什么问题？"></a>1. 论文具体想解决什么问题？</h2><p>WAM 把预训练 VDM 的时空先验接到机器人策略上：让模型同时预测未来视频与动作，从而把视频模型在互联网视频上学到的「世界如何变化」迁移到控制。早期 WAM（如 DreamZero）在同一个骨干里联合建模视频与动作，泛化好，但推理时要对大型 VDM 做多步去噪，单次前向可达数秒。近期的解耦式 WAM 把视频与动作拆开：VDM 只在 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\tau=1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> 的纯噪声输入上做一次前向，取中间层隐藏状态（hidden state）<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>，再用一个独立的动作解码器从 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 和本体状态 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>q</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">q_t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 生成动作。DiT4DiT、Fast-WAM、AGRA 都属于这条路线；它把推理延迟压到与视觉-语言-动作模型（Vision-Language-Action，VLA）相近，代价是动作解码器只能通过 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 这一条通道「看到未来」。</p>
+<p>论文要回答的是：这条通道里的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 质量够不够？作者先在 DiT4DiT 上做诊断（论文 Fig. 1）：用冻结的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 训练一个轻量 attentive probe（注意力探针）去分类 15 类运动基元，发现从纯噪声得到的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 已经包含未来运动信息，probe 准确率随 WAM 训练上升；同时 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 与「用干净未来观测在同一 VDM 层提取的表征」之间的 CKNNA（Centered Kernel Nearest-Neighbor Alignment，中心化核最近邻对齐）也随训练上升。但这两条曲线都显示，噪声 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 仍明显落后于干净未来表征。这是一个新的、可操作的观察：单步 WAM 并不是完全「看不见未来」，而是看见的未来表征不够好。</p>
+<p>论文没有把原因严格归给某一个损失，也没有隔离视频生成损失与动作损失各自对 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 的贡献；它给出的解释是：动作解码器只是消费 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>，而 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 主要受视频生成目标塑造（某些 WAM 还会加 AGRA 式的外部对齐，或让动作梯度回传），缺少「<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 应当匹配真实未来观测表征」的显式监督。Table 5(d) 的 stop-gradient 结果支持这一判断的另一面：让动作梯度进入视频骨干反而从 68.8% 降到 65.6%，说明直接用动作损失改造 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 不一定有益。因此更准确的说法是「<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 缺少显式的未来表征目标」，而不是「动作损失塑造不足」；后者是分析者推断，不是论文的直接结论。</p>
+<p>这里要区分三层。领域一般问题是「WAM 如何兼顾视频先验的泛化性与推理效率」；本文发现的新现象是「单步噪声 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 已含未来信息，但与干净未来表征仍有稳定差距」；本文实际解决的子问题是「如何训练 VDM，使它在一次前向里生成的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 更接近真实未来观测的表征，从而让下游动作解码器更好控制」。论文最终要验证的核心假设是：如果在动作解码器所消费的同一层上，用真实未来观测的表征作为自蒸馏目标，并给模型短历史上下文，那么零样本环境泛化、长程任务和人类视频迁移都会变好。这个假设在 §4 的真机实验上得到方向性支持，但因果链仍未被完全隔离。</p>
+<p>诊断本身还有一个边界：Fig. 1 的 probe&#x2F;CKNNA 是在 DiT4DiT 上做的，不是在 FRED 上做的。它说明「单步 WAM 的噪声表征存在共性缺口」，但不直接证明 FRED 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 更好；FRED 的表征改善证据来自 Table 4&#x2F;5 的对比与 Fig. 4 的相关分析。读者应把「现象诊断」与「方法验证」分开看，否则容易把诊断的说服力借给方法。</p>
+<h2 id="2-创新点是什么？"><a href="#2-创新点是什么？" class="headerlink" title="2. 创新点是什么？"></a>2. 创新点是什么？</h2><p>真正的技术增量不是新网络，而是一个训练目标加一个输入改动：把 VDM 的中间层显式训练成「未来表征生成器」，并让动作解码器继续消费这个表征。VDM&#x2F;动作解码器分离、EMA teacher、DINO 式中心化&#x2F;锐化（centering&#x2F;sharpening）、流匹配（flow matching）都是已有组件；FRED 的新意在于目标从哪来、在哪一层施加，以及它与动作通路的连接方式。</p>
+<p>第一，未来观测的自蒸馏（self-distillation）目标。FRED 用同一个 VDM 的 EMA 副本，从「加噪到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi><mo>=</mo><mn>0.25</mn></mrow><annotation encoding="application/x-tex">\tau=0.25</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.25</span></span></span></span> 的真实未来观测」提取与动作解码器同层的表征，作为 student 从纯噪声预测的目标；这与 REPA&#x2F;VideoREPA 对齐外部视觉编码器、SRA 用扩散模型自身更低噪声的表征作目标、AGRA 用冻结视觉编码器加动作梯度联合更新都不同。它的假设是：对控制有用的不是通用视觉语义，而是「这个 VDM 自己如何表示真实未来」。证据见 §4.2 的 DROID 结果与 §4.3 的 Table 4&#x2F;5。</p>
+<p>第二，给 student 与 teacher 同时加 4 帧历史观测。历史提供近期运动线索，使 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 不只是「当前帧的静态摘要」，而是「在当前运动趋势下未来会怎样」；这是一个简单的输入改动，但 Table 3 的 2×2 消融显示它与自蒸馏互补。证据见 §4.3。</p>
+<p>第三，系统层面的验证：把无动作标签的人类视频接入同一视频生成目标，并在 DROID→新环境与 OpenArm 人机共训两个真机场景上评估。这不是新机制，但它是论文最有说服力的应用贡献：作者主张未来表征学习不只提升同域控制，还能让人类视频的视觉先验通过视频骨干迁移到机器人动作解码器。证据见 §4.2 的 Table 1&#x2F;2。</p>
+<p>根据本文的 related work 和实验对比，只能确认作者声称的差异；这些组件组合是否「首次提出」，还需要更完整的文献检索，尤其是 AGRA、VideoREPA、SRA 与 Self-Flow 的后续工作。</p>
+<h2 id="3-作者如何解决？"><a href="#3-作者如何解决？" class="headerlink" title="3. 作者如何解决？"></a>3. 作者如何解决？</h2><p>直觉上，如果动作解码器只通过 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 看未来，那么提升控制最直接的办法不是让视频「生成得更像」，而是让 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 更像「真实未来观测在同一 VDM 里的表征」。视频生成质量用弗雷歇视频距离（Fréchet Video Distance，FVD）衡量，它测的是像素级逼真度，和动作所需的对象运动、接触关系不一定一致；而未来观测的表征天然包含这些信息。FRED 因此把 VDM 当成一个「未来表征生成器」：student 从噪声和当前上下文一次前向生成 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>，teacher 从真实未来观测生成目标 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>h</mi><mi>τ</mi></msup></mrow><annotation encoding="application/x-tex">h^\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span></span></span></span></span></span></span>，二者在同一层对齐。图 1 给出了这个双分支结构与数据流。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/selfdistill_fig1.png"
+                      alt="图 1：FRED 的 student-teacher 未来表征自蒸馏总览"
+                ></p>
+<p><strong>图 1</strong>（论文 Fig. 2）：这张图画出 FRED 的两条前向路径如何汇到同一个蒸馏损失。student 路径从纯噪声 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϵ</mi></mrow><annotation encoding="application/x-tex">\epsilon</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">ϵ</span></span></span></span> 出发，以当前帧、4 帧历史和语言指令为条件，经 VDM 前若干层得到中间表征 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>；<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 一路经停止梯度进入动作解码器 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>π</mi><mi>ϕ</mi></msub></mrow><annotation encoding="application/x-tex">\pi_\phi</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7167em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">π</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">ϕ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span></span></span></span> 生成动作，另一路经 student 投影头 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><mi>θ</mi></msub></mrow><annotation encoding="application/x-tex">g_\theta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 变成 patch 级分布 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span>。teacher 路径则以「真实未来观测加噪到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi><mo>=</mo><mn>0.25</mn></mrow><annotation encoding="application/x-tex">\tau=0.25</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.25</span></span></span></span>」为输入，条件与 student 相同，经同一 VDM 的 EMA 副本和同一层得到目标表征 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>h</mi><mi>τ</mi></msup></mrow><annotation encoding="application/x-tex">h^\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span></span></span></span></span></span></span>，再经 teacher 投影头 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>g</mi><msup><mi>θ</mi><mo>−</mo></msup></msub></mrow><annotation encoding="application/x-tex">g_{\theta^-}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">g</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3419em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7027em;"><span style="top:-2.786em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mbin mtight">−</span></span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 得到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>p</mi><mi>τ</mi></msup></mrow><annotation encoding="application/x-tex">p^\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8588em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span></span></span></span></span></span></span>。训练信号是最小化 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>p</mi><mi>τ</mi></msup></mrow><annotation encoding="application/x-tex">p^\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8588em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span></span></span></span></span></span></span> 与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span> 的 KL 散度（Kullback–Leibler divergence）；teacher 不接收梯度，student 的视频骨干只受视频流匹配与自蒸馏驱动，动作损失只更新动作解码器。读图时要抓住两点：真实未来只出现在 teacher 一侧，推理时不需要它；动作解码器消费的是 student 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>，不是 teacher 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>h</mi><mi>τ</mi></msup></mrow><annotation encoding="application/x-tex">h^\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span></span></span></span></span></span></span>。</p>
+<p>具体流程可以按训练样本走一遍。一个样本是专家演示中的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false">(</mo><msub><mi>o</mi><mi>t</mi></msub><mo separator="true">,</mo><msub><mi>q</mi><mi>t</mi></msub><mo separator="true">,</mo><msub><mi>a</mi><mi>t</mi></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">(o_t,q_t,a_t)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal">o</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span> 与指令 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>c</mi></mrow><annotation encoding="application/x-tex">c</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">c</span></span></span></span>；实际实现取 4 帧历史加当前帧作为视频条件，预测 8 帧未来、时间步长 3（覆盖 24 步），动作解码器一次输出 24 步动作。student 分支把未来视频 latent 初始化为高斯噪声 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ϵ</mi></mrow><annotation encoding="application/x-tex">\epsilon</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">ϵ</span></span></span></span>，在 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">\tau=1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">1</span></span></span></span> 做一次前向，取第 19 层（index 18；14B 取第 25 层）的 token 表征 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>。teacher 分支把真实未来观测 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>o</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub></mrow><annotation encoding="application/x-tex">o_{t+1}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6389em;vertical-align:-0.2083em;"></span><span class="mord"><span class="mord mathnormal">o</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span></span></span></span> 与噪声按 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi><mo>=</mo><mn>0.25</mn></mrow><annotation encoding="application/x-tex">\tau=0.25</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.25</span></span></span></span> 线性混合，得到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>o</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow><mi>τ</mi></msubsup><mo>=</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>τ</mi><mo stretchy="false">)</mo><msub><mi>o</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow></msub><mo>+</mo><mi>τ</mi><mi>ϵ</mi></mrow><annotation encoding="application/x-tex">o_{t+1}^\tau=(1-\tau)o_{t+1}+\tau\epsilon</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.9708em;vertical-align:-0.3064em;"></span><span class="mord"><span class="mord mathnormal">o</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-2.4519em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3064em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mclose">)</span><span class="mord"><span class="mord mathnormal">o</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2083em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mord mathnormal">ϵ</span></span></span></span>，在相同条件、相同层提取 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>h</mi><mi>τ</mi></msup></mrow><annotation encoding="application/x-tex">h^\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord"><span class="mord mathnormal">h</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span></span></span></span></span></span></span>。两个分支各自经过 patch 级投影头，student 用温度 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>γ</mi><mn>1</mn></msub><mo>=</mo><mn>0.1</mn></mrow><annotation encoding="application/x-tex">\gamma_1=0.1</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0556em;">γ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0556em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.1</span></span></span></span> 的 softmax 得到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>p</mi></mrow><annotation encoding="application/x-tex">p</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord mathnormal">p</span></span></span></span>；teacher 先减去均值 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">m</span></span></span></span> 再用温度 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>γ</mi><mn>2</mn></msub><mo>=</mo><mn>0.04</mn></mrow><annotation encoding="application/x-tex">\gamma_2=0.04</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0556em;">γ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3011em;"><span style="top:-2.55em;margin-left:-0.0556em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.04</span></span></span></span> 做 sharpening 得到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>p</mi><mi>τ</mi></msup></mrow><annotation encoding="application/x-tex">p^\tau</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8588em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal">p</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.6644em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span></span></span></span></span></span></span>，这一步沿用 DINO&#x2F;SRA 的防塌缩做法。</p>
+<p>用公式概括，核心就是「同层表征对齐 + KL」：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="bold">h</mi><mo>=</mo><msub><mi>f</mi><mi>θ</mi></msub><mo stretchy="false">(</mo><mi mathvariant="bold-italic">ϵ</mi><mo>∣</mo><msub><mi mathvariant="bold">o</mi><mi>t</mi></msub><mo separator="true">,</mo><mi mathvariant="bold">c</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="2em"/><msup><mi mathvariant="bold">h</mi><mi>τ</mi></msup><mo>=</mo><msub><mi>f</mi><msup><mi>θ</mi><mo>−</mo></msup></msub><mo stretchy="false">(</mo><msubsup><mi mathvariant="bold">o</mi><mrow><mi>t</mi><mo>+</mo><mn>1</mn></mrow><mi>τ</mi></msubsup><mo>∣</mo><msub><mi mathvariant="bold">o</mi><mi>t</mi></msub><mo separator="true">,</mo><mi mathvariant="bold">c</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="2em"/><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi></mrow></msub><mo>=</mo><mfrac><mn>1</mn><mi>N</mi></mfrac><munderover><mo>∑</mo><mrow><mi>i</mi><mo>=</mo><mn>1</mn></mrow><mi>N</mi></munderover><mrow><mi mathvariant="normal">K</mi><mi mathvariant="normal">L</mi></mrow><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">(</mo><msubsup><mi mathvariant="bold">p</mi><mi>i</mi><mi>τ</mi></msubsup><mtext> </mtext><mi mathvariant="normal">∥</mi><mtext> </mtext><msub><mi mathvariant="bold">p</mi><mi>i</mi></msub><mo fence="false" stretchy="true" minsize="1.2em" maxsize="1.2em">)</mo></mrow><annotation encoding="application/x-tex">
+\mathbf{h}=f_\theta(\boldsymbol{\epsilon}\mid \mathbf{o}_t,\mathbf{c}),\qquad
+\mathbf{h}^{\tau}=f_{\theta^-}(\mathbf{o}_{t+1}^{\tau}\mid \mathbf{o}_t,\mathbf{c}),\qquad
+\mathcal{L}_{\mathrm{SD}}=\frac{1}{N}\sum_{i=1}^{N}\mathrm{KL}\big(\mathbf{p}_i^{\tau}\,\|\,\mathbf{p}_i\big)
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathbf">h</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord"><span class="mord boldsymbol">ϵ</span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathbf">o</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathbf">c</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathbf">h</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.0553em;vertical-align:-0.3053em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3419em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7027em;"><span style="top:-2.786em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mbin mtight">−</span></span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord"><span class="mord mathbf">o</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">t</span><span class="mbin mtight">+</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.3053em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">∣</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathbf">o</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord mathbf">c</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">SD</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:3.106em;vertical-align:-1.2777em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.3214em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.109em;">N</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.686em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mop op-limits"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.8283em;"><span style="top:-1.8723em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">i</span><span class="mrel mtight">=</span><span class="mord mtight">1</span></span></span></span><span style="top:-3.05em;"><span class="pstrut" style="height:3.05em;"></span><span><span class="mop op-symbol large-op">∑</span></span></span><span style="top:-4.3em;margin-left:0em;"><span class="pstrut" style="height:3.05em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.109em;">N</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:1.2777em;"><span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathrm">KL</span></span><span class="mord"><span class="delimsizing size1">(</span></span><span class="mord"><span class="mord mathbf">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.7144em;"><span style="top:-2.453em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.1132em;">τ</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.247em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord">∥</span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathbf">p</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="delimsizing size1">)</span></span></span></span></span></span>
+<p>其中 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>N</mi></mrow><annotation encoding="application/x-tex">N</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6833em;"></span><span class="mord mathnormal" style="margin-right:0.109em;">N</span></span></span></span> 是 patch 数，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>f</mi><mi>θ</mi></msub></mrow><annotation encoding="application/x-tex">f_\theta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 是 student VDM 的前若干层，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>f</mi><msup><mi>θ</mi><mo>−</mo></msup></msub></mrow><annotation encoding="application/x-tex">f_{\theta^-}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8889em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.1076em;">f</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3419em;"><span style="top:-2.55em;margin-left:-0.1076em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathnormal mtight" style="margin-right:0.0278em;">θ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7027em;"><span style="top:-2.786em;margin-right:0.0714em;"><span class="pstrut" style="height:2.5em;"></span><span class="katex-sizing reset-size3 size1 mtight"><span class="mbin mtight">−</span></span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 是 EMA teacher；实际实现把 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>o</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">o_t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.5806em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">o</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 扩展为 4 帧历史加当前帧。总目标再把自蒸馏与视频流匹配相加，动作解码器单独做动作流匹配：</p>
+<span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">v</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">d</mi><mi mathvariant="normal">e</mi><mi mathvariant="normal">o</mi></mrow></msub><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">F</mi><mi mathvariant="normal">M</mi></mrow></msub><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo><mo>+</mo><msub><mi>λ</mi><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi></mrow></msub><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi></mrow></msub><mo stretchy="false">(</mo><mi>θ</mi><mo stretchy="false">)</mo><mo separator="true">,</mo><mspace width="2em"/><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">a</mi><mi mathvariant="normal">c</mi><mi mathvariant="normal">t</mi><mi mathvariant="normal">i</mi><mi mathvariant="normal">o</mi><mi mathvariant="normal">n</mi></mrow></msub><mo stretchy="false">(</mo><mi>ϕ</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">F</mi><mi mathvariant="normal">M</mi></mrow></msub><mo stretchy="false">(</mo><mi>ϕ</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">
+\mathcal{L}_{\mathrm{video}}(\theta)=\mathcal{L}_{\mathrm{FM}}(\theta)+\lambda_{\mathrm{SD}}\mathcal{L}_{\mathrm{SD}}(\theta),\qquad
+\mathcal{L}_{\mathrm{action}}(\phi)=\mathcal{L}_{\mathrm{FM}}(\phi)
+</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3361em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">video</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">FM</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">SD</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">SD</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="mclose">)</span><span class="mpunct">,</span><span class="mspace" style="margin-right:2em;"></span><span class="mspace" style="margin-right:0.1667em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3175em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">action</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">ϕ</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">FM</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathnormal">ϕ</span><span class="mclose">)</span></span></span></span></span>
+<p>默认 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi></mrow></msub><mo>=</mo><mn>0.01</mn></mrow><annotation encoding="application/x-tex">\lambda_{\mathrm{SD}}=0.01</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">SD</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.01</span></span></span></span>。关键设计是：动作损失不更新 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi></mrow><annotation encoding="application/x-tex">\theta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span></span></span></span>，视频骨干只由视频去噪与自蒸馏训练；teacher 用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>θ</mi><mo>−</mo></msup><mo>←</mo><mi>m</mi><msup><mi>θ</mi><mo>−</mo></msup><mo>+</mo><mo stretchy="false">(</mo><mn>1</mn><mo>−</mo><mi>m</mi><mo stretchy="false">)</mo><mi>θ</mi></mrow><annotation encoding="application/x-tex">\theta^-\leftarrow m\theta^-+(1-m)\theta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7713em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7713em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">−</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">←</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.8547em;vertical-align:-0.0833em;"></span><span class="mord mathnormal">m</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.7713em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mbin mtight">−</span></span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">m</span><span class="mclose">)</span><span class="mord mathnormal" style="margin-right:0.0278em;">θ</span></span></span></span> 更新，<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal">m</span></span></span></span> 采用 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mn>1</mn><mo>−</mo><mo stretchy="false">(</mo><mn>1</mn><mo>+</mo><mi>t</mi><msup><mo stretchy="false">)</mo><mrow><mo>−</mo><mn>3</mn><mi mathvariant="normal">/</mi><mn>4</mn></mrow></msup></mrow><annotation encoding="application/x-tex">1-(1+t)^{-3/4}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.7278em;vertical-align:-0.0833em;"></span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:1.138em;vertical-align:-0.25em;"></span><span class="mord mathnormal">t</span><span class="mclose"><span class="mclose">)</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.888em;"><span style="top:-3.063em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">−</span><span class="mord mtight">3/4</span></span></span></span></span></span></span></span></span></span></span></span> 的 warmup 调度。这个 stop-grad 不是实现细节，而是方法主张的一部分：Table 5(d) 显示，允许动作梯度进入视频骨干会从 68.8% 降到 65.6%，作者据此认为「直接为动作预测优化未来表征」不一定有益。</p>
+<p>几个设计选择各有理由。取与动作解码器相同的层，是为了让蒸馏的正是策略消费的特征；Table 5(b) 的层扫描在 index 18 最好（68.8%），更浅的 10 层只有 57.5%，更深的 26 层为 64.7%。teacher 噪声取 0.25，是因为干净未来（<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>τ</mi><mo>=</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\tau=0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.1132em;">τ</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0</span></span></span></span>）只有 65.3%，而 0.25&#x2F;0.5&#x2F;0.75 分别为 68.8&#x2F;67.8&#x2F;67.6%；作者推测中等噪声的表征更有信息量，这与「扩散模型中间噪声层的表征更强」的既有观察一致，但本质上是经验选择。历史条件的作用是给 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 提供「机器人最近怎么动」的线索；Table 3 的 2×2 消融显示，去掉历史从 68.8% 降到 64.8%，去掉自蒸馏降到 65.1%，两者都去掉降到 61.4%，接近可加。EMA teacher 的作用是稳定目标、避免 student 追一个同步移动的目标；论文没有报告去掉 EMA 的对照，这是机制证据的一个缺口。</p>
+<p>人类视频在方法上只进入视频支路：它们没有动作标签，因此不参与动作解码器的流匹配，只按视频生成目标训练共享的视频骨干；机器人演示则同时提供视频与动作监督。这样人类视频改变的是 VDM 的视觉&#x2F;运动先验与 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>，动作解码器仍只从机器人动作学习。论文没有说明人类视频是否也施加自蒸馏损失（论文只写 video generation objective），也没有把「人类视频通过哪条目标影响控制」拆开验证；这在方法层面就留下了归因缺口。</p>
+<p>推理阶段没有额外的 VDM 前向：仍然是从纯噪声做一次前向得到 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>，动作解码器以 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>q</mi><mi>t</mi></msub></mrow><annotation encoding="application/x-tex">q_t</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.625em;vertical-align:-0.1944em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.0359em;">q</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2806em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span> 和 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 为条件，用 4 步 Euler 积分生成 24 步动作；不生成未来视频帧，也不做多步视频去噪。5B 模型（Wan2.2-TI2V-5B + 16 层扩散 Transformer（Diffusion Transformer，DiT）动作解码器）在 Franka 上训练 150K 迭代、batch 128；14B 模型（Wan2.1-I2V-14B + 24 层 DiT）训练 100K 迭代、batch 128；OpenArm 实验统一用 5B，训练 50K 迭代，robot-only 的 batch 为 32，robot+human 为 32+32。除 14B 视频模型学习率 1e-5 外，其余视频模型与动作解码器都用 1e-4。推理时延见 §4.4。</p>
+<p>为什么不直接在推理时多走几步去噪？因为论文要守住单步延迟；多步去噪会把成本拉回 DreamZero 那一侧。FRED 的选择是把「更好的未来」压进一次前向的中间表征，而不是用算力换质量。这也解释了方法为什么必须作用于中间层：动作解码器根本不看输出像素，视频生成得好不好只能通过 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 间接影响控制。换句话说，FRED 优化的不是「未来视频」，而是「未来视频在动作接口处的表示」。</p>
+<p>关于信息泄漏：按论文的构造，真实未来观测只进入 teacher 分支，teacher 是 EMA 副本且不接收梯度；student 的输入只有噪声、当前&#x2F;历史帧与指令；动作解码器只从 student 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 取条件。因此结构上不存在「把 ground-truth future 直接送进策略」的显式路径，训练时的未来信息不会通过梯度回流到 student 的输入侧。论文没有专门做泄漏检验（例如探测 student 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 是否编码了未来帧的像素级信息、或比较训练时与推理时 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 的分布），这是可以在审稿中要求补强的地方；但从输入与梯度的连接看，FRED 的设定是干净的。</p>
+<h2 id="4-解决得怎么样？"><a href="#4-解决得怎么样？" class="headerlink" title="4. 解决得怎么样？"></a>4. 解决得怎么样？</h2><h3 id="4-1-实验设置"><a href="#4-1-实验设置" class="headerlink" title="4.1 实验设置"></a>4.1 实验设置</h3><p>论文有两个真机场景。第一个是零样本环境泛化：在 DROID 上训练，直接迁到一台新的 Franka Research 3 实机环境，不做任何环境特定微调；评估分四类任务——in-domain easy（指令与物体类别见过，但环境与物体细节不同）、in-domain long-horizon（多步长程）、out-of-domain（即 OOD；动作动词不在 DROID 指令里，如 reveal、stamp）、object grounding（目标指代；在相似颜色&#x2F;形状的干扰物中选对目标）。每个任务 12 次试验，允许部分完成给部分分（如只抓取给 0.5），长程任务每次最多 1500 步，其余 500 步。第二个是 OpenArm 人机共训：用 553 条机器人遥操作演示（192K 帧、53 条指令、4 个技能、6 类物体）与 1,187 条人类第一视角视频（321K 帧、7 个技能、7 类物体）共训；人类视频没有动作标签，只加视频生成目标。评估 7 个任务、每任务 12 次试验，分 in-domain atomic、in-domain composite、human skill transfer 三组。图 2 把这两个场景的训练&#x2F;评测关系画在一起。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/selfdistill_fig2.png"
+                      alt="图 2：DROID 零样本泛化与 OpenArm 人机共训的设置"
+                ></p>
+<p><strong>图 2</strong>（论文 Fig. 3）：这张图对比论文的两条实验主线。第一条是零样本环境泛化：模型只在 DROID 数据上训练，评测时换到新的真实环境与新的物体&#x2F;任务，中间没有环境特定微调，因此测的是「视频先验 + 未来表征」能否跨环境迁移。第二条是人机共训：同一套 OpenArm 平台上，机器人演示与人类视频一起进入视频模型；机器人演示提供动作标签，人类视频只提供未来帧与语言条件，评测既看域内机器人任务，也看只在人类视频里出现过的技能能否被机器人执行。两条线共享同一个方法，但数据流与评测问题不同：前者测环境&#x2F;任务泛化，后者测无动作标签的人类视频能否通过共享视频骨干迁移到动作解码器。</p>
+<p>硬件与动作空间也影响比较。DROID 评测用 Franka Research 3 + Robotiq 2F-85 夹爪，动作是 7 维相对关节角加 1 维绝对夹爪开度；相机包括腕部相机与左右两个外侧相机（图 3）。π0.5 与 GR00T N1.7 按官方实现只用腕部 + 左侧外侧相机，其余 WAM 用左右两个外侧相机。这个差异意味着跨模型家族的比较并不是「同视觉输入」的严格对照；FRED 与 DiT4DiT&#x2F;Fast-WAM&#x2F;AGRA 之间的比较共享相机配置，是更干净的一组。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/selfdistill_fig3.png"
+                      alt="图 3：DROID 零样本评测的 Franka 实机与相机布置"
+                ></p>
+<p><strong>图 3</strong>（论文 Fig. 5）：这张图展示 DROID 零样本评测的物理设置：Franka Research 3 机械臂、Robotiq 2F-85 夹爪、腕部相机，以及左右两侧的外置相机；桌面上摆有微波炉、篮子、水果、杯子、餐具等评测物体。它的作用不是展示某个任务，而是说明「零样本」到底零在哪里：模型没有见过这个房间、这些物体实例和这套相机布置，只能靠 DROID 训练出的视觉&#x2F;未来表征泛化。读图时要记住相机是分组的：VLA 基线用腕部 + 左侧，WAM 基线用左右两侧；因此跨家族数字的差异不能全部归给方法。</p>
+<p>基线分两类：VLA 是 π0.5 与 GR00T N1.7（均约 3B）；WAM 是 Fast-WAM、DiT4DiT、AGRA（5B，均用 Wan2.2-5B 骨干）与 DreamZero（14B，Wan2.1-14B，多步视频去噪）。DROID 实验里，π0.5、GR00T、DreamZero 用公开 checkpoint；Fast-WAM、DiT4DiT 按官方配方训练，迭代数与 batch 对齐；AGRA 没有官方实现，作者在自己的代码库里复现。OpenArm 实验统一用 5B，基线同样对齐 50K 迭代与 batch；π0.5&#x2F;GR00T 不能使用人类视频，所以表中对应格为「–」。表征学习方法对比在 RoboCasa Kitchen、GR-1 Tabletop、LIBERO 三个仿真基准上做，统一 100K 迭代、batch 64，基座是 DiT4DiT；组件消融（Table 3）只在 RoboCasa 上做，论文未报告种子与方差。需要说明一个材料问题：论文正文把组件消融引为 Table 4，但表题实际是 Table 3（Table 4 是表征集学习方法对比）；下文按表题编号引用。</p>
+<h3 id="4-2-关键结果"><a href="#4-2-关键结果" class="headerlink" title="4.2 关键结果"></a>4.2 关键结果</h3><p>先看 DROID 零样本。5B 规模下，FRED 相对最强竞争 WAM（AGRA）把 long-horizon 从 31.7% 提到 46.7%、out-of-domain 从 10.4% 提到 37.5%、object grounding 从 33.3% 提到 37.5%（Table 1）。相对 DiT4DiT，long-horizon 是 46.7% 对 16.7%，OOD 是 37.5% 对 0.0%，差距很大。14B 规模下，FRED 相对同骨干的 DreamZero 把 easy 从 63.9% 提到 79.2%、long-horizon 从 61.7% 提到 81.7%、OOD 从 10.4% 提到 52.1%、grounding 从 39.6% 提到 54.2%。图 4 展示了这四类任务的实际形态。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/selfdistill_fig4.png"
+                      alt="图 4：DROID 四类零样本评测任务"
+                ></p>
+<p><strong>图 4</strong>（论文 Fig. 6）：这张图把 DROID 评测拆成四个泛化轴。in-domain easy 是见过指令与物体类别、但换环境与物体细节的抓放&#x2F;开关微波炉&#x2F;移方块；in-domain long-horizon 是 Clear Table，要把桌上 5 个物体逐个放进盒子，测多步组合与误差累积；out-of-domain 是 Reveal（掀开杯子找下面的物体）与 Stamp（拿印章在纸上盖章），动作动词不在 DROID 训练指令里，测新运动；object grounding 是 PnP Cup 与 PnP Cutlery，在四个同尺寸不同颜色的杯子或形状细差的餐具中选对目标，测语言-物体绑定。读图时要理解：这四类不是难度递增，而是四个不同的失败来源——环境偏移、长程累积、新动词、细粒度指代；后文会看到，FRED 相对同骨干 WAM 的增益在 long-horizon 与 OOD 上最大，grounding 的增益较小，说明同一模型在不同泛化轴上的强弱并不一致。</p>
+<p>但「提升大」不等于「全面领先」。5B 的 in-domain easy 只有 47.2%，低于 π0.5 的 58.3%；long-horizon 46.7% 也低于 GR00T N1.7 的 60.0%——46.7% 是相对最强 WAM 基线 AGRA 的提升，不是全场最佳。5B 的 object grounding 37.5% 仍低于 14B DreamZero 的 39.6%，且相对 AGRA 的 +4.2 pp 在每类 24 次试验的尺度上大约只相当于 1 次试验的差别。逐任务看，Table 11 显示 FRED 5B 在 Cup 上 41.7%、Cutlery 上 33.3%，AGRA 是 25.0%&#x2F;41.7%：平均值提升掩盖了「杯子更好、餐具更差」的反转。14B 的 grounding 平均 54.2% 对 DreamZero 39.6%，但分项是 Cup 50.0% 对 54.2%、Cutlery 58.3% 对 25.0%，同样是平均掩盖了反转。14B 的结论也只有一个基线：DreamZero，且它是多步视频去噪架构；因此 14B 的提升不能单独归给 FRED 的表征学习，也可能来自单步解耦架构本身的差异。</p>
+<p>OpenArm 域内结果更稳。robot-only 时，FRED 的 atomic 平均 91.7%（与 GR00T 持平，高于 AGRA 81.9%），composite 70.8%（高于 DiT4DiT 50.0%）；加人类视频后 atomic 91.7→97.2%、composite 70.8→75.0%（Table 2a）。这两个提升不大（+5.5&#x2F;+4.2 pp），但方向一致；相比之下 DiT4DiT 的 composite 从 50.0% 降到 41.7%，AGRA 的 atomic 从 81.9% 降到 75.0%，说明人类视频不是对所有 WAM 都自动有益。</p>
+<p>人机迁移是论文最醒目的结果，也是最需要限定范围的。FRED 在三个「只在人类视频里演示过」的任务上平均成功率 50.0%，最强竞争 WAM 是 DiT4DiT 的 19.4%，DreamZero&#x2F;Fast-WAM&#x2F;AGRA 都是 0.0%；指令遵循（instruction following）率 97.2%，DiT4DiT 55.6%、DreamZero 13.9%、Fast-WAM 11.1%、AGRA 0.0%（Table 2b）。图 5 展示了这七个 OpenArm 任务。逐任务看，FRED 是 Bottle on Basket 25.0%、PnP Novel Objects 66.7%、Pour Coffee 58.3%；Bottle 任务仍只有四分之一成功，作者在 Appendix F 也承认「task success remains moderate」。</p>
+<p><img  
+                     lazyload
+                     src="/images/loading.svg"
+                     data-src="/images/dailypaper/2026-10-25/selfdistill_fig5.png"
+                      alt="图 5：OpenArm 的七个域内与人机迁移任务"
+                ></p>
+<p><strong>图 5</strong>（论文 Fig. 10）：这张图把 OpenArm 的七个任务按评测目的分组：in-domain atomic 是机器人训练数据里有的抓香蕉、开关空气炸锅、抓苹果&#x2F;红芒果；in-domain composite 是把「开空气炸锅」和「放苹果」组合起来；human skill transfer 是把瓶子放到篮子上、抓放新物体、把咖啡倒进红杯，这三类只在人类视频里演示过。每个任务用同一台 OpenArm、同一个 ZED 2i 立体相机的左右目视角，12 次试验，按部分完成给分。读图时要理解：这张图不是「七个差不多的抓放」，而是三种监督条件——有动作标签的域内技能、有动作标签的组合技能、只有人类视频的迁移技能；50.0% 的平均值背后，迁移任务的成功率并不均匀，Bottle 只有 25%。</p>
+<p>仿真与消融结果补充了泛化性。RoboCasa Kitchen 上 FRED 68.8% 对 DiT4DiT 61.4%、VideoREPA 64.3%、SRA 62.9%、Self-Flow 61.8%；GR-1 Tabletop 54.8% 对 50.4%；LIBERO 98.2% 对 97.4%（Table 4）。LIBERO 的 +0.8 pp 很小，单看这个基准不能支持「一致更大提升」。跨视频骨干的 Table 6 显示，Wan2.2-5B 上 61.4→68.8，Cosmos-Predict2.5-2B 上 56.7→62.1，说明增益不只对一个骨干成立。Appendix H 的 RoboCasa 75.4% 是另一个配置（batch 256），基线数字来自各自原论文&#x2F;官方仓库，不是同一训练协议下的对照；论文自己说明这是为了与竞争 VLA&#x2F;WAM 的配置可比，因此 75.4% 对 Xiaomi-Robotics-1 74.5% 的「最高」只能算弱证据。</p>
+<p>5B 与 14B 的结果不能拼成一条 scaling 曲线：两者的视频骨干、动作解码器深度、基线集合与训练迭代都不同（5B 150K、14B 100K），14B 又只对 DreamZero。能说的是 FRED 在两个规模上都带来方向一致的提升；不能说的是「14B 更好是因为规模」，更不能把 5B 与 14B 的同行数字直接比较。若要谈规模效应，需要同一架构、同一数据、同一评测下的 5B&#x2F;14B 对照，而论文没有提供。</p>
+<h3 id="4-3-机制证据"><a href="#4-3-机制证据" class="headerlink" title="4.3 机制证据"></a>4.3 机制证据</h3><p>论文的机制证据分三层，强度不同。第一层是诊断：论文 Fig. 1 在 DiT4DiT 上显示，噪声 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 的 probe 准确率随训练上升但低于干净未来 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>，CKNNA 也上升；这支持「VDM 训练会逐步把未来运动信息编码进 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>」的现象，但不解释原因。第二层是相关性：论文 Fig. 4 在 RoboCasa 上比较不同 VDM 训练目标的变体，任务成功率与一步视频生成质量（FVD）的相关系数只有 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.24</mn></mrow><annotation encoding="application/x-tex">r=0.24</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.24</span></span></span></span>，与干净未来表征的 probe 质量是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.49</mn></mrow><annotation encoding="application/x-tex">r=0.49</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.49</span></span></span></span>，而与「从噪声一步生成的未来表征」的 probe 质量是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.89</mn></mrow><annotation encoding="application/x-tex">r=0.89</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.89</span></span></span></span>。这个结果很有意思：它说明「视频生成得像」和「用干净未来做表征」都不是控制的关键，真正相关的是动作解码器实际消费的那个噪声表征。但它是跨若干方法变体的相关，不是因果干预；样本点少，也没有置信区间。</p>
+<p>第三层是消融。Table 3 是组件消融的 2×2：FRED 68.8%，去掉自蒸馏（保留历史）65.1%，去掉历史（保留自蒸馏）64.8%，两者都去掉（Base WAM）61.4%。这四格确实把两个因素单独隔离了，且交互接近可加；但它只在 RoboCasa 上做，论文未报告种子，也没有方差。Table 5 进一步扫了四个设计维度：teacher 噪声（0&#x2F;0.25&#x2F;0.5&#x2F;0.75 为 65.3&#x2F;68.8&#x2F;67.8&#x2F;67.6）、特征层（10&#x2F;14&#x2F;18&#x2F;22&#x2F;26 为 57.5&#x2F;63.0&#x2F;68.8&#x2F;66.8&#x2F;64.7）、<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>λ</mi><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\lambda_{\mathrm{SD}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">λ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">SD</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（0.1&#x2F;0.01&#x2F;0.001 为 68.1&#x2F;68.8&#x2F;62.7）、stop-gradient（允许动作梯度回传 65.6，阻止回传 68.8）。这些是单变量扫描，能说明默认值不是随意选的；但层扫描同时改变了「自蒸馏目标层」与「动作解码器条件层」，无法区分收益来自哪一侧。更关键的是缺失的对照：没有去掉 EMA teacher（改用 student 自身或冻结副本）、没有改变历史长度、没有把 target 换成 student 自己生成的低噪声表征、没有在推理时替换&#x2F;冻结&#x2F;打乱 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>，也没有用干净未来表征作为 oracle（上限参照）条件去测动作解码器的上限。因此「未来表征质量→控制」目前是「消融 + 相关」支持的主张，不是被因果实验证明的机制。</p>
+<p>另一个替代解释值得写进审稿意见：自蒸馏相当于给视频骨干增加了一个额外的、密集的监督信号，可能只是「更多训练&#x2F;更强正则」，而不是「更好的未来表征」。要区分两者，需要固定视频生成损失、只改变自蒸馏目标，或比较同训练步数&#x2F;同梯度预算下的基线；Table 3 去掉自蒸馏后确实变差，但没有匹配总损失或总计算预算，因此不能排除这一解释。若这个解释成立，论文的「未来表征生成器」叙事仍然有用，但创新性会从「表征目标」降为「多任务正则」。</p>
+<p>Table 5(d) 的 stop-gradient 值得单独说。它比较的是「让动作损失回传到视频骨干」与「不回传」：不回传 68.8%，回传 65.6%。这与论文的诊断一致——动作信号不是塑造 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 的好老师；但它也留下一个问题：如果动作梯度有害，为什么动作解码器仍能从更好的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 中获益？论文的解释是 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 应该由未来预测目标塑造，而不是由动作损失直接改造；这个解释合理，但没有进一步的表征分析（例如比较两种 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 的 probe&#x2F;CKNNA、看动作梯度究竟破坏了什么）。</p>
+<p>Table 4 把 FRED 与 VideoREPA、SRA、Self-Flow 放在同一基座和同一训练预算下比较，三个基准上 FRED 都最高：RoboCasa 68.8 对 64.3&#x2F;62.9&#x2F;61.8，GR-1 54.8 对 51.6&#x2F;52.1&#x2F;50.9，LIBERO 98.2 对 97.3&#x2F;97.6&#x2F;97.9。这支持「FRED 作为 WAM 的表征学习方法优于通用扩散表征对齐」，但 LIBERO 的差距只有 0.3–0.9 pp，不能过度解读；且 Self-Flow 没有官方训练实现，是作者复现的，VideoREPA&#x2F;SRA 的目标编码器与层选择也未必与 FRED 完全同条件。Table 6 的跨骨干结果（Wan2.2-5B 61.4→68.8，Cosmos-2B 56.7→62.1）是较强的泛化证据，因为它换了视频骨干而不是只换随机种子。Table 7 的推理成本见 §4.4。</p>
+<p>总结这一节：论文证明了「加 FRED 比不加好」，也提供了「噪声表征质量与控制相关」的有趣证据；但它没有证明「提升 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 的质量是控制提升的唯一或主要 cause」，也没有排除「FRED 只是一个更强的正则化&#x2F;更多训练信号」这一替代解释。消融主要在 RoboCasa 单基准、未报告种子&#x2F;方差，真机主结果与机制消融是两套环境，读者应把「真机有效」与「机制已解释」分开看。</p>
+<p>仿真与真机的证据还要分开读：机制与消融证据（Table 3&#x2F;4&#x2F;5&#x2F;6）都在仿真（RoboCasa&#x2F;GR-1&#x2F;LIBERO），真机主结果没有对应的组件消融；因此「哪个组件在真机上起作用」并没有被直接验证。真机上的成功可能与仿真上的排序一致，但论文没有做这种一致性分析。对于一篇以真机泛化为卖点的论文，这是一个结构性缺口。</p>
+<h3 id="4-4-成本与适用范围"><a href="#4-4-成本与适用范围" class="headerlink" title="4.4 成本与适用范围"></a>4.4 成本与适用范围</h3><p>推理成本是论文的强项。Table 7 在 Franka + A100 80GB 上测平均时延：5B FRED 0.136 s（5 帧输入），DiT4DiT 0.111 s（1 帧），π0.5 0.261 s，GR00T N1.7 0.121 s；14B FRED 0.406 s，DreamZero 3.255 s。也就是说，5B FRED 的耗时约为单帧 DiT4DiT 的 1.2 倍，仍与 VLA 同一量级；14B 比多步 DreamZero 快约 8 倍。这个优势来自「不做迭代视频去噪」，而不是来自模型更小。论文没有说明 0.136&#x2F;0.406 s 是否包含图像预处理、动作解码器的 4 步 Euler 积分与通信开销，也没有报告动作块执行步数与控制频率；这些会影响真实部署的判断。</p>
+<p>训练成本没有报告。论文给了迭代数（Franka 5B 150K、14B 100K；OpenArm 50K）、batch（128&#x2F;128&#x2F;32 或 64）、优化器与学习率，但没有 GPU 卡数、GPU 小时、墙钟时间、显存或费用。FRED 每个训练步要多一次 teacher 前向与自蒸馏计算，理论上比 DiT4DiT 更贵；论文没有量化这个增量。数据方面，DROID 只说是「最大的公开机器人数据集之一」，没有报告用了哪些子集、多少 episode、如何过滤相机&#x2F;动作；OpenArm 的机器人数据与人类视频规模报告得较清楚（553 条&#x2F;192K 帧；1,187 条&#x2F;321K 帧），但没有视频时长、帧率、采集成本或标注成本。人类视频没有动作标签，省掉了动作标注，但遥操作与数据采集成本仍未披露。</p>
+<p>适用范围应明确收缩。真机只覆盖 Franka FR3 桌面操作与 OpenArm 双臂桌面操作，任务数是 DROID 四类共 8 个任务、OpenArm 7 个任务；没有移动操作、没有多机器人、没有更灵巧的手内操作，也没有超过 Clear Table（5 个物体）的长程任务。人类视频是作者为这套 OpenArm 任务自行采集的 1,187 条第一视角视频，覆盖 7 个技能&#x2F;7 类物体；论文没有说明采集环境是否与评测环境完全分离，但技能与物体集合是作者选定的，三个迁移任务都能在人类视频中找到对应技能，因此这更接近受控的技能迁移，而不是「野外人类视频」的开放迁移。语言理解是弱点：不加人类视频时 FRED 在迁移任务上的指令遵循率为 0%，作者归因于 VDM 的语言 grounding 弱，并把「结合视觉语言模型（Vision-Language Model，VLM）的语言 grounding」列为未来工作。跨具身（cross-embodiment）的对应关系是隐式的：人类与机器人视频只共享视频模型，没有显式的部件&#x2F;视角&#x2F;动作对应，作者也承认这一点。方法改善的是「同域&#x2F;近域真机上的零样本泛化、长程与人类视频共训」，尚未证明能推广到开放指令、开放环境或任意具身。</p>
+<h2 id="5-最容易受到审稿人质疑的地方"><a href="#5-最容易受到审稿人质疑的地方" class="headerlink" title="5. 最容易受到审稿人质疑的地方"></a>5. 最容易受到审稿人质疑的地方</h2><p>以下五点按「对结论可信度的影响」排序，而不是按论文的章节顺序；前四点是主要问题，最后一点是次要问题。</p>
+<h4 id="质疑：真机结果的统计强度不足，小样本上的小差距无法与噪声区分"><a href="#质疑：真机结果的统计强度不足，小样本上的小差距无法与噪声区分" class="headerlink" title="质疑：真机结果的统计强度不足，小样本上的小差距无法与噪声区分"></a>质疑：真机结果的统计强度不足，小样本上的小差距无法与噪声区分</h4><ul>
+<li><strong>原文依据</strong>：DROID 每个任务 12 次试验（Appendix B.1），四类任务合计 8 个任务；OpenArm 每任务 12 次试验（Appendix B.2），迁移任务共 3 个任务&#x2F;36 次试验。论文没有报告训练种子、置信区间、标准差或显著性检验；成功判定允许部分分，但判定者与规则未说明；指令遵循率的判定规则完全未定义。5B object grounding 的 +4.2 pp 在 24 次试验上约等于 1 次试验；5B long-horizon 只有 12 次试验；人机迁移 50.0% 对 19.4% 是 36 次试验上的平均，且 Bottle 任务只有 25.0%。</li>
+<li><strong>为什么重要</strong>：论文的核心卖点是真机上的大幅提升，但每类任务的试验数很小；若把 12 次试验粗略视为独立伯努利试验（实际不满足），半数附近的 95% 区间约 ±28 pp，24 次约 ±20 pp。大效应（OOD 10.4→37.5、14B 61.7→81.7）大概率不是噪声，但 grounding 的 +4.2 pp、LIBERO 的 +0.8 pp、人类数据带来的 +4.2&#x2F;+5.5 pp 都可能落在噪声内。没有种子与置信区间，读者无法判断哪些结论是可复现的。</li>
+<li><strong>当前能够得出的判断</strong>：大方向可信，小差距不可信；「consistently outperforms」在逐任务层面不成立（Cup&#x2F;Cutlery 反转、Bottle 25%）。指令遵循 97.2% 这个数字尤其需要判定规则，否则无法与其他工作比较。</li>
+<li><strong>如何验证或补强</strong>：每任务至少 30–50 次试验并报告二项&#x2F;自助置信区间；至少 3 个训练种子；成功与指令遵循采用盲评并给出评分量表（rubric）与评分者一致性；逐任务报告而不是只报平均；对关键比较做配对检验。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：基线、训练预算与视觉输入不完全可比，AGRA-还是作者自行复现"><a href="#质疑：基线、训练预算与视觉输入不完全可比，AGRA-还是作者自行复现" class="headerlink" title="质疑：基线、训练预算与视觉输入不完全可比，AGRA 还是作者自行复现"></a>质疑：基线、训练预算与视觉输入不完全可比，AGRA 还是作者自行复现</h4><ul>
+<li><strong>原文依据</strong>：Table 1 中 π0.5、GR00T、DreamZero 用公开 checkpoint，Fast-WAM&#x2F;DiT4DiT 按官方配方训练，AGRA 因无官方实现由作者在自研代码库复现（Appendix A）。AGRA 恰是 5B 中 long-horizon、OOD 与 grounding 三项最强的 WAM 基线（31.7&#x2F;10.4&#x2F;33.3），若复现偏弱，FRED 的相对提升会被放大。DROID 训练子集&#x2F;过滤规则未报告；π0.5&#x2F;GR00T 是通用 VLA checkpoint，未必与 FRED 同数据、同预算。14B 只对比 DreamZero，且 DreamZero 是多步视频去噪架构；5B 与 14B 的基线集合不同，不能把两行数字直接横向比较。相机输入也不同：VLA 用腕部+左侧，WAM 用左右两侧（Appendix B.1）。Appendix H 的 75.4% 用 batch 256，基线数字取自原论文，不是同协议对照。</li>
+<li><strong>为什么重要</strong>：论文的主张是「FRED 一致优于竞争 WAM」。同骨干的 5B 对比（DiT4DiT&#x2F;Fast-WAM&#x2F;AGRA）是较干净的；14B 对 DreamZero 则把「表征学习」与「单步解耦 vs 多步联合」混在一起。若 AGRA 复现不准确，5B 的「最强基线」也不可靠。跨家族 VLA 比较还受相机与预训练数据影响。</li>
+<li><strong>当前能够得出的判断</strong>：FRED 相对同骨干单步 WAM 的提升方向可信；14B 的提升不能单独归因于 FRED；AGRA 的数字需要独立复现检查；跨 VLA 的比较只能作为参考。DiT4DiT 在 DROID easy 只有 16.7%，远低于 π0.5 的 58.3%，论文没有解释这是架构不匹配还是训练不足，若是后者，FRED 的相对增益会被高估。</li>
+<li><strong>如何验证或补强</strong>：公开 DROID 子集与预处理；给所有模型相同相机与相同训练预算；在 14B 上增加 DiT4DiT&#x2F;AGRA 式单步基线；用官方 AGRA 或第三方复现核对数字；Appendix H 用同 batch&#x2F;同评测协议的基线重跑；报告基线调参预算。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：未来表征质量与控制的因果链没有被隔离，机制证据主要是相关与消融"><a href="#质疑：未来表征质量与控制的因果链没有被隔离，机制证据主要是相关与消融" class="headerlink" title="质疑：未来表征质量与控制的因果链没有被隔离，机制证据主要是相关与消融"></a>质疑：未来表征质量与控制的因果链没有被隔离，机制证据主要是相关与消融</h4><ul>
+<li><strong>原文依据</strong>：论文 Fig. 1 是训练过程中的 probe&#x2F;CKNNA 曲线；论文 Fig. 4 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>r</mi><mo>=</mo><mn>0.89</mn></mrow><annotation encoding="application/x-tex">r=0.89</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.4306em;"></span><span class="mord mathnormal" style="margin-right:0.0278em;">r</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="katex-base"><span class="katex-strut" style="height:0.6444em;"></span><span class="mord">0.89</span></span></span></span> 是跨若干 VDM 目标变体的相关，不是干预。Table 3 的 2×2 与 Table 5 的扫描能说明「去掉某设计会变差」，但没有在推理时替换&#x2F;冻结&#x2F;打乱 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>、没有用干净未来表征做 oracle 条件、没有比较 teacher 与 student 的目标、没有去掉 EMA teacher、没有改变历史长度。Table 5(b) 的层扫描同时改变自蒸馏层与动作条件层，存在混杂。所有消融都在 RoboCasa 单基准、未报告种子&#x2F;方差。论文也没有做泄漏检验（例如探测 student 的 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 是否编码了未来帧的像素级信息）。</li>
+<li><strong>为什么重要</strong>：论文的核心论点是「提升未来表征质量导致控制提升」。如果 FRED 只是一个更强的正则化器、或只是给视频骨干更多训练信号，那么「未来表征生成器」的解释就不是唯一解释；这影响创新性与后续工作的方向。相关证据不能排除这些替代解释。</li>
+<li><strong>当前能够得出的判断</strong>：证据足以支持「FRED 的训练目标让 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 更接近真实未来表征，且控制变好」这一联合主张；不足以证明「<span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 的改善是控制改善的因果中介」。stop-grad 的结果（动作梯度有害）反而提示动作通路与表征通路的关系比论文叙述更复杂。</li>
+<li><strong>如何验证或补强</strong>：推理时用 oracle 干净未来 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 替换 student <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span>，测动作解码器的上限；对 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 做加噪&#x2F;打乱&#x2F;冻结的因果干预；在相同 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 上比较不同动作解码器；去掉 EMA teacher、改变历史长度、把 SD 目标层与动作条件层解耦；在 FRED checkpoint 上重复 Fig. 1 的 probe&#x2F;CKNNA；多种子重复消融并报告方差。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：人机迁移的证据范围窄，且迁移来源没有被拆开"><a href="#质疑：人机迁移的证据范围窄，且迁移来源没有被拆开" class="headerlink" title="质疑：人机迁移的证据范围窄，且迁移来源没有被拆开"></a>质疑：人机迁移的证据范围窄，且迁移来源没有被拆开</h4><ul>
+<li><strong>原文依据</strong>：人机迁移只有 3 个任务、每任务 12 次试验，平均 50.0%，其中 Bottle on Basket 只有 25.0%；人类视频是作者自行采集的 1,187 条第一视角视频，覆盖 7 个技能&#x2F;7 类物体，其技能集合与三个迁移任务对应；论文未说明采集环境与评测环境的分离程度（Appendix B.2）。作者承认迁移是隐式的，没有显式跨具身对应（Appendix F）。不加人类视频时 FRED 的指令遵循率为 0%，作者归因于 VDM 语言 grounding 弱；但论文没有说明人类视频分支是否也施加 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="script">L</mi><mrow><mi mathvariant="normal">S</mi><mi mathvariant="normal">D</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\mathcal{L}_{\mathrm{SD}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.8333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathcal">L</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3283em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="katex-sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight"><span class="mord mathrm mtight">SD</span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span>（只写「video generation objective」），也没有拆开「更多视频数据」「语言-视频对应」「未来表征蒸馏」三者各自的贡献。指令遵循的判定规则未定义。</li>
+<li><strong>为什么重要</strong>：50.0% 对 19.4% 是摘要级数字。如果人类视频只是让模型见过这三个任务的视频，且评测任务与视频技能一一对应，那么这是「环境与物体受控的视频级技能迁移」，不是开放的人类视频迁移。97.2% 的指令遵循若由非盲人工判定，也可能高估。迁移来源若主要是额外数据&#x2F;语言对应而非 FRED 的表征目标，论文的机制叙事会被削弱。</li>
+<li><strong>当前能够得出的判断</strong>：在这三个任务、这套环境下，FRED 的人机共训明显优于 WAM 基线，这一点可信；但不能外推到新环境、新物体、野外人类视频或任意具身。50% 的成功率仍是中等，作者也承认。</li>
+<li><strong>如何验证或补强</strong>：增加更多迁移任务与物体，使用未参与采集的人类视频；报告人类视频的时长&#x2F;帧率&#x2F;采集协议；定义并盲评指令遵循；做「只加视频不上语言」「只加语言不上视频」「人类视频是否加 SD」的消融；报告人类:机器人采样比例的影响；尝试显式跨具身对应作为对照。</li>
+<li><strong>严重程度</strong>：主要问题。</li>
+</ul>
+<h4 id="质疑：训练成本、数据配方与部署细节披露不足，复现门槛被低估"><a href="#质疑：训练成本、数据配方与部署细节披露不足，复现门槛被低估" class="headerlink" title="质疑：训练成本、数据配方与部署细节披露不足，复现门槛被低估"></a>质疑：训练成本、数据配方与部署细节披露不足，复现门槛被低估</h4><ul>
+<li><strong>原文依据</strong>：论文报告了迭代数、batch、学习率与推理时延（Table 7），但没有 GPU 卡数、GPU 小时、墙钟时间、显存或费用；DROID 子集与过滤规则未报告；人类视频没有时长&#x2F;帧率；没有训练种子；没有动作块执行步数&#x2F;控制频率；没有失败案例分析。代码与模型已发布，但论文没有核对发布配置与论文配置是否一致。14B 模型 100K 迭代 × batch 128 的训练成本显然不低，Appendix H 也提到「sufficient computational resources」。</li>
+<li><strong>为什么重要</strong>：这类方法的复现成本主要在 14B 视频骨干的训练，而非推理；不披露算力会让读者低估门槛。DROID 子集与相机映射直接决定能否复现零样本结果。部署侧，动作块执行策略与控制频率决定 0.136 s 的时延是否真的能转化为闭环频率。</li>
+<li><strong>当前能够得出的判断</strong>：方法描述足以让读者理解管线，但不足以让第三方在相同预算下复现；代码&#x2F;模型发布提高了可复现性，但配置一致性仍待核对。成本披露是「未报告」，不是「很低」。</li>
+<li><strong>如何验证或补强</strong>：报告 GPU 型号&#x2F;卡数&#x2F;小时与总训练成本；公开 DROID 过滤脚本与相机映射；报告人类视频采集协议与时长；给出动作块执行步数、控制频率与端到端延迟分解；提供失败案例与重试率；在代码仓库中固定论文配置。</li>
+<li><strong>严重程度</strong>：次要问题。</li>
+</ul>
+<h2 id="6-审稿式总评"><a href="#6-审稿式总评" class="headerlink" title="6. 审稿式总评"></a>6. 审稿式总评</h2><p>作者发现单步 WAM 的动作解码器只能通过 VDM 从纯噪声一次前向得到的中间表征 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 来「看未来」，并用 probe&#x2F;CKNNA 诊断出 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 虽含未来信息、却仍落后于干净未来观测的表征；因此提出 FRED，把 VDM 当作未来表征生成器，用 EMA teacher 从带噪真实未来观测提取同层目标、让 student 从当前观测与 4 帧历史预测该目标，并用 stop-grad 把动作损失挡在视频骨干之外。实验在 DROID→新 Franka 环境的零样本泛化与 OpenArm 人机共训上表明：5B 的 long-horizon 31.7→46.7、OOD 10.4→37.5，14B 的 long-horizon 61.7→81.7、OOD 10.4→52.1，人机迁移 50.0% 对最强 WAM 19.4%。其中「同骨干单步 WAM 上的大效应」与「推理时延接近 VLA」证据较强；「小差距的统计稳定性」「14B 相对 DreamZero 的归因」「未来表征→控制的因果性」「人机迁移的开放范围」仍缺少充分支持。本文最有价值的部分是把一个被忽视的接口——动作解码器消费的单步噪声表征——明确成训练目标，并用真机实验证明它值得优化；最大的审稿风险是机制证据以相关和单基准消融为主，以及真机小样本上的结论被平均数字放大。</p>
+<ul>
+<li><strong>问题定义清晰度</strong>：强。论文明确区分了 WAM 的延迟瓶颈、单步解耦架构的接口，以及「噪声 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 与干净未来 <span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>h</mi></mrow><annotation encoding="application/x-tex">h</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="katex-base"><span class="katex-strut" style="height:0.6944em;"></span><span class="mord mathnormal">h</span></span></span></span> 的差距」这一可测现象；核心假设一句话可以说清。</li>
+<li><strong>创新性证据</strong>：中。未来观测自蒸馏 + 同层对齐 + stop-grad 的组合有辨识度，且与 REPA&#x2F;VideoREPA&#x2F;SRA&#x2F;AGRA 的差异说得清楚；但 EMA teacher、DINO 式 KL、flow matching 都是已有组件，是否「首次」未被独立文献检索验证。</li>
+<li><strong>方法可信度</strong>：中。管线、超参、层号、训练预算与推理步骤都交代得较具体，代码&#x2F;模型已发布；但 EMA teacher 无消融、层扫描混杂、机制以相关为主，AGRA 为自研复现，DROID 子集未披露。</li>
+<li><strong>实验支持力度</strong>：中。真机实验覆盖两个平台、四类泛化轴与人类视频迁移，主效应大且推理成本低；但每任务 12 次试验、无种子&#x2F;置信区间、指令遵循未定义、14B 仅一个基线、部分小差距落在噪声内。</li>
+<li><strong>可复现性</strong>：中。代码、模型、项目页齐全，超参与数据规模披露较好；但训练算力、DROID 过滤、人类视频时长&#x2F;帧率、随机种子与部署细节缺失，发布配置与论文配置的一致性未核对。</li>
+<li><strong>综合阅读价值</strong>：高。它把一个「单步 WAM 到底在用什么看未来」的问题讲得很清楚，方法简单、真机证据有冲击力，且作者对语言 grounding 与隐式迁移的局限较诚实；适合作为 WAM&#x2F;视频表征学习方向的必读与批判性讨论材料。</li>
+</ul>
+
+		</div>
+
+		
+		<div class="post-copyright-info w-full my-8 px-2 sm:px-6 md:px-8">
+			<div class="article-copyright-info-container">
+    <ul>
+        <li><strong>标题:</strong> 从一步噪声中蒸馏未来：FRED 用自蒸馏改进世界动作模型的未来表征</li>
+        <li><strong>作者:</strong> GIn</li>
+        <li><strong>创建于
+                :</strong> 2026-10-25 12:00:00</li>
+        
+            <li>
+                <strong>更新于
+                    :</strong> 2026-10-25 14:52:59
+            </li>
+        
+        <li>
+            <strong>链接:</strong> https://gin-lxy.github.io/2026/10/25/2610.30320v1_Self-Distilling_Future_Video_Representations_for_World_Action_Models/
+        </li>
+        <li>
+            <strong>
+                版权声明:
+            </strong>
+            
+
+            
+                本文章采用 <a class="license" target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0">CC BY-NC-SA 4.0</a> 进行许可。
+            
+        </li>
+    </ul>
+</div>
+
+		</div>
+		
+
+		
+		<ul class="post-tags-box text-lg mt-1.5 flex-wrap justify-center flex md:hidden">
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Robot-Manipulation/">#Robot Manipulation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Cross-Embodiment-Transfer/">#Cross-Embodiment Transfer</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/World-Action-Models/">#World Action Models</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Self-Distillation/">#Self-Distillation</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Video-Diffusion/">#Video Diffusion</a>&nbsp;
+			</li>
+			
+			<li class="tag-item mx-0.5">
+				<a href="/tags/Zero-Shot-Generalization/">#Zero-Shot Generalization</a>&nbsp;
+			</li>
+			
+		</ul>
+		
+
+		
+
+		
+		<div class="article-nav my-8 flex justify-between items-center px-2 sm:px-6 md:px-8">
+			
+			<div class="article-prev border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="prev" rel="prev" href="/2026/10/25/2610.31329v1_WeVisOne-VL_Unified_Visual_Perception_from_Objects_to_Pixels/">
+					<span class="left arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-left"></i>
+					</span>
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">从对象到像素：WeVisOne-VL 用结构化 token 与 9.6M 解码器统一视觉感知</span>
+						<span class="post-nav-item">上一篇</span>
+					</span>
+				</a>
+			</div>
+			
+			
+			<div class="article-next border-border-color shadow-redefine-flat shadow-shadow-color-2 rounded-medium px-4 py-2 hover:shadow-redefine-flat-hover hover:shadow-shadow-color-2">
+				<a class="next" rel="next" href="/2026/10/23/2609.26457v1_Recursive_self-improvement_of_AI_research_agents/">
+					<span class="title flex justify-center items-center">
+						<span class="post-nav-title-item truncate max-w-48">递归自我改进：让 AI 研究智能体改写自己的 harness</span>
+						<span class="post-nav-item">下一篇</span>
+					</span>
+					<span class="right arrow-icon flex justify-center items-center">
+						<i class="fa-solid fa-chevron-right"></i>
+					</span>
+				</a>
+			</div>
+			
+		</div>
+		
+
+
+		
+		<div class="comment-container px-2 sm:px-6 md:px-8 pb-8">
+			<div class="comments-container mt-10 w-full ">
+    <div id="comment-anchor" class="w-full h-2.5"></div>
+    <div class="comment-area-title w-full my-1.5 md:my-2.5 text-xl md:text-3xl font-bold">
+        评论
+    </div>
+    
+
+        
+            
+    <div id="waline"></div>
+    <script type="module" data-swup-reload-script>
+      import { init } from '/js/libs/waline.js';
+
+      (function() {
+        const startPath = location.pathname;
+        const startTime = Date.now();
+        const retryDelay = 200;
+        const retryLimit = 5000;
+
+        const runWaline = () => {
+          if (location.pathname !== startPath) {
+            return;
+          }
+
+          const container = document.getElementById('waline');
+          if (!container) {
+            if (Date.now() - startTime < retryLimit) {
+              setTimeout(runWaline, retryDelay);
+            }
+            return;
+          }
+
+          if (window.redefineWalineInstance?.destroy) {
+            window.redefineWalineInstance.destroy();
+          }
+
+          container.innerHTML = '';
+          window.redefineWalineInstance = init({
+            el: '#waline',
+            serverURL: 'https://example.example.com',
+            path: location.pathname,
+            dark: 'body[class~="dark-mode"]',
+            reaction: false,
+            requiredMeta: ['nick', 'mail'],
+            emoji: [],
+                      lang: 'zh-CN',
+          });
+        };
+
+        runWaline();
+      })();
+    </script>
+
+
+
+        
+    
+</div>
+
+		</div>
+		
+	</div>
+
+	
+	<div class="toc-content-container">
+		<div class="post-toc-wrap">
+	<div class="post-toc">
+		<div class="toc-title">目录</div>
+		<div class="page-title">从一步噪声中蒸馏未来：FRED 用自蒸馏改进世界动作模型的未来表征</div>
+		<ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#0-%E4%B8%80%E5%8F%A5%E8%AF%9D%E7%BB%93%E8%AE%BA"><span class="nav-text">0. 一句话结论</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#1-%E8%AE%BA%E6%96%87%E5%85%B7%E4%BD%93%E6%83%B3%E8%A7%A3%E5%86%B3%E4%BB%80%E4%B9%88%E9%97%AE%E9%A2%98%EF%BC%9F"><span class="nav-text">1. 论文具体想解决什么问题？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#2-%E5%88%9B%E6%96%B0%E7%82%B9%E6%98%AF%E4%BB%80%E4%B9%88%EF%BC%9F"><span class="nav-text">2. 创新点是什么？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#3-%E4%BD%9C%E8%80%85%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%EF%BC%9F"><span class="nav-text">3. 作者如何解决？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#4-%E8%A7%A3%E5%86%B3%E5%BE%97%E6%80%8E%E4%B9%88%E6%A0%B7%EF%BC%9F"><span class="nav-text">4. 解决得怎么样？</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#4-1-%E5%AE%9E%E9%AA%8C%E8%AE%BE%E7%BD%AE"><span class="nav-text">4.1 实验设置</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-2-%E5%85%B3%E9%94%AE%E7%BB%93%E6%9E%9C"><span class="nav-text">4.2 关键结果</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-3-%E6%9C%BA%E5%88%B6%E8%AF%81%E6%8D%AE"><span class="nav-text">4.3 机制证据</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#4-4-%E6%88%90%E6%9C%AC%E4%B8%8E%E9%80%82%E7%94%A8%E8%8C%83%E5%9B%B4"><span class="nav-text">4.4 成本与适用范围</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#5-%E6%9C%80%E5%AE%B9%E6%98%93%E5%8F%97%E5%88%B0%E5%AE%A1%E7%A8%BF%E4%BA%BA%E8%B4%A8%E7%96%91%E7%9A%84%E5%9C%B0%E6%96%B9"><span class="nav-text">5. 最容易受到审稿人质疑的地方</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#6-%E5%AE%A1%E7%A8%BF%E5%BC%8F%E6%80%BB%E8%AF%84"><span class="nav-text">6. 审稿式总评</span></a></li></ol>
+
+	</div>
+</div>
+	</div>
+	
+</div>
+
+			</div>
+
+			
+		</div>
+
+		<div class="main-content-footer">
+			<footer class="footer mt-5 py-5 h-auto text-base text-third-text-color relative border-t-2 border-t-border-color">
+    <div class="info-container py-3 text-center">
+        
+        <div class="text-center">
+            &copy;
+            
+              <span>2023</span>
+              -
+            
+            2026&nbsp;&nbsp;<i class="fa-solid fa-heart fa-beat" style="--fa-animation-duration: 0.5s; color: #f54545"></i>&nbsp;&nbsp;<a href="/">GIn</a>
+            
+                
+                <p class="post-count space-x-0.5">
+                    <span>
+                        共撰写了 186 篇文章
+                    </span>
+                    
+                </p>
+            
+        </div>
+        
+        <div class="relative text-center lg:absolute lg:left-[20px] lg:top-1/2 lg:-translate-y-1/2 lg:text-left">
+            <span class="lg:block text-sm">由 <?xml version="1.0" encoding="utf-8"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg class="relative top-[2px] inline-block align-baseline" version="1.1" id="圖層_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1rem" height="1rem" viewBox="0 0 512 512" enable-background="new 0 0 512 512" xml:space="preserve"><path fill="#0E83CD" d="M256.4,25.8l-200,115.5L56,371.5l199.6,114.7l200-115.5l0.4-230.2L256.4,25.8z M349,354.6l-18.4,10.7l-18.6-11V275H200v79.6l-18.4,10.7l-18.6-11v-197l18.5-10.6l18.5,10.8V237h112v-79.6l18.5-10.6l18.5,10.8V354.6z"/></svg><a target="_blank" class="text-base" href="https://hexo.io">Hexo</a> 驱动</span>
+            <span class="text-sm lg:block">主题&nbsp;<a class="text-base" target="_blank" href="https://github.com/EvanNotFound/hexo-theme-redefine">Redefine v2.9.0</a></span>
+        </div>
+        
+        
+            <div>
+                博客已运行 <span class="odometer" id="runtime_days" ></span> 天 <span class="odometer" id="runtime_hours"></span> 小时 <span class="odometer" id="runtime_minutes"></span> 分钟 <span class="odometer" id="runtime_seconds"></span> 秒
+            </div>
+        
+        
+            <script data-swup-reload-script>
+                try {
+                    function odometer_init() {
+                    const elements = document.querySelectorAll('.odometer');
+                    elements.forEach(el => {
+                        new Odometer({
+                            el,
+                            format: '( ddd).dd',
+                            duration: 200
+                        });
+                    });
+                    }
+                    odometer_init();
+                } catch (error) {}
+            </script>
+        
+        
+            
+                
+        
+                
+        
+        
+    </div>  
+</footer>
+		</div>
+	</div>
+
+	
+	<div class="post-tools">
+		<div class="post-tools-container">
+	<ul class="article-tools-list">
+		<!-- TOC aside toggle -->
+		
+		<li class="right-bottom-tools page-aside-toggle">
+			<i class="fa-regular fa-outdent"></i>
+		</li>
+		
+
+		<!-- go comment -->
+		
+		<li class="go-comment">
+			<i class="fa-regular fa-comments"></i>
+		</li>
+		
+	</ul>
+</div>
+	</div>
+	
+
+	<div class="right-side-tools-container">
+		<div class="side-tools-container">
+	<ul class="hidden-tools-list">
+		<li class="right-bottom-tools tool-font-adjust-plus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-plus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-font-adjust-minus flex justify-center items-center">
+			<i class="fa-regular fa-magnifying-glass-minus"></i>
+		</li>
+
+		<li class="right-bottom-tools tool-dark-light-toggle flex justify-center items-center">
+			<i class="fa-regular fa-moon"></i>
+		</li>
+
+		<!-- rss -->
+		
+
+		
+
+		<li class="right-bottom-tools tool-scroll-to-bottom flex justify-center items-center">
+			<i class="fa-regular fa-arrow-down"></i>
+		</li>
+	</ul>
+
+	<ul class="visible-tools-list">
+		<li class="right-bottom-tools toggle-tools-list flex justify-center items-center">
+			<i class="fa-regular fa-cog fa-spin"></i>
+		</li>
+		
+		<li class="right-bottom-tools tool-scroll-to-top flex justify-center items-center">
+			<i class="arrow-up fas fa-arrow-up"></i>
+			<span class="percent"></span>
+		</li>
+		
+		
+	</ul>
+</div>
+	</div>
+
+	<div class="image-viewer-container" role="dialog" aria-modal="true" aria-label="图片查看器">
+	<button class="image-viewer-close" type="button" aria-label="关闭">
+		<i class="fa-solid fa-xmark"></i>
+	</button>
+	<button class="image-viewer-prev" type="button" aria-label="上一页">
+		<i class="fa-solid fa-chevron-left"></i>
+	</button>
+	<div class="image-viewer-frame">
+		<img src="" alt="">
+	</div>
+	<div class="image-viewer-exif-panel hidden absolute left-1/2 bottom-20 -translate-x-1/2 w-[min(92vw,420px)] max-h-[60vh] overflow-hidden rounded-2xl bg-background-color-transparent-80 p-4 text-left shadow-redefine-flat backdrop-blur-md" role="dialog" aria-label="EXIF" aria-hidden="true">
+		<div class="flex items-center justify-between mb-3">
+			<span class="text-sm font-semibold text-first-text-color">EXIF</span>
+			<button class="image-viewer-exif-close flex h-8 w-8 items-center justify-center rounded-full bg-background-color-transparent-80 text-first-text-color transition hover:bg-background-color-transparent-40" type="button" aria-label="关闭">
+				<i class="fa-solid fa-xmark text-[0.65rem]"></i>
+			</button>
+		</div>
+		<div class="image-viewer-exif-cards grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1 scrollbar-hide"></div>
+		<template class="image-viewer-exif-card-template">
+			<div class="rounded-lg bg-background-color-transparent-40 px-3 py-2">
+				<div class="image-viewer-exif-card-header flex items-center gap-2 mb-1">
+					<i class="image-viewer-exif-card-icon fa-solid fa-circle-info text-xs text-third-text-color"></i>
+					<div class="image-viewer-exif-card-title text-xs font-semibold text-first-text-color"></div>
+				</div>
+				<div class="image-viewer-exif-card-items flex flex-col gap-1"></div>
+			</div>
+		</template>
+	</div>
+	<button class="image-viewer-exif-toggle flex items-center gap-2 hidden absolute left-1/2 bottom-6 -translate-x-1/2 rounded-full border border-border-color bg-background-color-transparent-80 px-4 py-2 text-first-text-color backdrop-blur-md transition hover:bg-background-color-transparent-40" type="button" aria-label="EXIF" aria-expanded="false">
+		<i class="fa-solid fa-circle-info text-xs"></i>
+		<span class="text-xs font-semibold uppercase tracking-wider">EXIF</span>
+	</button>
+	<button class="image-viewer-next" type="button" aria-label="下一页">
+		<i class="fa-solid fa-chevron-right"></i>
+	</button>
+</div>
+
+
+	
+	<div class="search-pop-overlay">
+	<div class="popup search-popup">
+		<div class="search-header">
+			<span class="search-input-field-pre">
+				<i class="fa-solid fa-keyboard"></i>
+			</span>
+			<div class="search-input-container">
+				<input autocomplete="off" autocorrect="off" autocapitalize="off" placeholder="站内搜索您需要的内容..." spellcheck="false" type="search" class="search-input">
+			</div>
+			<span class="popup-btn-close">
+				<i class="fa-solid fa-times"></i>
+			</span>
+		</div>
+		<div id="search-result">
+			<div id="no-result">
+				<i class="fa-solid fa-spinner fa-spin-pulse fa-5x fa-fw"></i>
+			</div>
+		</div>
+	</div>
+</div>
+	
+
+</main>
+
+
+
+<script src="/js/build/libs/Swup.min.js"></script>
+
+<script src="/js/build/libs/SwupSlideTheme.min.js"></script>
+
+<script src="/js/build/libs/SwupScriptsPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupProgressPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupScrollPlugin.min.js"></script>
+
+<script src="/js/build/libs/SwupPreloadPlugin.min.js"></script>
+
+<script>
+    window.swup = new Swup({
+        plugins: [
+            new SwupScriptsPlugin({
+                optin: true,
+            }),
+            new SwupProgressPlugin(),
+            new SwupScrollPlugin({
+                offset: 80,
+            }),
+            new SwupSlideTheme({
+                mainElement: ".main-content-body",
+            }),
+            new SwupPreloadPlugin(),
+        ],
+        containers: ["#swup"],
+    });
+
+    window.dispatchEvent(
+        new CustomEvent("redefine:swup:ready", {
+            detail: {
+                swup: window.swup,
+            },
+        }),
+    );
+</script>
+
+
+
+
+	
+<script src="/js/build/main.js" type="module"></script>
+
+
+
+    
+<script src="/js/build/libs/odometer.min.js"></script>
+
+    
+<link rel="stylesheet" href="/assets/odometer-theme-minimal.css">
+
+
+
+
+
+
+
+  
+<script src="/js/build/libs/Typed.min.js"></script>
+
+
+
+
+
+
+
+
+
+
+<script src="/js/build/libs/moment-with-locales.min.js" data-swup-reload-script=""></script>
+
+
+
+	
+</body>
+
+</html>
